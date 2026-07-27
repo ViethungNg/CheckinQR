@@ -186,15 +186,6 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                     <tbody id="checkins-table-body">
                         <?php foreach($checkins as $c): 
                             $isByLuckyCode = ($c['checkin_method'] ?? '') === 'lucky_code' || (!empty($c['guest_normalized_phone']) && $c['normalized_phone'] !== $c['guest_normalized_phone']);
-                            $jsonObj = [
-                                'id'         => (int)$c['id'],
-                                'event_id'   => (int)($c['event_id'] ?? 0),
-                                'table_id'   => $c['table_id'] ? (int)$c['table_id'] : null,
-                                'full_name'  => $c['full_name_entered'],
-                                'phone'      => $c['phone_entered'],
-                                'table_name' => $c['table_name'] ?? ''
-                            ];
-                            $dataAttr = htmlspecialchars(json_encode($jsonObj), ENT_QUOTES, 'UTF-8');
                         ?>
                         <tr class="<?php echo $c['match_status'] === 'matched' ? 'row-checked-in' : ''; ?>">
                             <td><strong><?php echo esc($c['full_name_entered']); ?></strong></td>
@@ -238,7 +229,15 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                             </td>
                             <?php if(!isKinhDoanh()): ?>
                             <td>
-                                <button type="button" class="btn btn-info" data-checkin="<?php echo $dataAttr; ?>" onclick="handleAssignClick(this)">Xếp bàn</button>
+                                <button type="button" 
+                                        class="btn btn-info btn-assign-table" 
+                                        data-id="<?php echo (int)$c['id']; ?>" 
+                                        data-event="<?php echo (int)($c['event_id'] ?? 0); ?>" 
+                                        data-table="<?php echo $c['table_id'] ? (int)$c['table_id'] : ''; ?>" 
+                                        data-name="<?php echo esc($c['full_name_entered']); ?>" 
+                                        data-phone="<?php echo esc($c['phone_entered']); ?>">
+                                    Xếp bàn
+                                </button>
                                 
                                 <?php if(isAdmin()): ?>
                                 <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
@@ -286,65 +285,83 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
 </div>
 
 <script>
-    const modal = document.getElementById('assignModal');
     const allTables = <?php echo json_encode($tablesList); ?>;
     const isAdminUser = <?php echo isAdmin() ? 'true' : 'false'; ?>;
     const isKinhDoanhUser = <?php echo isKinhDoanh() ? 'true' : 'false'; ?>;
     const csrfTokenValue = '<?php echo $_SESSION[CSRF_TOKEN_KEY] ?? ""; ?>';
 
-    function htmlEscapedJson(obj) {
-        return JSON.stringify(obj)
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
             .replace(/&/g, '&amp;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#39;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;');
     }
-    
-    function openAssignModal(c) {
-        if (!c) return;
 
-        document.getElementById('modalCheckinId').value = c.id;
-        document.getElementById('modalGuestName').innerText = c.full_name || c.full_name_entered || '';
-        document.getElementById('modalGuestPhone').innerText = c.phone || c.phone_entered || '';
-        
-        const select = document.getElementById('modalTableSelect');
-        select.innerHTML = '<option value="">-- Chưa xếp bàn --</option>';
-        
-        allTables.forEach(t => {
-            if (!c.event_id || !t.event_id || t.event_id == c.event_id) {
-                const opt = document.createElement('option');
-                opt.value = t.id;
-                opt.textContent = t.table_code ? `${t.table_code} (${t.table_name})` : t.table_name;
-                if (c.table_id && t.id == c.table_id) opt.selected = true;
-                select.appendChild(opt);
-            }
-        });
-        
-        modal.style.display = 'block';
-    }
-
-    function handleAssignClick(btn) {
-        try {
-            const raw = btn.getAttribute('data-checkin');
-            if (raw) {
-                const c = JSON.parse(raw);
-                openAssignModal(c);
-            }
-        } catch(e) {
-            console.error('Modal open error:', e);
-        }
-    }
-    
     function closeModal() {
-        modal.style.display = 'none';
+        const modalEl = document.getElementById('assignModal');
+        if (modalEl) modalEl.style.display = 'none';
     }
+
+    window.onclick = function(e) {
+        const modalEl = document.getElementById('assignModal');
+        if (modalEl && e.target === modalEl) {
+            modalEl.style.display = 'none';
+        }
+    };
+
+    // Event Delegation: Tự động bắt sự kiện nhấp vào nút .btn-assign-table 100% chuẩn xác
+    document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn-assign-table');
+        if (!btn) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const id = btn.getAttribute('data-id');
+        const eventId = btn.getAttribute('data-event');
+        const tableId = btn.getAttribute('data-table');
+        const name = btn.getAttribute('data-name');
+        const phone = btn.getAttribute('data-phone');
+
+        const modalIdInput = document.getElementById('modalCheckinId');
+        const modalNameEl = document.getElementById('modalGuestName');
+        const modalPhoneEl = document.getElementById('modalGuestPhone');
+        const modalTableSelect = document.getElementById('modalTableSelect');
+        const modalEl = document.getElementById('assignModal');
+
+        if (modalIdInput) modalIdInput.value = id || '';
+        if (modalNameEl) modalNameEl.textContent = name || '';
+        if (modalPhoneEl) modalPhoneEl.textContent = phone || '';
+
+        if (modalTableSelect) {
+            modalTableSelect.innerHTML = '<option value="">-- Chưa xếp bàn --</option>';
+            if (Array.isArray(allTables)) {
+                allTables.forEach(t => {
+                    if (!eventId || eventId == '0' || !t.event_id || t.event_id == eventId) {
+                        const opt = document.createElement('option');
+                        opt.value = t.id;
+                        opt.textContent = t.table_code ? `${t.table_code} (${t.table_name})` : t.table_name;
+                        if (tableId && t.id == tableId) opt.selected = true;
+                        modalTableSelect.appendChild(opt);
+                    }
+                });
+            }
+        }
+
+        if (modalEl) {
+            modalEl.style.display = 'block';
+        }
+    });
 
     let lastCheckinsDataHash = '';
 
     async function updateRealtimeCheckinsList() {
+        const modalEl = document.getElementById('assignModal');
         // Nếu modal xếp bàn đang mở, tạm hoãn cập nhật để không làm phiền thao tác của người dùng
-        if (modal && modal.style.display === 'block') return;
+        if (modalEl && modalEl.style.display === 'block') return;
 
         try {
             const response = await fetch(`../api/stats.php?filter=all&table_id=all&_t=${Date.now()}`, { cache: 'no-store' });
@@ -389,20 +406,19 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                         ? `<strong style="color: #2e7d32;">${item.table_name}</strong>`
                         : `<span style="color: #888;">Chưa xếp</span>`;
 
-                    const dataAttr = htmlEscapedJson({
-                        id: item.id,
-                        event_id: item.event_id,
-                        table_id: item.table_id,
-                        full_name: item.full_name,
-                        phone: item.phone,
-                        table_name: item.table_name
-                    });
-
                     let actionsHtml = '';
                     if (!isKinhDoanhUser) {
                         actionsHtml = `
                             <td>
-                                <button type="button" class="btn btn-info" data-checkin='${dataAttr}' onclick="handleAssignClick(this)">Xếp bàn</button>
+                                <button type="button" 
+                                        class="btn btn-info btn-assign-table" 
+                                        data-id="${item.id}" 
+                                        data-event="${item.event_id || 0}" 
+                                        data-table="${item.table_id || ''}" 
+                                        data-name="${escapeHtml(item.full_name)}" 
+                                        data-phone="${escapeHtml(item.phone)}">
+                                    Xếp bàn
+                                </button>
                                 ${isAdminUser ? `
                                 <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
                                     <input type="hidden" name="csrf_token" value="${csrfTokenValue}">
