@@ -262,7 +262,7 @@ foreach ($usersList as $u) {
                         <td>
                             <button class="btn btn-success" style="padding:4px 10px; font-size:0.82rem;" onclick='openEditModal(<?php echo json_encode($u); ?>)'>✏️ Sửa</button>
                             <?php if ($u['id'] !== (int)$_SESSION['admin_id']): ?>
-                            <form action="" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa tài khoản này?');">
+                            <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa tài khoản này?');">
                                 <?php echo csrfField(); ?>
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="id" value="<?php echo $u['id']; ?>">
@@ -396,6 +396,7 @@ foreach ($usersList as $u) {
         if (statTotal) statTotal.textContent = count;
     }
 </script>
+<script src="../assets/js/notifications.js?v=<?php echo time(); ?>"></script>
 <script src="../assets/js/admin-mobile.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

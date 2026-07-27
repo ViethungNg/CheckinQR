@@ -204,11 +204,12 @@ $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetc
                     <input type="file" name="excel_file" accept=".xlsx" required style="padding: 10px 0;">
                 </div>
                 
-                <button type="submit" class="btn btn-primary" style="margin-top: 10px;" onclick="return confirm('Bạn có chắc chắn muốn Import danh sách này? Quá trình không thể hoàn tác.')">Bắt đầu Import</button>
+                <button type="submit" class="btn btn-primary" style="margin-top: 10px;" onclick="return confirmModal(event, 'Bạn có chắc chắn muốn Import danh sách này? Quá trình không thể hoàn tác.');">Bắt đầu Import</button>
             </form>
         </div>
     </div>
 </div>
+<script src="../assets/js/notifications.js?v=<?php echo time(); ?>"></script>
 <script src="../assets/js/admin-mobile.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

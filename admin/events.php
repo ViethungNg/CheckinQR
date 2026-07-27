@@ -146,7 +146,7 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
                         </td>
                         <td>
                             <button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;" onclick='openEditModal(<?php echo json_encode($event); ?>)'>Sửa</button>
-                            <form action="" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa sự kiện này? Toàn bộ khách và lịch sử check-in sẽ bị xóa theo!');">
+                            <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa sự kiện này? Toàn bộ khách và lịch sử check-in sẽ bị xóa theo!');">
                                 <?php echo csrfField(); ?>
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="id" value="<?php echo $event['id']; ?>">
@@ -257,6 +257,7 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
     //     }
     // }
 </script>
+<script src="../assets/js/notifications.js?v=<?php echo time(); ?>"></script>
 <script src="../assets/js/admin-mobile.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

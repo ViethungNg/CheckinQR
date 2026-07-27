@@ -67,7 +67,7 @@ $firstChar = mb_strtoupper(mb_substr($adminName, 0, 1, 'UTF-8'));
                 </div>
             </div>
         </div>
-        <a href="logout.php" class="sidebar-logout-btn" onclick="return confirm('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?');">
+        <a href="logout.php" class="sidebar-logout-btn" onclick="return confirmModal(event, 'Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?');">
             🚪 Đăng xuất
         </a>
     </div>

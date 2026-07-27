@@ -241,7 +241,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                                 <button type="button" class="btn btn-info" data-checkin="<?php echo $dataAttr; ?>" onclick="handleAssignClick(this)">Xếp bàn</button>
                                 
                                 <?php if(isAdmin()): ?>
-                                <form action="" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
+                                <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
                                     <?php echo csrfField(); ?>
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?php echo $c['id']; ?>">
@@ -397,7 +397,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                             <td>
                                 <button type="button" class="btn btn-info" data-checkin='${dataAttr}' onclick="handleAssignClick(this)">Xếp bàn</button>
                                 ${isAdminUser ? `
-                                <form action="" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
+                                <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
                                     <input type="hidden" name="csrf_token" value="${csrfTokenValue}">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="${item.id}">

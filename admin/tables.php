@@ -190,7 +190,7 @@ $tables = $stmtTables->fetchAll();
                             <?php if(isAdmin()): ?>
                             <td>
                                 <button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;" onclick='openEditModal(<?php echo json_encode($t); ?>)'>Sửa</button>
-                                <form action="" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bàn này? Khách trong bàn sẽ bị mất vị trí.');">
+                                <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa bàn này? Khách trong bàn sẽ bị mất vị trí.');">
                                     <?php echo csrfField(); ?>
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?php echo $t['id']; ?>">
@@ -304,6 +304,7 @@ $tables = $stmtTables->fetchAll();
         modal.style.display = 'none';
     }
 </script>
+<script src="../assets/js/notifications.js?v=<?php echo time(); ?>"></script>
 <script src="../assets/js/admin-mobile.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

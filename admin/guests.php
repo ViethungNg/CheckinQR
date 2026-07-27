@@ -249,7 +249,7 @@ $guests = $stmtGuests->fetchAll();
                         <?php if(isAdmin()): ?>
                         <td>
                             <button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;" onclick='openEditModal(<?php echo json_encode($guest); ?>)'>Sửa</button>
-                            <form action="" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa khách này?');">
+                            <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa khách này?');">
                                 <?php echo csrfField(); ?>
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="id" value="<?php echo $guest['id']; ?>">

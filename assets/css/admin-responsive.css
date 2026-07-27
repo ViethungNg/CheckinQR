@@ -866,3 +866,104 @@ body {
 .toast-close:hover {
     color: #333;
 }
+
+/* ===== CUSTOM CONFIRMATION POPUP MODAL ===== */
+.confirm-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 999999;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    padding: 15px;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.confirm-modal-overlay.active {
+    opacity: 1;
+}
+
+.confirm-modal-box {
+    background: #ffffff;
+    border-radius: 16px;
+    width: 420px;
+    max-width: 95%;
+    padding: 24px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+    transform: scale(0.85);
+    transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-align: center;
+}
+
+.confirm-modal-overlay.active .confirm-modal-box {
+    transform: scale(1);
+}
+
+.confirm-modal-icon {
+    font-size: 2.8rem;
+    line-height: 1;
+    margin-bottom: 12px;
+    display: inline-block;
+}
+
+.confirm-modal-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #222222;
+    margin-bottom: 8px;
+}
+
+.confirm-modal-message {
+    font-size: 0.95rem;
+    color: #555555;
+    line-height: 1.5;
+    margin-bottom: 24px;
+}
+
+.confirm-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.btn-confirm-cancel {
+    flex: 1;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: 1px solid #cccccc;
+    background: #f5f5f5;
+    color: #444444;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-confirm-cancel:hover {
+    background: #e5e5e5;
+}
+
+.btn-confirm-submit {
+    flex: 1;
+    padding: 10px 18px;
+    border-radius: 8px;
+    border: none;
+    background: #d32f2f;
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3);
+    transition: background 0.2s;
+}
+
+.btn-confirm-submit:hover {
+    background: #b71c1c;
+}

@@ -328,8 +328,96 @@
         }, { once: true });
     });
 
+    // ===== GLOBAL CUSTOM CONFIRMATION POPUP SYSTEM =====
+    function injectConfirmModalHTML() {
+        if (document.getElementById('globalConfirmModal')) return;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'globalConfirmModal';
+        overlay.className = 'confirm-modal-overlay';
+        overlay.innerHTML = `
+            <div class="confirm-modal-box">
+                <div class="confirm-modal-icon" id="confirmModalIcon">⚠️</div>
+                <div class="confirm-modal-title" id="confirmModalTitle">Xác nhận thao tác</div>
+                <div class="confirm-modal-message" id="confirmModalMessage">Bạn có chắc chắn muốn thực hiện thao tác này?</div>
+                <div class="confirm-modal-actions">
+                    <button type="button" class="btn-confirm-cancel" id="confirmModalCancelBtn">Hủy bỏ</button>
+                    <button type="button" class="btn-confirm-submit" id="confirmModalOkBtn">Xác nhận</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+
+    let pendingConfirmAction = null;
+
+    window.showConfirmPopup = function(options) {
+        injectConfirmModalHTML();
+        const overlay = document.getElementById('globalConfirmModal');
+        const iconEl = document.getElementById('confirmModalIcon');
+        const titleEl = document.getElementById('confirmModalTitle');
+        const msgEl = document.getElementById('confirmModalMessage');
+        const okBtn = document.getElementById('confirmModalOkBtn');
+        const cancelBtn = document.getElementById('confirmModalCancelBtn');
+
+        iconEl.textContent = options.icon || '⚠️';
+        titleEl.textContent = options.title || 'Xác nhận thao tác';
+        msgEl.innerHTML = options.message || 'Bạn có chắc chắn muốn thực hiện thao tác này?';
+        okBtn.textContent = options.okText || 'Xác nhận';
+        okBtn.style.background = options.danger === false ? '#2e7d32' : '#d32f2f';
+
+        pendingConfirmAction = options.onConfirm || null;
+
+        overlay.style.display = 'flex';
+        setTimeout(() => overlay.classList.add('active'), 10);
+
+        function close() {
+            overlay.classList.remove('active');
+            setTimeout(() => { overlay.style.display = 'none'; }, 250);
+        }
+
+        cancelBtn.onclick = function() {
+            close();
+        };
+
+        overlay.onclick = function(e) {
+            if (e.target === overlay) close();
+        };
+
+        okBtn.onclick = function() {
+            close();
+            if (typeof pendingConfirmAction === 'function') {
+                pendingConfirmAction();
+            }
+        };
+    };
+
+    window.confirmModal = function(evt, message, options = {}) {
+        if (evt) evt.preventDefault();
+        const target = evt ? (evt.currentTarget || evt.target) : null;
+
+        window.showConfirmPopup({
+            message: message,
+            title: options.title || 'Xác nhận thao tác',
+            icon: options.icon || '⚠️',
+            danger: options.danger !== false,
+            onConfirm: () => {
+                if (!target) return;
+                if (target.tagName === 'FORM') {
+                    target.submit();
+                } else if (target.tagName === 'A') {
+                    window.location.href = target.href;
+                } else if (target.form) {
+                    target.form.submit();
+                }
+            }
+        });
+        return false;
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
         injectHeaderNotifBell();
+        injectConfirmModalHTML();
         checkNewNotifications();
         setInterval(checkNewNotifications, 3000);
     });
