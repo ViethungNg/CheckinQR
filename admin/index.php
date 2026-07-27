@@ -108,6 +108,10 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
                 <h3>Chưa xếp bàn</h3>
                 <div class="value" id="val-unassigned" style="color: #c62828;"><?php echo $db->query("SELECT COUNT(*) FROM checkins WHERE table_id IS NULL OR table_id = 0")->fetchColumn(); ?></div>
             </div>
+            <div class="card" style="border-top-color: #1976d2;">
+                <h3>Khách chưa tới</h3>
+                <div class="value" id="val-not-arrived" style="color: #1976d2;"><?php echo $db->query("SELECT COUNT(*) FROM guests WHERE status = 'invited'")->fetchColumn(); ?></div>
+            </div>
         </div>
 
         <div class="recent-section">
@@ -117,6 +121,7 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
                     <select id="table-filter" onchange="updateFilter(this.value)" style="padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; border: 1px solid #d32f2f; background: #fff; color: #333; font-weight: bold; cursor: pointer;">
                         <option value="all">🔍 Tất cả lượt check-in</option>
                         <option value="unassigned">⚠️ Chỉ hiện Chưa xếp bàn</option>
+                        <option value="not_arrived">⏳ Chỉ hiện Khách chưa tới</option>
                         <option value="assigned">✅ Chỉ hiện Đã xếp bàn</option>
                     </select>
                     <span id="realtime-status" style="font-size: 0.85rem; color: #2e7d32; font-weight: 500;">
@@ -186,6 +191,9 @@ async function updateRealtimeStats() {
             document.getElementById('val-walk-in').textContent = data.walk_in;
             if (document.getElementById('val-unassigned')) {
                 document.getElementById('val-unassigned').textContent = data.unassigned;
+            }
+            if (document.getElementById('val-not-arrived')) {
+                document.getElementById('val-not-arrived').textContent = data.not_arrived;
             }
             
             // Cập nhật danh sách check-in
