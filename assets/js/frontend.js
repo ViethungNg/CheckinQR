@@ -81,9 +81,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     let extraMsg = '';
                     if (data.data.match_status === 'matched') {
                         extraMsg = `<div style="margin-top:10px; padding-top:10px; border-top:1px dashed #4caf50;">
-                            Cảm ơn bạn đã đến tham dự. Chúc bạn có một sự kiện tuyệt vời!<br>`;
+                            Cảm ơn quý khách đã tham dự Hội nghị. Chúc quý vị có một sự kiện tuyệt vời!<br>`;
                         if (data.data.table_name) {
-                            extraMsg += `<strong>Vị trí ngồi của bạn:</strong> ${data.data.table_name}<br>`;
+                            extraMsg += `<strong>Vị trí ngồi của quý khách:</strong> ${data.data.table_name}<br>`;
                         }
                         if (data.data.lucky_draw_code) {
                             extraMsg += `<strong>Mã bốc thăm:</strong> ${data.data.lucky_draw_code}<br>`;
@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         extraMsg += `</div>`;
                     } else if (data.data.match_status === 'walk_in') {
                         extraMsg = `<div style="margin-top:10px; padding-top:10px; border-top:1px dashed #4caf50;">
-                            Thông tin của bạn đã được ghi nhận. Vui lòng đợi lễ tân hỗ trợ trong giây lát.
+                            Thông tin của quý khách đã được ghi nhận. Vui lòng đợi lễ tân hỗ trợ trong giây lát.
                         </div>`;
                     }
                     alertBox.innerHTML += extraMsg;
