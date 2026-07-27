@@ -4,19 +4,27 @@ requireLogin();
 
 $db = Database::getConnection();
 
-// Xử lý thống kê cho dashboard
-$stats = [
-    'events' => 0,
-    'guests' => 0,
-    'checked_in' => 0,
-    'walk_in' => 0
-];
-
-$stats['events'] = $db->query("SELECT COUNT(*) FROM events")->fetchColumn();
-$stats['guests'] = $db->query("SELECT COUNT(*) FROM guests")->fetchColumn();
-$stats['checked_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status = 'matched'")->fetchColumn();
-$stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status = 'walk_in'")->fetchColumn();
-
+// Xử lý thống kê cho dashboard theo vai trò
+$userId = $_SESSION['admin_id'] ?? 0;
+if (isKinhDoanh()) {
+    $stats = [
+        'events'      => 0,
+        'guests'      => (int)$db->query("SELECT COUNT(*) FROM guests g JOIN event_tables t ON g.table_id = t.id WHERE t.assigned_user_id = {$userId}")->fetchColumn(),
+        'checked_in'  => (int)$db->query("SELECT COUNT(*) FROM checkins c JOIN event_tables t ON c.table_id = t.id WHERE c.match_status = 'matched' AND t.assigned_user_id = {$userId}")->fetchColumn(),
+        'walk_in'     => 0,
+        'unassigned'  => 0,
+        'not_arrived' => (int)$db->query("SELECT COUNT(*) FROM guests g JOIN event_tables t ON g.table_id = t.id WHERE g.status = 'invited' AND t.assigned_user_id = {$userId}")->fetchColumn(),
+    ];
+} else {
+    $stats = [
+        'events'      => (int)$db->query("SELECT COUNT(*) FROM events")->fetchColumn(),
+        'guests'      => (int)$db->query("SELECT COUNT(*) FROM guests")->fetchColumn(),
+        'checked_in'  => (int)$db->query("SELECT COUNT(*) FROM checkins WHERE match_status = 'matched'")->fetchColumn(),
+        'walk_in'     => (int)$db->query("SELECT COUNT(*) FROM checkins WHERE match_status = 'walk_in'")->fetchColumn(),
+        'unassigned'  => (int)$db->query("SELECT COUNT(*) FROM checkins WHERE table_id IS NULL OR table_id = 0")->fetchColumn(),
+        'not_arrived' => (int)$db->query("SELECT COUNT(*) FROM guests WHERE status = 'invited'")->fetchColumn(),
+    ];
+}
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -70,47 +78,57 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
     
     <div class="main-content">
         <div class="header">
-            <h1>Dashboard Tổng quan</h1>
+            <h1>Dashboard <?php echo isKinhDoanh() ? 'Kinh Doanh (Bàn Phụ Trách)' : 'Tổng quan'; ?></h1>
         </div>
         
         <div class="dashboard-cards">
+            <?php if(!isKinhDoanh()): ?>
             <div class="card active-card" id="card-all" onclick="setFilter('all')" title="Bấm để lọc tất cả lượt check-in">
                 <h3>Tổng Sự kiện</h3>
                 <div class="value" id="val-events"><?php echo $stats['events']; ?></div>
             </div>
-            <div class="card" id="card-guests" onclick="setFilter('guests')" title="Bấm để lọc tất cả khách dự kiến">
-                <h3>Khách dự kiến</h3>
+            <?php endif; ?>
+            <div class="card <?php echo isKinhDoanh() ? 'active-card' : ''; ?>" id="card-guests" onclick="setFilter('guests')" title="Bấm để lọc tất cả khách dự kiến">
+                <h3>Khách dự kiến <?php echo isKinhDoanh() ? '(Phụ trách)' : ''; ?></h3>
                 <div class="value" id="val-guests"><?php echo $stats['guests']; ?></div>
             </div>
             <div class="card" id="card-matched" onclick="setFilter('matched')" title="Bấm để lọc khách đã Check-in hợp lệ">
                 <h3>Đã Check-in (Khớp)</h3>
                 <div class="value" id="val-checked-in" style="color: #2e7d32;"><?php echo $stats['checked_in']; ?></div>
             </div>
+            <?php if(!isKinhDoanh()): ?>
             <div class="card" id="card-walk_in" onclick="setFilter('walk_in')" title="Bấm để lọc khách phát sinh">
                 <h3>Khách phát sinh (Walk-in)</h3>
                 <div class="value" id="val-walk-in" style="color: #ef6c00;"><?php echo $stats['walk_in']; ?></div>
             </div>
             <div class="card" id="card-unassigned" style="border-top-color: #c62828;" onclick="setFilter('unassigned')" title="Bấm để lọc khách chưa xếp bàn">
                 <h3>Chưa xếp bàn</h3>
-                <div class="value" id="val-unassigned" style="color: #c62828;"><?php echo $db->query("SELECT COUNT(*) FROM checkins WHERE table_id IS NULL OR table_id = 0")->fetchColumn(); ?></div>
+                <div class="value" id="val-unassigned" style="color: #c62828;"><?php echo $stats['unassigned']; ?></div>
             </div>
+            <?php endif; ?>
             <div class="card" id="card-not_arrived" style="border-top-color: #1976d2;" onclick="setFilter('not_arrived')" title="Bấm để lọc khách dự kiến chưa tới">
                 <h3>Khách chưa tới</h3>
-                <div class="value" id="val-not-arrived" style="color: #1976d2;"><?php echo $db->query("SELECT COUNT(*) FROM guests WHERE status = 'invited'")->fetchColumn(); ?></div>
+                <div class="value" id="val-not-arrived" style="color: #1976d2;"><?php echo $stats['not_arrived']; ?></div>
             </div>
         </div>
 
         <div class="recent-section">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                <h3 style="margin-bottom: 0;">Lượt check-in mới nhất</h3>
+                <h3 style="margin-bottom: 0;">Khách hàng & Lượt check-in bàn phụ trách</h3>
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <select id="table-filter" onchange="setFilter(this.value)" style="padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; border: 1px solid #d32f2f; background: #fff; color: #333; font-weight: bold; cursor: pointer;">
-                        <option value="all">🔍 Tất cả lượt check-in</option>
-                        <option value="guests">📋 Danh sách Khách dự kiến (Tất cả)</option>
-                        <option value="matched">✅ Đã Check-in (Khớp)</option>
-                        <option value="walk_in">🔸 Khách phát sinh (Walk-in)</option>
-                        <option value="unassigned">⚠️ Chưa xếp bàn</option>
-                        <option value="not_arrived">⏳ Khách chưa tới</option>
+                        <?php if(isKinhDoanh()): ?>
+                            <option value="guests">📋 Danh sách Khách dự kiến (Bàn phụ trách)</option>
+                            <option value="matched">✅ Đã Check-in (Bàn phụ trách)</option>
+                            <option value="not_arrived">⏳ Khách chưa tới (Bàn phụ trách)</option>
+                        <?php else: ?>
+                            <option value="all">🔍 Tất cả lượt check-in</option>
+                            <option value="guests">📋 Danh sách Khách dự kiến (Tất cả)</option>
+                            <option value="matched">✅ Đã Check-in (Khớp)</option>
+                            <option value="walk_in">🔸 Khách phát sinh (Walk-in)</option>
+                            <option value="unassigned">⚠️ Chưa xếp bàn</option>
+                            <option value="not_arrived">⏳ Khách chưa tới</option>
+                        <?php endif; ?>
                     </select>
                     <span id="realtime-status" style="font-size: 0.85rem; color: #2e7d32; font-weight: 500;">
                         🟢 Real-time (Mỗi 3s)
@@ -129,10 +147,12 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
                 </thead>
                 <tbody id="recent-checkins-body">
                     <?php
+                    $whereKD = isKinhDoanh() ? "WHERE t.assigned_user_id = {$userId}" : "";
                     $recentStmt = $db->query("
                         SELECT c.*, t.table_name 
                         FROM checkins c 
                         LEFT JOIN event_tables t ON c.table_id = t.id 
+                        {$whereKD}
                         ORDER BY c.checkin_time DESC LIMIT 5
                     ");
                     while($row = $recentStmt->fetch()):
