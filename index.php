@@ -75,6 +75,6 @@ if (!$event) {
     <?php endif; ?>
 </div>
 
-<script src="<?php echo url('assets/js/frontend.js'); ?>"></script>
+<script src="<?php echo url('assets/js/frontend.js?v=' . time()); ?>"></script>
 </body>
 </html>

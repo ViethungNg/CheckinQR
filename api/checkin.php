@@ -34,15 +34,46 @@ if (!$event) {
 }
 
 // 2. Kiểm tra khách đã check-in chưa?
-$stmtCheck = $db->prepare("SELECT * FROM checkins WHERE event_id = ? AND normalized_phone = ?");
+$stmtCheck = $db->prepare("SELECT * FROM checkins WHERE event_id = ? AND normalized_phone = ? ORDER BY checkin_time DESC LIMIT 1");
 $stmtCheck->execute([$eventId, $normalizedPhone]);
 $existingCheckin = $stmtCheck->fetch();
 
 if ($existingCheckin) {
     $time = date('H:i d/m/Y', strtotime($existingCheckin['checkin_time']));
+    
+    // Lấy thông tin bàn
+    $tableName = null;
+    if ($existingCheckin['table_id']) {
+        $stmtT = $db->prepare("SELECT table_name FROM event_tables WHERE id = ?");
+        $stmtT->execute([$existingCheckin['table_id']]);
+        $tRow = $stmtT->fetch();
+        if ($tRow) {
+            $tableName = $tRow['table_name'];
+        }
+    }
+
+    // Lấy mã quay thưởng
+    $luckyCode = $existingCheckin['lucky_draw_code'];
+    if (empty($luckyCode) && $existingCheckin['guest_id']) {
+        $stmtG = $db->prepare("SELECT lucky_draw_code FROM guests WHERE id = ?");
+        $stmtG->execute([$existingCheckin['guest_id']]);
+        $gRow = $stmtG->fetch();
+        if ($gRow) {
+            $luckyCode = $gRow['lucky_draw_code'];
+        }
+    }
+
     jsonResponse([
-        'status' => 'error', 
-        'message' => "Bạn đã check-in thành công trước đó vào lúc $time."
+        'status' => 'already_checked_in', 
+        'message' => 'Bạn đã check-in thành công trước đó!',
+        'data' => [
+            'full_name' => esc($existingCheckin['full_name_entered']),
+            'phone' => esc($existingCheckin['phone_entered']),
+            'table_name' => esc($tableName ?? 'Chưa xếp bàn'),
+            'lucky_draw_code' => esc($luckyCode ?? ('#CKI-' . substr($existingCheckin['normalized_phone'], -4))),
+            'checkin_time' => $time,
+            'match_status' => $existingCheckin['match_status']
+        ]
     ]);
 }
 

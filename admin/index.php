@@ -70,8 +70,8 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
             <?php if(isAdmin()): ?>
             <li><a href="events.php">Quản lý Sự kiện</a></li>
             <?php endif; ?>
-            <li><a href="guests.php">Khách dự kiến</a></li>
-            <li><a href="checkins.php">Check-in trực tiếp</a></li>
+            <li><a href="guests.php">Danh sách khách dự kiến</a></li>
+            <li><a href="checkins.php">Khách hàng đã Checkin</a></li>
             <?php if(isAdmin()): ?>
             <li><a href="tables.php">Quản lý bàn</a></li>
             <?php endif; ?>
