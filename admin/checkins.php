@@ -47,19 +47,35 @@ if (isPost()) {
         if ($checkin) {
             if ($tableId === null) {
                 // Hủy xếp bàn: Đặt table_id = NULL
-                $updateCheckin = $db->prepare("UPDATE checkins SET table_id = NULL WHERE id = ?");
-                $updateCheckin->execute([$checkinId]);
-                
                 if (!empty($checkin['guest_id'])) {
-                    $updateGuest = $db->prepare("UPDATE guests SET table_id = NULL WHERE id = ?");
-                    $updateGuest->execute([$checkin['guest_id']]);
+                    $stmtG = $db->prepare("SELECT * FROM guests WHERE id = ?");
+                    $stmtG->execute([$checkin['guest_id']]);
+                    $gRow = $stmtG->fetch();
+                    
+                    // Nếu là khách phát sinh được thêm tự động (không có mã bốc thăm/đơn vị ban đầu)
+                    if ($gRow && empty($gRow['lucky_draw_code']) && empty($gRow['organization'])) {
+                        // Xóa khách này ra khỏi danh sách Khách hàng dự kiến (guests)
+                        $delGuest = $db->prepare("DELETE FROM guests WHERE id = ?");
+                        $delGuest->execute([$checkin['guest_id']]);
+                        
+                        // Đặt checkin về trạng thái Khách phát sinh (walk_in) ban đầu
+                        $resetCheckin = $db->prepare("UPDATE checkins SET table_id = NULL, guest_id = NULL, match_status = 'walk_in' WHERE id = ?");
+                        $resetCheckin->execute([$checkinId]);
+                    } else {
+                        // Nếu là khách dự kiến chính thức của BTC: giữ lại trong danh sách nhưng bỏ xếp bàn
+                        $updateGuest = $db->prepare("UPDATE guests SET table_id = NULL WHERE id = ?");
+                        $updateGuest->execute([$checkin['guest_id']]);
+                        
+                        $updateCheckin = $db->prepare("UPDATE checkins SET table_id = NULL WHERE id = ?");
+                        $updateCheckin->execute([$checkinId]);
+                    }
                 } else {
                     // Trả về trạng thái Khách phát sinh (walk_in)
-                    $resetMatch = $db->prepare("UPDATE checkins SET match_status = 'walk_in' WHERE id = ?");
-                    $resetMatch->execute([$checkinId]);
+                    $resetCheckin = $db->prepare("UPDATE checkins SET table_id = NULL, match_status = 'walk_in' WHERE id = ?");
+                    $resetCheckin->execute([$checkinId]);
                 }
                 
-                $message = 'Đã trả khách về trạng thái Khách phát sinh (Chưa xếp bàn)!';
+                $message = 'Đã hủy xếp bàn, xóa khách khỏi danh sách dự kiến và trả về trạng thái Khách phát sinh!';
             } else {
                 // Xếp bàn cụ thể
                 $updateCheckin = $db->prepare("UPDATE checkins SET table_id = ? WHERE id = ?");
