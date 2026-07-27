@@ -66,13 +66,47 @@ elseif (isPost() && !isAdmin()) {
 $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetchAll();
 $tablesList = $db->query("SELECT id, table_name, event_id FROM event_tables ORDER BY table_name ASC")->fetchAll();
 
-$guests = $db->query("
+// Lấy tham số Tìm kiếm & Sắp xếp
+$search = trim($_GET['search'] ?? '');
+$sort   = $_GET['sort'] ?? 'id_desc';
+
+$whereClauses = [];
+$params = [];
+
+if (!empty($search)) {
+    $normalizedSearch = normalizePhone($search);
+    $searchLike = "%$search%";
+    $normLike = "%$normalizedSearch%";
+    $whereClauses[] = "(g.full_name LIKE ? OR g.phone LIKE ? OR g.normalized_phone LIKE ? OR g.lucky_draw_code LIKE ? OR t.table_name LIKE ? OR t.table_code LIKE ?)";
+    $params = [$searchLike, $searchLike, $normLike, $searchLike, $searchLike, $searchLike];
+}
+
+$whereSql = "";
+if (!empty($whereClauses)) {
+    $whereSql = "WHERE " . implode(" AND ", $whereClauses);
+}
+
+$orderSql = "ORDER BY g.id DESC";
+if ($sort === 'table_asc') {
+    $orderSql = "ORDER BY t.table_name ASC, g.id DESC";
+} elseif ($sort === 'table_desc') {
+    $orderSql = "ORDER BY t.table_name DESC, g.id DESC";
+} elseif ($sort === 'code_asc') {
+    $orderSql = "ORDER BY CAST(g.lucky_draw_code AS UNSIGNED) ASC, g.lucky_draw_code ASC, g.id DESC";
+} elseif ($sort === 'code_desc') {
+    $orderSql = "ORDER BY CAST(g.lucky_draw_code AS UNSIGNED) DESC, g.lucky_draw_code DESC, g.id DESC";
+}
+
+$stmtGuests = $db->prepare("
     SELECT g.*, e.event_name, t.table_name 
     FROM guests g 
     LEFT JOIN events e ON g.event_id = e.id 
     LEFT JOIN event_tables t ON g.table_id = t.id 
-    ORDER BY g.id DESC
-")->fetchAll();
+    {$whereSql}
+    {$orderSql}
+");
+$stmtGuests->execute($params);
+$guests = $stmtGuests->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -120,6 +154,8 @@ $guests = $db->query("
         .alert.error { background: #ffebee; color: #c62828; }
         
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .sort-header { color: #d32f2f; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; }
+        .sort-header:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -140,27 +176,60 @@ $guests = $db->query("
     </div>
     <div class="main-content">
         <div class="header">
-            <h1>Khách dự kiến</h1>
+            <h1>Khách dự kiến (<?php echo count($guests); ?>)</h1>
         </div>
         
         <?php if($message): ?><div class="alert success"><?php echo esc($message); ?></div><?php endif; ?>
         <?php if($error): ?><div class="alert error"><?php echo esc($error); ?></div><?php endif; ?>
 
         <div class="content-box">
-            <?php if(isAdmin()): ?>
-            <div style="margin-bottom: 15px; display: flex; gap: 10px;">
-                <button class="btn btn-primary" onclick="openAddModal()">+ Thêm khách thủ công</button>
-                <a href="import.php" class="btn btn-success">📥 Import từ Excel (.xlsx)</a>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                <?php if(isAdmin()): ?>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" onclick="openAddModal()">+ Thêm khách thủ công</button>
+                    <a href="import.php" class="btn btn-success">📥 Import từ Excel (.xlsx)</a>
+                </div>
+                <?php endif; ?>
             </div>
-            <?php endif; ?>
+
+            <!-- Thanh Lọc & Sắp Xếp Thông Minh -->
+            <form method="GET" action="" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; background: #f8f9fa; padding: 12px 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                <div style="flex: 1; min-width: 240px;">
+                    <input type="text" name="search" value="<?php echo esc($search); ?>" placeholder="🔍 Tìm theo SĐT, Bàn, Mã dự thưởng, Họ tên..." class="form-control">
+                </div>
+                
+                <div style="min-width: 220px;">
+                    <select name="sort" class="form-control" onchange="this.form.submit()" style="cursor: pointer; background: #fff; font-weight: 500;">
+                        <option value="id_desc" <?php echo $sort === 'id_desc' ? 'selected' : ''; ?>>🕒 Mới nhất trước</option>
+                        <option value="table_asc" <?php echo $sort === 'table_asc' ? 'selected' : ''; ?>>🪑 Bàn: Tăng dần (A ➔ Z)</option>
+                        <option value="table_desc" <?php echo $sort === 'table_desc' ? 'selected' : ''; ?>>🪑 Bàn: Giảm dần (Z ➔ A)</option>
+                        <option value="code_asc" <?php echo $sort === 'code_asc' ? 'selected' : ''; ?>>🎁 Mã dự thưởng: Tăng dần (0 ➔ 9)</option>
+                        <option value="code_desc" <?php echo $sort === 'code_desc' ? 'selected' : ''; ?>>🎁 Mã dự thưởng: Giảm dần (9 ➔ 0)</option>
+                    </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="padding: 8px 18px;">Tìm kiếm</button>
+                <?php if(!empty($search) || $sort !== 'id_desc'): ?>
+                    <a href="guests.php" class="btn" style="background: #757575; color: white;">Xóa lọc</a>
+                <?php endif; ?>
+            </form>
+
             <table>
                 <thead>
                     <tr>
                         <th>Họ Tên</th>
                         <th>SĐT</th>
                         <th>Đơn vị</th>
-                        <th>Bàn</th>
-                        <th>Mã dự thưởng</th>
+                        <th>
+                            <a href="?search=<?php echo urlencode($search); ?>&sort=<?php echo $sort === 'table_asc' ? 'table_desc' : 'table_asc'; ?>" class="sort-header" title="Bấm để đổi chiều sắp xếp bàn">
+                                Bàn <?php echo $sort === 'table_asc' ? '▲' : ($sort === 'table_desc' ? '▼' : '↕'); ?>
+                            </a>
+                        </th>
+                        <th>
+                            <a href="?search=<?php echo urlencode($search); ?>&sort=<?php echo $sort === 'code_asc' ? 'code_desc' : 'code_asc'; ?>" class="sort-header" title="Bấm để đổi chiều sắp xếp Mã dự thưởng">
+                                Mã dự thưởng <?php echo $sort === 'code_asc' ? '▲' : ($sort === 'code_desc' ? '▼' : '↕'); ?>
+                            </a>
+                        </th>
                         <th>Trạng thái</th>
                         <?php if(isAdmin()): ?><th>Thao tác</th><?php endif; ?>
                     </tr>
