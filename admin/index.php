@@ -80,7 +80,7 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
     
     <div class="main-content">
         <div class="header">
-            <h1>Tổng quan 2.00</h1>
+            <h1>Tổng quan 3.0</h1>
             <div class="user-info">
                 <span>Xin chào, <strong><?php echo esc($_SESSION['admin_name']); ?></strong></span>
                 <a href="logout.php" class="btn-logout">Đăng xuất</a>
