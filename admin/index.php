@@ -147,24 +147,37 @@ if (isKinhDoanh()) {
                 </thead>
                 <tbody id="recent-checkins-body">
                     <?php
-                    $whereKD = isKinhDoanh() ? "WHERE t.assigned_user_id = {$userId}" : "";
-                    $recentStmt = $db->query("
-                        SELECT c.*, t.table_name 
-                        FROM checkins c 
-                        LEFT JOIN event_tables t ON c.table_id = t.id 
-                        {$whereKD}
-                        ORDER BY c.checkin_time DESC LIMIT 5
-                    ");
+                    if (isKinhDoanh()) {
+                        $recentStmt = $db->query("
+                            SELECT g.full_name as full_name_entered, g.phone as phone_entered, t.table_name, g.status as match_status, g.status 
+                            FROM guests g 
+                            LEFT JOIN event_tables t ON g.table_id = t.id 
+                            WHERE t.assigned_user_id = {$userId}
+                            ORDER BY g.id DESC LIMIT 150
+                        ");
+                    } else {
+                        $recentStmt = $db->query("
+                            SELECT c.*, t.table_name 
+                            FROM checkins c 
+                            LEFT JOIN event_tables t ON c.table_id = t.id 
+                            ORDER BY c.checkin_time DESC LIMIT 150
+                        ");
+                    }
                     while($row = $recentStmt->fetch()):
                     ?>
                     <tr>
                         <td><?php echo esc($row['full_name_entered']); ?></td>
                         <td><?php echo esc($row['phone_entered']); ?></td>
                         <td><strong><?php echo esc($row['table_name'] ?? 'Chưa xếp bàn'); ?></strong></td>
-                        <td><?php echo date('d/m/Y H:i:s', strtotime($row['checkin_time'])); ?></td>
+                        <td><?php echo isset($row['checkin_time']) ? date('d/m/Y H:i:s', strtotime($row['checkin_time'])) : ($row['status'] === 'checked_in' ? '✅ Đã checkin' : '⏳ Chưa tới'); ?></td>
                         <td>
                             <span class="badge <?php echo esc($row['match_status']); ?>">
-                                <?php echo $row['match_status'] === 'matched' ? 'Hợp lệ' : 'Phát sinh'; ?>
+                                <?php 
+                                if ($row['match_status'] === 'matched') echo 'Hợp lệ';
+                                elseif ($row['match_status'] === 'walk_in') echo 'Phát sinh';
+                                elseif ($row['match_status'] === 'checked_in') echo 'Đã checkin';
+                                else echo 'Chưa tới';
+                                ?>
                             </span>
                         </td>
                     </tr>
@@ -176,7 +189,7 @@ if (isKinhDoanh()) {
 </div>
 
 <script>
-let currentFilter = 'all';
+let currentFilter = '<?php echo isKinhDoanh() ? "guests" : "all"; ?>';
 
 function setFilter(val) {
     currentFilter = val;
@@ -221,7 +234,7 @@ async function updateRealtimeStats() {
                     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#777; padding:20px;">Không tìm thấy dữ liệu phù hợp với bộ lọc</td></tr>`;
                 } else {
                     let html = '';
-                    result.data.recent_checkins.slice(0, 5).forEach(item => {
+                    result.data.recent_checkins.slice(0, 150).forEach(item => {
                         html += `
                             <tr>
                                 <td>${item.full_name}</td>
@@ -243,7 +256,8 @@ async function updateRealtimeStats() {
     }
 }
 
-// Chạy tự động cập nhật mỗi 3 giây (3000ms)
+// Chạy ngay khi tải trang và lặp lại mỗi 3 giây
+updateRealtimeStats();
 setInterval(updateRealtimeStats, 3000);
 </script>
 
