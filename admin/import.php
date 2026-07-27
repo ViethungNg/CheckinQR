@@ -1,3 +1,8 @@
+<?php
+require_once __DIR__ . '/../config/bootstrap.php';
+requireLogin();
+requireAdmin();
+
 require_once __DIR__ . '/../includes/xlsx_reader.php';
 
 // Xử lý Xuất File Mẫu Excel (.csv mở chuẩn bằng Excel)
