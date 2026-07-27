@@ -63,7 +63,7 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
 
 <div class="wrapper">
     <div class="sidebar">
-        <h2>CheckinQR</h2>
+        <h2>CheckinQRR</h2>
         <ul>
             <li><a href="index.php" class="active">Dashboard</a></li>
             <?php if(isAdmin()): ?>
