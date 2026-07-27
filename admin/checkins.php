@@ -85,7 +85,7 @@ $checkins = $db->query("
 ")->fetchAll();
 
 // Lấy danh sách bàn để xếp cho khách phát sinh
-$tablesList = $db->query("SELECT id, table_name, event_id FROM event_tables ORDER BY table_name ASC")->fetchAll();
+$tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event_tables ORDER BY table_code ASC, table_name ASC")->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -223,8 +223,8 @@ $tablesList = $db->query("SELECT id, table_name, event_id FROM event_tables ORDE
             
             <div class="form-group">
                 <label>Chọn Bàn</label>
-                <select name="table_id" id="modalTableSelect" class="form-control" required>
-                    <option value="">-- Chọn bàn --</option>
+                <select name="table_id" id="modalTableSelect" class="form-control">
+                    <option value="">⚠️ -- Chưa xếp bàn (Bỏ xếp bàn / Đặt về trống) --</option>
                 </select>
             </div>
             
@@ -243,13 +243,13 @@ $tablesList = $db->query("SELECT id, table_name, event_id FROM event_tables ORDE
         document.getElementById('modalGuestPhone').innerText = c.phone_entered;
         
         const select = document.getElementById('modalTableSelect');
-        select.innerHTML = '<option value="">-- Chọn bàn --</option>';
+        select.innerHTML = '<option value="">⚠️ -- Chưa xếp bàn (Bỏ xếp bàn / Đặt về trống) --</option>';
         
         allTables.forEach(t => {
             if (t.event_id == c.event_id) {
                 const opt = document.createElement('option');
                 opt.value = t.id;
-                opt.textContent = t.table_name;
+                opt.textContent = t.table_code ? `${t.table_code} (${t.table_name})` : t.table_name;
                 if (t.id == c.table_id) opt.selected = true;
                 select.appendChild(opt);
             }

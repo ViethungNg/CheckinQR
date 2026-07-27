@@ -136,9 +136,11 @@ if ($success) {
         'status' => 'success',
         'message' => 'Check-in thành công!',
         'data' => [
-            'match_status' => $matchStatus,
-            'table_name' => $tableName,
-            'lucky_draw_code' => $luckyDrawCode
+            'match_status'    => $matchStatus,
+            'full_name'       => esc($fullName),
+            'phone'           => esc($phone),
+            'table_name'      => $tableName,
+            'lucky_draw_code' => $luckyDrawCode ?? ('#CKI-' . substr($normalizedPhone, -4))
         ]
     ]);
 } else {

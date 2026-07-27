@@ -90,9 +90,31 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         extraMsg += `</div>`;
                     } else if (data.data.match_status === 'walk_in') {
-                        extraMsg = `<div style="margin-top:10px; padding-top:10px; border-top:1px dashed #4caf50;">
-                            Thông tin của quý khách hiện không có trong danh sách của tổ chức. Vui lòng liên hệ với lễ tân để được hỗ trợ!
-                        </div>`;
+                        extraMsg = `
+                            <div style="margin-top: 15px; padding-top: 12px; border-top: 1px dashed #ef5350;">
+                                <div style="font-weight: bold; color: #c62828; margin-bottom: 12px; font-size: 1rem; line-height: 1.4;">
+                                    ⚠️ Thông tin của quý khách vừa nhập không nằm trong danh sách của Ban tổ chức. Vui lòng liên hệ với lễ tân để được hỗ trợ!
+                                </div>
+                                
+                                <div style="background: #ffffff; border: 1px solid #ffcdd2; border-radius: 12px; padding: 14px; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                                    <div style="font-size: 0.8rem; color: #777; margin-bottom: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">
+                                        📋 THÔNG TIN VỪA NHẬP (TRÌNH LỄ TÂN HỖ TRỢ)
+                                    </div>
+                                    <div style="margin-bottom: 8px; font-size: 0.95rem; color: #333;">
+                                        👤 <strong>Họ tên:</strong> ${data.data.full_name || ''}
+                                    </div>
+                                    <div style="margin-bottom: 8px; font-size: 0.95rem; color: #333;">
+                                        📞 <strong>Số điện thoại:</strong> ${data.data.phone || ''}
+                                    </div>
+                                    <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #ffcdd2; text-align: center;">
+                                        <div style="font-size: 0.8rem; color: #666; margin-bottom: 4px; font-weight: 600;">🎁 MÃ THAM GIA BỐC THĂM / QUAY THƯỞNG</div>
+                                        <div style="font-size: 1.4rem; font-weight: 800; color: #d32f2f; letter-spacing: 1px; background: #fff5f5; display: inline-block; padding: 4px 16px; border-radius: 16px; border: 1px solid #ffcdd2;">
+                                            ${data.data.lucky_draw_code || ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
                     }
                     alertBox.innerHTML += extraMsg;
                 }
