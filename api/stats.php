@@ -10,6 +10,7 @@ try {
     $db = Database::getConnection();
 
     $filter = $_GET['filter'] ?? 'all';
+    $tableId = $_GET['table_id'] ?? 'all';
     $recentCheckins = [];
 
     $userId = $_SESSION['admin_id'] ?? 0;
@@ -34,13 +35,59 @@ try {
         ];
     }
 
-    if ($filter === 'not_arrived' || $filter === 'guests') {
-        $whereClause = "";
-        if ($filter === 'not_arrived') {
-            $whereClause = isKinhDoanh() ? "WHERE g.status = 'invited' AND t.assigned_user_id = {$userId}" : "WHERE g.status = 'invited'";
+    // Lấy danh sách các bàn + thống kê số khách đã tới / chưa tới theo từng bàn
+    $tablesSummary = [];
+    $whereTableKD = isKinhDoanh() ? "WHERE t.assigned_user_id = {$userId}" : "";
+    $stmtTables = $db->query("
+        SELECT t.id, t.table_name, t.table_code, t.capacity, u.full_name as assigned_user_name,
+            (SELECT COUNT(*) FROM guests WHERE table_id = t.id) as total_guests,
+            (SELECT COUNT(*) FROM guests WHERE table_id = t.id AND status = 'checked_in') as arrived_guests
+        FROM event_tables t
+        LEFT JOIN users u ON t.assigned_user_id = u.id
+        {$whereTableKD}
+        ORDER BY t.sort_order ASC, t.id ASC
+    ");
+    while ($t = $stmtTables->fetch()) {
+        $tablesSummary[] = [
+            'id'                 => (int)$t['id'],
+            'table_name'         => esc($t['table_name']),
+            'table_code'         => esc($t['table_code']),
+            'capacity'           => (int)$t['capacity'],
+            'assigned_user_name' => esc($t['assigned_user_name'] ?? 'Chưa phân công'),
+            'total_guests'       => (int)$t['total_guests'],
+            'arrived_guests'     => (int)$t['arrived_guests'],
+            'not_arrived_guests' => (int)$t['total_guests'] - (int)$t['arrived_guests'],
+        ];
+    }
+
+    // Xử lý bộ lọc bàn
+    $tableFilterCondition = "";
+    if ($tableId !== 'all' && $tableId !== '') {
+        if ($tableId === 'unassigned') {
+            $tableFilterCondition = "(g.table_id IS NULL OR g.table_id = 0)";
         } else {
-            $whereClause = isKinhDoanh() ? "WHERE t.assigned_user_id = {$userId}" : "";
+            $cleanTableId = (int)$tableId;
+            $tableFilterCondition = "g.table_id = {$cleanTableId}";
         }
+    }
+
+    if ($filter === 'not_arrived' || $filter === 'guests' || ($tableId !== 'all' && $tableId !== '')) {
+        $whereConditions = [];
+        if ($filter === 'not_arrived') {
+            $whereConditions[] = "g.status = 'invited'";
+        } elseif ($filter === 'matched') {
+            $whereConditions[] = "g.status = 'checked_in'";
+        }
+
+        if (isKinhDoanh()) {
+            $whereConditions[] = "t.assigned_user_id = {$userId}";
+        }
+
+        if ($tableFilterCondition !== '') {
+            $whereConditions[] = $tableFilterCondition;
+        }
+
+        $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
 
         $limitSql = "LIMIT 150";
         $stmtGuests = $db->query("
@@ -72,14 +119,12 @@ try {
         } elseif ($filter === 'walk_in') {
             $whereConditions[] = "c.match_status = 'walk_in'";
         }
+
         if (isKinhDoanh()) {
             $whereConditions[] = "t.assigned_user_id = {$userId}";
         }
 
-        $whereClause = "";
-        if (!empty($whereConditions)) {
-            $whereClause = "WHERE " . implode(" AND ", $whereConditions);
-        }
+        $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
 
         $limitSql = "LIMIT 150";
         $recentStmt = $db->query("
@@ -107,6 +152,7 @@ try {
         'status' => 'success',
         'data'   => [
             'stats'           => $stats,
+            'tables'          => $tablesSummary,
             'recent_checkins' => $recentCheckins
         ]
     ], JSON_UNESCAPED_UNICODE);

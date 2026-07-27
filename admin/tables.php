@@ -17,13 +17,14 @@ if (isPost() && isAdmin()) {
         $capacity = (int)$_POST['capacity'];
         $location = trim($_POST['location'] ?? '');
         $assignedUserId = !empty($_POST['assigned_user_id']) ? (int)$_POST['assigned_user_id'] : null;
+        $sortOrder = isset($_POST['sort_order']) ? (int)$_POST['sort_order'] : 0;
         
         if (empty($tableName) || empty($eventId)) {
             $error = 'Vui lòng chọn sự kiện và nhập tên bàn';
         } else {
             try {
-                $stmt = $db->prepare("INSERT INTO event_tables (event_id, table_name, table_code, capacity, location, assigned_user_id) VALUES (?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$eventId, $tableName, $tableCode, $capacity, $location, $assignedUserId]);
+                $stmt = $db->prepare("INSERT INTO event_tables (event_id, table_name, table_code, capacity, location, assigned_user_id, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$eventId, $tableName, $tableCode, $capacity, $location, $assignedUserId, $sortOrder]);
                 $message = 'Thêm bàn thành công!';
             } catch(PDOException $e) {
                 $error = 'Lỗi thêm bàn (Có thể trùng mã bàn).';
@@ -37,10 +38,11 @@ if (isPost() && isAdmin()) {
         $capacity = (int)$_POST['capacity'];
         $location = trim($_POST['location'] ?? '');
         $assignedUserId = !empty($_POST['assigned_user_id']) ? (int)$_POST['assigned_user_id'] : null;
+        $sortOrder = isset($_POST['sort_order']) ? (int)$_POST['sort_order'] : 0;
         
         try {
-            $stmt = $db->prepare("UPDATE event_tables SET event_id=?, table_name=?, table_code=?, capacity=?, location=?, assigned_user_id=? WHERE id=?");
-            $stmt->execute([$eventId, $tableName, $tableCode, $capacity, $location, $assignedUserId, $id]);
+            $stmt = $db->prepare("UPDATE event_tables SET event_id=?, table_name=?, table_code=?, capacity=?, location=?, assigned_user_id=?, sort_order=? WHERE id=?");
+            $stmt->execute([$eventId, $tableName, $tableCode, $capacity, $location, $assignedUserId, $sortOrder, $id]);
             $message = 'Cập nhật bàn thành công!';
         } catch(PDOException $e) {
             $error = 'Lỗi cập nhật bàn.';
@@ -75,7 +77,7 @@ $stmtTables = $db->prepare("
     LEFT JOIN events e ON t.event_id = e.id 
     LEFT JOIN users u ON t.assigned_user_id = u.id
     {$whereTables}
-    ORDER BY t.event_id DESC, t.table_name ASC
+    ORDER BY t.sort_order ASC, t.id ASC
 ");
 $stmtTables->execute($paramsTables);
 $tables = $stmtTables->fetchAll();
@@ -112,7 +114,7 @@ $tables = $stmtTables->fetchAll();
         
         /* Modal CSS */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
-        .modal-content { background-color: #fff; margin: 5% auto; padding: 20px; border-radius: 8px; width: 450px; max-width: 90%; }
+        .modal-content { background-color: #fff; margin: 5% auto; padding: 20px; border-radius: 8px; width: 480px; max-width: 90%; }
         .modal-header { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
         .close { font-size: 28px; font-weight: bold; cursor: pointer; color: #aaa; }
         .close:hover { color: #333; }
@@ -141,58 +143,66 @@ $tables = $stmtTables->fetchAll();
                 <button class="btn btn-primary" onclick="openAddModal()">+ Thêm bàn mới</button>
             </div>
             <?php endif; ?>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Tên bàn</th>
-                        <th>Mã bàn</th>
-                        <th>Sự kiện</th>
-                        <th>Người phụ trách</th>
-                        <th>Sức chứa</th>
-                        <th>Đã xếp (Dự kiến)</th>
-                        <th>Đã vào bàn (Thực tế)</th>
-                        <th>Vị trí</th>
-                        <?php if(isAdmin()): ?><th>Thao tác</th><?php endif; ?>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach($tables as $t): ?>
-                    <tr>
-                        <td><strong><?php echo esc($t['table_name']); ?></strong></td>
-                        <td><?php echo esc($t['table_code']); ?></td>
-                        <td><?php echo esc($t['event_name']); ?></td>
-                        <td>
-                            <?php if(!empty($t['assigned_user_name'])): ?>
-                                <span style="background: #fff3e0; color: #e65100; padding: 3px 8px; border-radius: 4px; font-weight: 500;">
-                                    💼 <?php echo esc($t['assigned_user_name']); ?>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 80px; text-align: center;">Thứ tự</th>
+                            <th>Tên bàn</th>
+                            <th>Mã bàn</th>
+                            <th>Sự kiện</th>
+                            <th>Người phụ trách</th>
+                            <th>Sức chứa</th>
+                            <th>Đã xếp (Dự kiến)</th>
+                            <th>Đã vào bàn (Thực tế)</th>
+                            <th>Vị trí</th>
+                            <?php if(isAdmin()): ?><th>Thao tác</th><?php endif; ?>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach($tables as $t): ?>
+                        <tr>
+                            <td style="text-align: center;">
+                                <span style="font-weight: bold; color: #d32f2f; background: #ffebee; padding: 3px 10px; border-radius: 6px;">
+                                    <?php echo esc($t['sort_order']); ?>
                                 </span>
-                            <?php else: ?>
-                                <span style="color: #aaa;">Chưa phân công</span>
+                            </td>
+                            <td><strong><?php echo esc($t['table_name']); ?></strong></td>
+                            <td><?php echo esc($t['table_code']); ?></td>
+                            <td><?php echo esc($t['event_name']); ?></td>
+                            <td>
+                                <?php if(!empty($t['assigned_user_name'])): ?>
+                                    <span style="background: #fff3e0; color: #e65100; padding: 3px 8px; border-radius: 4px; font-weight: 500;">
+                                        💼 <?php echo esc($t['assigned_user_name']); ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span style="color: #aaa;">Chưa phân công</span>
+                                <?php endif; ?>
+                            </td>
+                            <td><?php echo esc($t['capacity']); ?> người</td>
+                            <td style="color: <?php echo $t['current_guests'] > $t['capacity'] ? 'red' : '#1565c0'; ?>; font-weight: bold;">
+                                <?php echo esc($t['current_guests']); ?> / <?php echo esc($t['capacity']); ?>
+                            </td>
+                            <td style="color: <?php echo $t['actual_checkins'] > $t['capacity'] ? 'red' : '#2e7d32'; ?>; font-weight: bold;">
+                                <?php echo esc($t['actual_checkins']); ?> / <?php echo esc($t['capacity']); ?>
+                            </td>
+                            <td><?php echo esc($t['location'] ?? '-'); ?></td>
+                            <?php if(isAdmin()): ?>
+                            <td>
+                                <button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;" onclick='openEditModal(<?php echo json_encode($t); ?>)'>Sửa</button>
+                                <form action="" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bàn này? Khách trong bàn sẽ bị mất vị trí.');">
+                                    <?php echo csrfField(); ?>
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="id" value="<?php echo $t['id']; ?>">
+                                    <button type="submit" class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;">Xóa</button>
+                                </form>
+                            </td>
                             <?php endif; ?>
-                        </td>
-                        <td><?php echo esc($t['capacity']); ?> người</td>
-                        <td style="color: <?php echo $t['current_guests'] > $t['capacity'] ? 'red' : '#1565c0'; ?>; font-weight: bold;">
-                            <?php echo esc($t['current_guests']); ?> / <?php echo esc($t['capacity']); ?>
-                        </td>
-                        <td style="color: <?php echo $t['actual_checkins'] > $t['capacity'] ? 'red' : '#2e7d32'; ?>; font-weight: bold;">
-                            <?php echo esc($t['actual_checkins']); ?> / <?php echo esc($t['capacity']); ?>
-                        </td>
-                        <td><?php echo esc($t['location'] ?? '-'); ?></td>
-                        <?php if(isAdmin()): ?>
-                        <td>
-                            <button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;" onclick='openEditModal(<?php echo json_encode($t); ?>)'>Sửa</button>
-                            <form action="" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bàn này? Khách trong bàn sẽ bị mất vị trí.');">
-                                <?php echo csrfField(); ?>
-                                <input type="hidden" name="action" value="delete">
-                                <input type="hidden" name="id" value="<?php echo $t['id']; ?>">
-                                <button type="submit" class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;">Xóa</button>
-                            </form>
-                        </td>
-                        <?php endif; ?>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -216,6 +226,11 @@ $tables = $stmtTables->fetchAll();
                         <option value="<?php echo $e['id']; ?>"><?php echo esc($e['event_name']); ?></option>
                     <?php endforeach; ?>
                 </select>
+            </div>
+
+            <div class="form-group">
+                <label>Thứ tự ưu tiên sắp xếp (Số nhỏ đứng trước: 1, 2, 3...)</label>
+                <input type="number" name="sort_order" id="tableSortOrder" class="form-control" value="0" placeholder="Nhập số thứ tự (ví dụ: 1, 2, 3...)">
             </div>
 
             <div class="form-group">
@@ -262,6 +277,7 @@ $tables = $stmtTables->fetchAll();
         document.getElementById('modalTitle').innerText = 'Thêm Bàn Mới';
         document.getElementById('formAction').value = 'add';
         document.getElementById('tableId').value = '';
+        document.getElementById('tableSortOrder').value = '0';
         document.getElementById('assignedUserId').value = '';
         document.getElementById('tableName').value = '';
         document.getElementById('tableCode').value = '';
@@ -275,21 +291,18 @@ $tables = $stmtTables->fetchAll();
         document.getElementById('formAction').value = 'edit';
         document.getElementById('tableId').value = data.id;
         document.getElementById('eventId').value = data.event_id;
+        document.getElementById('tableSortOrder').value = data.sort_order || '0';
         document.getElementById('assignedUserId').value = data.assigned_user_id || '';
         document.getElementById('tableName').value = data.table_name;
-        document.getElementById('tableLocation').value = data.location;
+        document.getElementById('tableCode').value = data.table_code || '';
+        document.getElementById('tableCapacity').value = data.capacity || '10';
+        document.getElementById('tableLocation').value = data.location || '';
         modal.style.display = 'block';
     }
     
     function closeModal() {
         modal.style.display = 'none';
     }
-    
-    // window.onclick = function(event) {
-    //     if (event.target == modal) {
-    //         closeModal();
-    //     }
-    // }
 </script>
 <script src="../assets/js/admin-mobile.js?v=<?php echo time(); ?>"></script>
 </body>

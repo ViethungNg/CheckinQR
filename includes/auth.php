@@ -34,11 +34,17 @@ function loginAdmin(string $username, string $password): bool {
  * Đăng xuất admin
  */
 function logoutAdmin(): void {
-    unset($_SESSION['admin_id']);
-    unset($_SESSION['admin_username']);
-    unset($_SESSION['admin_name']);
-    unset($_SESSION['admin_role']);
-    session_destroy();
+    $_SESSION = [];
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000,
+            $params["path"], $params["domain"],
+            $params["secure"], $params["httponly"]
+        );
+    }
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        @session_destroy();
+    }
 }
 
 /**

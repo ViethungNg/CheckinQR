@@ -64,7 +64,7 @@ elseif (isPost() && !isAdmin()) {
 
 // Lấy danh sách sự kiện và bàn để đưa vào form
 $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetchAll();
-$tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event_tables ORDER BY table_code ASC, table_name ASC")->fetchAll();
+$tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event_tables ORDER BY sort_order ASC, id ASC")->fetchAll();
 
 // Lấy tham số Tìm kiếm & Sắp xếp
 $search = trim($_GET['search'] ?? '');
@@ -118,7 +118,7 @@ $guests = $stmtGuests->fetchAll();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Khách dự kiến - CheckinQR</title>
+    <title>Danh sách khách hàng - CheckinQR</title>
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
     <style>
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
@@ -168,7 +168,7 @@ $guests = $stmtGuests->fetchAll();
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
     <div class="main-content">
         <div class="header">
-            <h1>Khách dự kiến (<span id="guest-count-title"><?php echo count($guests); ?></span>)</h1>
+            <h1>Danh sách khách hàng (<span id="guest-count-title"><?php echo count($guests); ?></span>)</h1>
         </div>
         
         <?php if($message): ?><div class="alert success"><?php echo esc($message); ?></div><?php endif; ?>
@@ -234,7 +234,11 @@ $guests = $stmtGuests->fetchAll();
                         <td><?php echo esc($guest['organization'] ?? '-'); ?></td>
                         <td><?php echo esc($guest['table_name'] ? ($guest['table_name'] . ($guest['table_code'] ? ' (' . $guest['table_code'] . ')' : '')) : 'Chưa xếp'); ?></td>
                         <td><?php echo esc($guest['lucky_draw_code'] ?? '-'); ?></td>
-                        <td><span class="badge <?php echo esc($guest['status']); ?>"><?php echo esc($guest['status']); ?></span></td>
+                        <td>
+                            <span class="badge <?php echo esc($guest['status']); ?>">
+                                <?php echo $guest['status'] === 'checked_in' ? '✅ Đã checkin' : '⏳ Chưa tới'; ?>
+                            </span>
+                        </td>
                         <?php if(isAdmin()): ?>
                         <td>
                             <button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;" onclick='openEditModal(<?php echo json_encode($guest); ?>)'>Sửa</button>

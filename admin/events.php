@@ -139,7 +139,11 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
                         <td><?php echo esc($event['event_code']); ?></td>
                         <td><?php echo date('d/m/Y', strtotime($event['event_date'])); ?></td>
                         <td><?php echo esc($event['location'] ?? '-'); ?></td>
-                        <td><span class="badge <?php echo esc($event['status']); ?>"><?php echo esc($event['status']); ?></span></td>
+                        <td>
+                            <span class="badge <?php echo esc($event['status']); ?>">
+                                <?php echo $event['status'] === 'active' ? '🟢 Đang diễn ra' : '🔴 Đã kết thúc'; ?>
+                            </span>
+                        </td>
                         <td>
                             <button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;" onclick='openEditModal(<?php echo json_encode($event); ?>)'>Sửa</button>
                             <form action="" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa sự kiện này? Toàn bộ khách và lịch sử check-in sẽ bị xóa theo!');">

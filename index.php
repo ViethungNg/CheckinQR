@@ -61,12 +61,12 @@ if (!$event) {
                     </div>
                     
                     <div class="form-group">
-                        <label for="address">Địa chỉ / Đơn vị công tác</label>
-                        <input type="text" id="address" name="address" class="form-control" placeholder="Nhập địa chỉ hoặc tên đơn vị" maxlength="255">
+                        <label for="address">Địa chỉ/ Tên cửa hàng</label>
+                        <input type="text" id="address" name="address" class="form-control" placeholder="Nhập địa chỉ hoặc tên cửa hàng" maxlength="255">
                     </div>
 
                     <div class="form-group">
-                        <label for="lucky_draw_code">Mã trúng giải (nếu có)</label>
+                        <label for="lucky_draw_code">Mã trúng giải (nếu nhớ)</label>
                         <input type="text" id="lucky_draw_code" name="lucky_draw_code" class="form-control" placeholder="Nhập mã trúng giải (nếu có)" maxlength="50">
                     </div>
                 </div>

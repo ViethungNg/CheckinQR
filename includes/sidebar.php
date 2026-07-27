@@ -9,7 +9,9 @@ $firstChar = mb_strtoupper(mb_substr($adminName, 0, 1, 'UTF-8'));
 ?>
 <div class="sidebar" id="adminSidebar">
     <div class="sidebar-brand">
-        <h2>CheckinQR</h2>
+        <a href="<?php echo url('admin/index.php'); ?>" title="Về trang Dashboard tổng quan" style="display: inline-block; text-decoration: none;">
+            <img src="<?php echo url('img/logo pmt.png'); ?>" alt="Logo PMT" class="sidebar-logo-img">
+        </a>
         <button type="button" class="mobile-menu-btn" id="mobileMenuBtn"><span>☰</span> Menu</button>
     </div>
     
@@ -28,12 +30,12 @@ $firstChar = mb_strtoupper(mb_substr($adminName, 0, 1, 'UTF-8'));
         <?php endif; ?>
         <li>
             <a href="guests.php" class="<?php echo $currentPage === 'guests.php' ? 'active' : ''; ?>">
-                📋 Danh sách khách dự kiến
+                📋 Danh sách khách hàng
             </a>
         </li>
         <li>
             <a href="checkins.php" class="<?php echo $currentPage === 'checkins.php' ? 'active' : ''; ?>">
-                📥 Khách hàng đã checkin
+                📥 Khách đã checkin
             </a>
         </li>
         <li>

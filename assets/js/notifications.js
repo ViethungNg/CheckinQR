@@ -1,12 +1,70 @@
 /**
- * Global Real-time QR Check-in Notification System (Top Corner Header Bell)
+ * Global Real-time QR Check-in Notification System with Dual Audio Engine
  */
 
 (function () {
     let clientLastCheckinId = 0;
     let audioCtx = null;
+    let cachedWavUri = null;
 
-    function initAudio() {
+    // 1. Tạo âm thanh WAV "Ding-Dong" chuẩn trong bộ nhớ JS
+    function getChimeWavUri() {
+        if (cachedWavUri) return cachedWavUri;
+        try {
+            const sampleRate = 22050;
+            const duration = 0.45;
+            const numSamples = Math.floor(sampleRate * duration);
+            const buffer = new Uint8Array(44 + numSamples);
+
+            function writeString(offset, str) {
+                for (let i = 0; i < str.length; i++) buffer[offset + i] = str.charCodeAt(i);
+            }
+            function writeUint32(offset, val) {
+                buffer[offset] = val & 0xff;
+                buffer[offset + 1] = (val >> 8) & 0xff;
+                buffer[offset + 2] = (val >> 16) & 0xff;
+                buffer[offset + 3] = (val >> 24) & 0xff;
+            }
+            function writeUint16(offset, val) {
+                buffer[offset] = val & 0xff;
+                buffer[offset + 1] = (val >> 8) & 0xff;
+            }
+
+            writeString(0, 'RIFF');
+            writeUint32(4, 36 + numSamples);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            writeUint32(16, 16);
+            writeUint16(20, 1);
+            writeUint16(22, 1);
+            writeUint32(24, sampleRate);
+            writeUint32(28, sampleRate);
+            writeUint16(32, 1);
+            writeUint16(34, 8);
+            writeString(36, 'data');
+            writeUint32(40, numSamples);
+
+            for (let i = 0; i < numSamples; i++) {
+                const t = i / sampleRate;
+                let freq = 783.99; // Nốt G5
+                if (t > 0.12) freq = 1046.50; // Nốt C6
+
+                const envelope = Math.max(0, 1 - (t / duration) * 1.5);
+                const sampleVal = Math.sin(2 * Math.PI * freq * t) * envelope * 0.5;
+                buffer[44 + i] = Math.floor((sampleVal + 1) * 127.5);
+            }
+
+            let binary = '';
+            for (let i = 0; i < buffer.length; i++) binary += String.fromCharCode(buffer[i]);
+            cachedWavUri = 'data:audio/wav;base64,' + btoa(binary);
+            return cachedWavUri;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    // 2. Kích hoạt và mở khóa AudioContext trình duyệt
+    function unlockAudio() {
         if (!audioCtx) {
             const AudioContextClass = window.AudioContext || window.webkitAudioContext;
             if (AudioContextClass) {
@@ -18,26 +76,38 @@
         }
     }
 
-    function playNotifChime() {
+    // 3. Hàm phát âm thanh kép (HTML5 Audio + Web Audio Synth)
+    window.playNotifChime = function () {
+        unlockAudio();
+
+        // Engine 1: HTML5 Audio với WAV Data URI
         try {
-            initAudio();
-            if (!audioCtx) return;
-
-            const now = audioCtx.currentTime;
-            const osc1 = audioCtx.createOscillator();
-            const gain1 = audioCtx.createGain();
-            osc1.type = 'sine';
-            osc1.frequency.setValueAtTime(587.33, now);
-            osc1.frequency.exponentialRampToValueAtTime(880, now + 0.12);
-            gain1.gain.setValueAtTime(0.3, now);
-            gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-
-            osc1.connect(gain1);
-            gain1.connect(audioCtx.destination);
-            osc1.start(now);
-            osc1.stop(now + 0.5);
+            const wavUri = getChimeWavUri();
+            if (wavUri) {
+                const audio = new Audio(wavUri);
+                audio.volume = 0.9;
+                audio.play().catch(() => {});
+            }
         } catch (e) {}
-    }
+
+        // Engine 2: Web Audio API Oscillator
+        try {
+            if (audioCtx) {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(783.99, now); // G5
+                osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.12); // C6
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.45);
+            }
+        } catch (e) {}
+    };
 
     function showToastNotification(item) {
         let container = document.getElementById('globalToastContainer');
@@ -77,7 +147,6 @@
         }, 6000);
     }
 
-    // Tự động gắn Nút chuông thông báo vào góc phải thanh Tiêu đề (.header)
     function injectHeaderNotifBell() {
         if (document.getElementById('headerNotifBox')) return;
 
@@ -93,7 +162,10 @@
             <div class="notif-dropdown" id="notifDropdown">
                 <div class="notif-dropdown-header">
                     <span>🔔 Thông báo quét QR gần đây</span>
-                    <button type="button" class="notif-mark-read-btn" onclick="markAllNotifsRead(event)">Đã đọc tất cả</button>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <button type="button" class="notif-test-sound-btn" onclick="playNotifChime(); event.stopPropagation();" title="Thử phát chuông thông báo">🔊 Thử loa</button>
+                        <button type="button" class="notif-mark-read-btn" onclick="markAllNotifsRead(event)">Đã đọc</button>
+                    </div>
                 </div>
                 <div class="notif-dropdown-list" id="notifDropdownList">
                     <div class="notif-empty-state">Đang tải thông báo...</div>
@@ -197,7 +269,7 @@
 
     window.toggleNotifDropdown = function (e) {
         if (e) e.stopPropagation();
-        initAudio();
+        unlockAudio();
         const dropdown = document.getElementById('notifDropdown');
         if (dropdown) {
             const isVisible = getComputedStyle(dropdown).display !== 'none';
@@ -215,7 +287,10 @@
         }
     });
 
-    document.addEventListener('click', initAudio, { once: true });
+    // Mở khóa âm thanh trình duyệt ngay khi người dùng thao tác trên màn hình
+    ['click', 'touchstart', 'keydown', 'scroll', 'mousemove'].forEach(evt => {
+        document.addEventListener(evt, unlockAudio, { once: true });
+    });
 
     document.addEventListener('DOMContentLoaded', () => {
         injectHeaderNotifBell();

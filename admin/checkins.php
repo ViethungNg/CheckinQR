@@ -130,14 +130,14 @@ $stmtCheckins->execute($paramsCheckin);
 $checkins = $stmtCheckins->fetchAll();
 
 // Lấy danh sách bàn để xếp cho khách phát sinh
-$tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event_tables ORDER BY table_code ASC, table_name ASC")->fetchAll();
+$tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event_tables ORDER BY sort_order ASC, id ASC")->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Check-in trực tiếp - CheckinQR</title>
+    <title>Khách đã checkin - CheckinQR</title>
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
     <style>
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
@@ -184,7 +184,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
     <div class="main-content">
         <div class="header">
-            <h1>Lượt Check-in thực tế</h1>
+            <h1>Khách đã checkin</h1>
         </div>
         
         <?php if($message): ?><div class="alert success"><?php echo esc($message); ?></div><?php endif; ?>
