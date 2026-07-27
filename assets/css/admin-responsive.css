@@ -7,30 +7,66 @@
 
     .sidebar {
         width: 100% !important;
-        padding: 15px !important;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05) !important;
+        padding: 12px 15px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 999 !important;
+        background: #ffffff !important;
     }
 
     .sidebar h2 {
-        margin-bottom: 15px !important;
-        font-size: 1.3rem !important;
+        margin-bottom: 10px !important;
+        font-size: 1.25rem !important;
+        text-align: left !important;
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
     }
 
+    /* Thanh Menu cuộn ngang mượt mà dạng Pill Badge (Không bị gãy dòng) */
     .sidebar ul {
         display: flex !important;
-        flex-wrap: wrap !important;
-        gap: 5px !important;
-        justify-content: center !important;
+        flex-wrap: nowrap !important;
+        gap: 8px !important;
+        justify-content: flex-start !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding-bottom: 5px !important;
+        margin-top: 5px !important;
+    }
+
+    /* Ẩn thanh cuộn xấu trên điện thoại */
+    .sidebar ul::-webkit-scrollbar {
+        display: none !important;
+    }
+    .sidebar ul {
+        -ms-overflow-style: none !important;
+        scrollbar-width: none !important;
     }
 
     .sidebar ul li {
         margin-bottom: 0 !important;
+        flex-shrink: 0 !important;
     }
 
     .sidebar ul li a {
-        padding: 8px 12px !important;
+        padding: 8px 14px !important;
         font-size: 0.85rem !important;
         white-space: nowrap !important;
+        border-radius: 20px !important;
+        background: #f4f6f8 !important;
+        color: #555 !important;
+        font-weight: 500 !important;
+        border: 1px solid #e0e0e0 !important;
+        transition: all 0.2s ease !important;
+    }
+
+    .sidebar ul li a.active, .sidebar ul li a:hover {
+        background: var(--primary-color) !important;
+        color: #ffffff !important;
+        border-color: var(--primary-color) !important;
+        box-shadow: 0 3px 8px rgba(211, 47, 47, 0.25) !important;
     }
 
     .main-content {
@@ -45,7 +81,7 @@
     }
 
     .header h1 {
-        font-size: 1.3rem !important;
+        font-size: 1.2rem !important;
     }
 
     .user-info {
@@ -64,21 +100,21 @@
     }
 
     .card h3 {
-        font-size: 0.85rem !important;
+        font-size: 0.82rem !important;
     }
 
     .card .value {
-        font-size: 1.6rem !important;
+        font-size: 1.5rem !important;
     }
 
     /* Bảng dữ liệu tự cuộn ngang trên điện thoại */
-    .table-responsive, .recent-section {
+    .table-responsive, .recent-section, .content-box {
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch !important;
     }
 
     table {
-        min-width: 600px !important;
+        min-width: 550px !important;
     }
 
     th, td {
@@ -108,6 +144,6 @@
 
 @media screen and (max-width: 480px) {
     .dashboard-cards {
-        grid-template-columns: 1fr !important;
+        grid-template-columns: repeat(2, 1fr) !important;
     }
 }
