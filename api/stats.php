@@ -42,12 +42,13 @@ try {
             $whereClause = isKinhDoanh() ? "WHERE t.assigned_user_id = {$userId}" : "";
         }
 
+        $limitSql = ($filter === 'all') ? "LIMIT 10" : "LIMIT 500";
         $stmtGuests = $db->query("
             SELECT g.*, t.table_name 
             FROM guests g 
             LEFT JOIN event_tables t ON g.table_id = t.id 
             {$whereClause}
-            ORDER BY g.id DESC LIMIT 15
+            ORDER BY g.id DESC {$limitSql}
         ");
         while ($row = $stmtGuests->fetch()) {
             $recentCheckins[] = [
@@ -80,12 +81,13 @@ try {
             $whereClause = "WHERE " . implode(" AND ", $whereConditions);
         }
 
+        $limitSql = ($filter === 'all') ? "LIMIT 10" : "LIMIT 500";
         $recentStmt = $db->query("
             SELECT c.*, t.table_name 
             FROM checkins c 
             LEFT JOIN event_tables t ON c.table_id = t.id 
             {$whereClause}
-            ORDER BY c.checkin_time DESC LIMIT 10
+            ORDER BY c.checkin_time DESC {$limitSql}
         ");
 
         while ($row = $recentStmt->fetch()) {
