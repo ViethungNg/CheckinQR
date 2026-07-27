@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 alertBox.innerHTML = `
                     <div style="text-align: center; padding: 5px 0;">
                         <div style="font-size: 1.25rem; font-weight: bold; color: #1565c0; margin-bottom: 6px;">
-                            ℹ️ BẠN ĐÃ CHECK-IN THÀNH CÔNG
+                            ℹ️ Quý khách đã checkin trước đó rồi
                         </div>
                         <div style="font-size: 0.85rem; color: #555; margin-bottom: 15px;">
                             Thời gian ghi nhận: <strong>${data.data.checkin_time}</strong>

@@ -141,10 +141,10 @@ $tablesList = $db->query("SELECT id, table_name, event_id FROM event_tables ORDE
         <ul>
             <li><a href="index.php">Dashboard</a></li>
             <?php if(isAdmin()): ?>
-            <li><a href="events.php">Quản lý Sự kiện</a></li>
+            <li><a href="events.php">Quản lý sự kiện</a></li>
             <?php endif; ?>
-            <li><a href="guests.php">Khách dự kiến</a></li>
-            <li><a href="checkins.php" class="active">Check-in trực tiếp</a></li>
+            <li><a href="guests.php">Danh sách khách hàng dự kiến</a></li>
+            <li><a href="checkins.php" class="active">Khách hàng đã checkin</a></li>
             <?php if(isAdmin()): ?>
             <li><a href="tables.php">Quản lý bàn</a></li>
             <?php endif; ?>

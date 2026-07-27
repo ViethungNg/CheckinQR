@@ -128,9 +128,9 @@ $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetc
         <h2>CheckinQR</h2>
         <ul>
             <li><a href="index.php">Dashboard</a></li>
-            <li><a href="events.php">Quản lý Sự kiện</a></li>
-            <li><a href="guests.php" class="active">Khách dự kiến</a></li>
-            <li><a href="checkins.php">Check-in trực tiếp</a></li>
+            <li><a href="events.php">Quản lý sự kiện</a></li>
+            <li><a href="guests.php" class="active">Danh sách khách hàng dự kiến</a></li>
+            <li><a href="checkins.php">Khách hàng đã checkin</a></li>
             <li><a href="tables.php">Quản lý bàn</a></li>
         </ul>
     </div>

@@ -113,9 +113,9 @@ $tables = $db->query("
         <h2>CheckinQR</h2>
         <ul>
             <li><a href="index.php">Dashboard</a></li>
-            <li><a href="events.php">Quản lý Sự kiện</a></li>
-            <li><a href="guests.php">Khách dự kiến</a></li>
-            <li><a href="checkins.php">Check-in trực tiếp</a></li>
+            <li><a href="events.php">Quản lý sự kiện</a></li>
+            <li><a href="guests.php">Danh sách khách hàng dự kiến</a></li>
+            <li><a href="checkins.php">Khách hàng đã checkin</a></li>
             <li><a href="tables.php" class="active">Quản lý bàn</a></li>
         </ul>
     </div>
