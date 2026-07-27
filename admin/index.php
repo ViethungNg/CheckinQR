@@ -89,24 +89,29 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
         <div class="dashboard-cards">
             <div class="card">
                 <h3>Tổng Sự kiện</h3>
-                <div class="value"><?php echo $stats['events']; ?></div>
+                <div class="value" id="val-events"><?php echo $stats['events']; ?></div>
             </div>
             <div class="card">
                 <h3>Khách dự kiến</h3>
-                <div class="value"><?php echo $stats['guests']; ?></div>
+                <div class="value" id="val-guests"><?php echo $stats['guests']; ?></div>
             </div>
             <div class="card">
                 <h3>Đã Check-in (Khớp)</h3>
-                <div class="value" style="color: #2e7d32;"><?php echo $stats['checked_in']; ?></div>
+                <div class="value" id="val-checked-in" style="color: #2e7d32;"><?php echo $stats['checked_in']; ?></div>
             </div>
             <div class="card">
                 <h3>Khách phát sinh (Walk-in)</h3>
-                <div class="value" style="color: #ef6c00;"><?php echo $stats['walk_in']; ?></div>
+                <div class="value" id="val-walk-in" style="color: #ef6c00;"><?php echo $stats['walk_in']; ?></div>
             </div>
         </div>
 
         <div class="recent-section">
-            <h3>Lượt check-in mới nhất</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin-bottom: 0;">Lượt check-in mới nhất</h3>
+                <span id="realtime-status" style="font-size: 0.85rem; color: #2e7d32; font-weight: 500;">
+                    🟢 Cập nhật Real-time (Mỗi 3s)
+                </span>
+            </div>
             <table>
                 <thead>
                     <tr>
@@ -116,7 +121,7 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
                         <th>Trạng thái</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="recent-checkins-body">
                     <?php
                     $recentStmt = $db->query("SELECT * FROM checkins ORDER BY checkin_time DESC LIMIT 5");
                     while($row = $recentStmt->fetch()):
@@ -137,6 +142,50 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
         </div>
     </div>
 </div>
+
+<script>
+async function updateRealtimeStats() {
+    try {
+        const response = await fetch('../api/stats.php');
+        if (!response.ok) return;
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            const data = result.data.stats;
+            
+            // Cập nhật số liệu
+            document.getElementById('val-events').textContent = data.events;
+            document.getElementById('val-guests').textContent = data.guests;
+            document.getElementById('val-checked-in').textContent = data.checked_in;
+            document.getElementById('val-walk-in').textContent = data.walk_in;
+            
+            // Cập nhật danh sách check-in
+            const tbody = document.getElementById('recent-checkins-body');
+            if (result.data.recent_checkins.length > 0) {
+                let html = '';
+                result.data.recent_checkins.slice(0, 5).forEach(item => {
+                    html += `
+                        <tr>
+                            <td>${item.full_name}</td>
+                            <td>${item.phone}</td>
+                            <td>${item.time}</td>
+                            <td>
+                                <span class="badge ${item.status}">${item.status_text}</span>
+                            </td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            }
+        }
+    } catch (e) {
+        console.error('Realtime update error:', e);
+    }
+}
+
+// Chạy tự động cập nhật mỗi 3 giây (3000ms)
+setInterval(updateRealtimeStats, 3000);
+</script>
 
 </body>
 </html>
