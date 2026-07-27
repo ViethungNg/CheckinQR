@@ -103,6 +103,22 @@ $stmtCheckins = $db->prepare("
 $stmtCheckins->execute($paramsCheckin);
 $checkins = $stmtCheckins->fetchAll();
 
+// Chuẩn bị Map cho Javascript
+$checkinsMapData = [];
+foreach ($checkins as $cItem) {
+    $checkinsMapData[$cItem['id']] = [
+        'id'               => (int)$cItem['id'],
+        'event_id'         => (int)($cItem['event_id'] ?? 0),
+        'table_id'         => $cItem['table_id'] ? (int)$cItem['table_id'] : null,
+        'guest_id'         => $cItem['guest_id'] ? (int)$cItem['guest_id'] : null,
+        'full_name'        => $cItem['full_name_entered'],
+        'phone'            => $cItem['phone_entered'],
+        'table_name'       => $cItem['table_name'] ?? 'Chưa xếp bàn',
+        'lucky_draw_code'  => $cItem['lucky_draw_code'] ?? '',
+        'match_status'     => $cItem['match_status']
+    ];
+}
+
 // Lấy danh sách bàn để xếp cho khách phát sinh
 $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event_tables ORDER BY sort_order ASC, id ASC")->fetchAll();
 ?>
@@ -154,9 +170,6 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
     </style>
 </head>
 <body>
-<script>
-    window.checkinsMap = {};
-</script>
 <div class="wrapper">
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
     <div class="main-content">
@@ -190,9 +203,6 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                         <?php foreach($checkins as $c): 
                             $isByLuckyCode = ($c['checkin_method'] ?? '') === 'lucky_code' || (!empty($c['guest_normalized_phone']) && $c['normalized_phone'] !== $c['guest_normalized_phone']);
                         ?>
-                        <script>
-                            window.checkinsMap[<?php echo (int)$c['id']; ?>] = <?php echo json_encode($c, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
-                        </script>
                         <tr class="<?php echo $c['match_status'] === 'matched' ? 'row-checked-in' : ''; ?>">
                             <td><strong><?php echo esc($c['full_name_entered']); ?></strong></td>
                             <td><?php echo esc($c['phone_entered']); ?></td>
@@ -283,6 +293,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
 </div>
 
 <script>
+    window.checkinsMap = <?php echo json_encode($checkinsMapData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
     const modal = document.getElementById('assignModal');
     const allTables = <?php echo json_encode($tablesList); ?>;
     const isAdminUser = <?php echo isAdmin() ? 'true' : 'false'; ?>;
@@ -290,25 +301,25 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
     const csrfTokenValue = '<?php echo $_SESSION[CSRF_TOKEN_KEY] ?? ""; ?>';
     
     function openAssignModal(checkinId) {
-        const c = window.checkinsMap ? window.checkinsMap[checkinId] : null;
+        const c = (window.checkinsMap && window.checkinsMap[checkinId]) ? window.checkinsMap[checkinId] : null;
         if (!c) {
             console.error('Checkin record not found:', checkinId);
             return;
         }
 
         document.getElementById('modalCheckinId').value = c.id;
-        document.getElementById('modalGuestName').innerText = c.full_name_entered || c.full_name || '';
-        document.getElementById('modalGuestPhone').innerText = c.phone_entered || c.phone || '';
+        document.getElementById('modalGuestName').innerText = c.full_name || c.full_name_entered || '';
+        document.getElementById('modalGuestPhone').innerText = c.phone || c.phone_entered || '';
         
         const select = document.getElementById('modalTableSelect');
         select.innerHTML = '<option value="">-- Chưa xếp bàn --</option>';
         
         allTables.forEach(t => {
-            if (t.event_id == c.event_id) {
+            if (!c.event_id || !t.event_id || t.event_id == c.event_id) {
                 const opt = document.createElement('option');
                 opt.value = t.id;
                 opt.textContent = t.table_code ? `${t.table_code} (${t.table_name})` : t.table_name;
-                if (t.id == c.table_id) opt.selected = true;
+                if (c.table_id && t.id == c.table_id) opt.selected = true;
                 select.appendChild(opt);
             }
         });

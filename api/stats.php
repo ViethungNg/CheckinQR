@@ -150,7 +150,11 @@ try {
             }
 
             $recentCheckins[] = [
-                'id'                  => $row['id'],
+                'id'                  => (int)$row['id'],
+                'event_id'            => (int)($row['event_id'] ?? 0),
+                'table_id'            => $row['table_id'] ? (int)$row['table_id'] : null,
+                'guest_id'            => $row['guest_id'] ? (int)$row['guest_id'] : null,
+                'lucky_draw_code'     => esc($row['lucky_draw_code'] ?? ''),
                 'full_name'           => esc($row['full_name_entered']),
                 'phone'               => esc($row['phone_entered']),
                 'table_name'          => esc($row['table_name'] ?? 'Chưa xếp bàn'),
