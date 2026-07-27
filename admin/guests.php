@@ -176,7 +176,7 @@ $guests = $stmtGuests->fetchAll();
     </div>
     <div class="main-content">
         <div class="header">
-            <h1>Khách dự kiến (<?php echo count($guests); ?>)</h1>
+            <h1>Khách dự kiến (<span id="guest-count-title"><?php echo count($guests); ?></span>)</h1>
         </div>
         
         <?php if($message): ?><div class="alert success"><?php echo esc($message); ?></div><?php endif; ?>
@@ -192,10 +192,10 @@ $guests = $stmtGuests->fetchAll();
                 <?php endif; ?>
             </div>
 
-            <!-- Thanh Lọc & Sắp Xếp Thông Minh -->
-            <form method="GET" action="" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; background: #f8f9fa; padding: 12px 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
-                <div style="flex: 1; min-width: 240px;">
-                    <input type="text" name="search" value="<?php echo esc($search); ?>" placeholder="🔍 Tìm theo SĐT, Bàn, Mã dự thưởng, Họ tên..." class="form-control">
+            <!-- Thanh Lọc & Sắp Xếp Thông Minh (Live Typing Search) -->
+            <form method="GET" action="" id="search-form" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; background: #f8f9fa; padding: 12px 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
+                <div style="flex: 1; min-width: 240px; position: relative;">
+                    <input type="text" id="search-input" name="search" value="<?php echo esc($search); ?>" placeholder="⚡ Gõ tới đâu tìm tới đó: SĐT, Bàn, Mã dự thưởng, Họ tên..." class="form-control" oninput="liveSearchGuests(this.value)" autocomplete="off">
                 </div>
                 
                 <div style="min-width: 220px;">
@@ -234,6 +234,7 @@ $guests = $stmtGuests->fetchAll();
                         <?php if(isAdmin()): ?><th>Thao tác</th><?php endif; ?>
                     </tr>
                 </thead>
+                <tbody id="guests-table-body">
                 <tbody>
                     <?php foreach($guests as $guest): ?>
                     <tr>
@@ -381,11 +382,30 @@ $guests = $stmtGuests->fetchAll();
         modal.style.display = 'none';
     }
     
-    // window.onclick = function(event) {
-    //     if (event.target == modal) {
-    //         closeModal();
-    //     }
-    // }
+    // Hàm Lọc Siêu Tốc 0ms: Gõ tới đâu lọc tới đó ngay trên màn hình!
+    function liveSearchGuests(val) {
+        const query = val.toLowerCase().trim();
+        const tbody = document.getElementById('guests-table-body');
+        if (!tbody) return;
+        
+        const rows = tbody.querySelectorAll('tr');
+        let count = 0;
+        
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            if (query === '' || text.includes(query)) {
+                row.style.display = '';
+                count++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        const counter = document.getElementById('guest-count-title');
+        if (counter) {
+            counter.textContent = count;
+        }
+    }
 </script>
 <script src="../assets/js/admin-mobile.js?v=<?php echo time(); ?>"></script>
 </body>
