@@ -103,22 +103,6 @@ $stmtCheckins = $db->prepare("
 $stmtCheckins->execute($paramsCheckin);
 $checkins = $stmtCheckins->fetchAll();
 
-// Chuẩn bị Map cho Javascript
-$checkinsMapData = [];
-foreach ($checkins as $cItem) {
-    $checkinsMapData[$cItem['id']] = [
-        'id'               => (int)$cItem['id'],
-        'event_id'         => (int)($cItem['event_id'] ?? 0),
-        'table_id'         => $cItem['table_id'] ? (int)$cItem['table_id'] : null,
-        'guest_id'         => $cItem['guest_id'] ? (int)$cItem['guest_id'] : null,
-        'full_name'        => $cItem['full_name_entered'],
-        'phone'            => $cItem['phone_entered'],
-        'table_name'       => $cItem['table_name'] ?? 'Chưa xếp bàn',
-        'lucky_draw_code'  => $cItem['lucky_draw_code'] ?? '',
-        'match_status'     => $cItem['match_status']
-    ];
-}
-
 // Lấy danh sách bàn để xếp cho khách phát sinh
 $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event_tables ORDER BY sort_order ASC, id ASC")->fetchAll();
 ?>
@@ -202,6 +186,15 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                     <tbody id="checkins-table-body">
                         <?php foreach($checkins as $c): 
                             $isByLuckyCode = ($c['checkin_method'] ?? '') === 'lucky_code' || (!empty($c['guest_normalized_phone']) && $c['normalized_phone'] !== $c['guest_normalized_phone']);
+                            $jsonObj = [
+                                'id'         => (int)$c['id'],
+                                'event_id'   => (int)($c['event_id'] ?? 0),
+                                'table_id'   => $c['table_id'] ? (int)$c['table_id'] : null,
+                                'full_name'  => $c['full_name_entered'],
+                                'phone'      => $c['phone_entered'],
+                                'table_name' => $c['table_name'] ?? ''
+                            ];
+                            $dataAttr = htmlspecialchars(json_encode($jsonObj), ENT_QUOTES, 'UTF-8');
                         ?>
                         <tr class="<?php echo $c['match_status'] === 'matched' ? 'row-checked-in' : ''; ?>">
                             <td><strong><?php echo esc($c['full_name_entered']); ?></strong></td>
@@ -245,7 +238,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                             </td>
                             <?php if(!isKinhDoanh()): ?>
                             <td>
-                                <button type="button" class="btn btn-info" onclick="openAssignModal(<?php echo (int)$c['id']; ?>)">Xếp bàn</button>
+                                <button type="button" class="btn btn-info" data-checkin="<?php echo $dataAttr; ?>" onclick="handleAssignClick(this)">Xếp bàn</button>
                                 
                                 <?php if(isAdmin()): ?>
                                 <form action="" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
@@ -293,19 +286,23 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
 </div>
 
 <script>
-    window.checkinsMap = <?php echo json_encode($checkinsMapData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
     const modal = document.getElementById('assignModal');
     const allTables = <?php echo json_encode($tablesList); ?>;
     const isAdminUser = <?php echo isAdmin() ? 'true' : 'false'; ?>;
     const isKinhDoanhUser = <?php echo isKinhDoanh() ? 'true' : 'false'; ?>;
     const csrfTokenValue = '<?php echo $_SESSION[CSRF_TOKEN_KEY] ?? ""; ?>';
+
+    function htmlEscapedJson(obj) {
+        return JSON.stringify(obj)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
     
-    function openAssignModal(checkinId) {
-        const c = (window.checkinsMap && window.checkinsMap[checkinId]) ? window.checkinsMap[checkinId] : null;
-        if (!c) {
-            console.error('Checkin record not found:', checkinId);
-            return;
-        }
+    function openAssignModal(c) {
+        if (!c) return;
 
         document.getElementById('modalCheckinId').value = c.id;
         document.getElementById('modalGuestName').innerText = c.full_name || c.full_name_entered || '';
@@ -325,6 +322,18 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
         });
         
         modal.style.display = 'block';
+    }
+
+    function handleAssignClick(btn) {
+        try {
+            const raw = btn.getAttribute('data-checkin');
+            if (raw) {
+                const c = JSON.parse(raw);
+                openAssignModal(c);
+            }
+        } catch(e) {
+            console.error('Modal open error:', e);
+        }
     }
     
     function closeModal() {
@@ -351,8 +360,6 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
 
                 let html = '';
                 result.data.recent_checkins.forEach(item => {
-                    window.checkinsMap[item.id] = item;
-
                     const isCheckedIn = item.status === 'matched';
                     const rowClass = isCheckedIn ? 'row-checked-in' : '';
                     
@@ -375,11 +382,20 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                         ? `<strong style="color: #2e7d32;">${item.table_name}</strong>`
                         : `<span style="color: #888;">Chưa xếp</span>`;
 
+                    const dataAttr = htmlEscapedJson({
+                        id: item.id,
+                        event_id: item.event_id,
+                        table_id: item.table_id,
+                        full_name: item.full_name,
+                        phone: item.phone,
+                        table_name: item.table_name
+                    });
+
                     let actionsHtml = '';
                     if (!isKinhDoanhUser) {
                         actionsHtml = `
                             <td>
-                                <button type="button" class="btn btn-info" onclick="openAssignModal(${item.id})">Xếp bàn</button>
+                                <button type="button" class="btn btn-info" data-checkin='${dataAttr}' onclick="handleAssignClick(this)">Xếp bàn</button>
                                 ${isAdminUser ? `
                                 <form action="" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
                                     <input type="hidden" name="csrf_token" value="${csrfTokenValue}">
