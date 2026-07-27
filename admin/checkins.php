@@ -154,6 +154,9 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
     </style>
 </head>
 <body>
+<script>
+    window.checkinsMap = {};
+</script>
 <div class="wrapper">
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
     <div class="main-content">
@@ -187,6 +190,9 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                         <?php foreach($checkins as $c): 
                             $isByLuckyCode = ($c['checkin_method'] ?? '') === 'lucky_code' || (!empty($c['guest_normalized_phone']) && $c['normalized_phone'] !== $c['guest_normalized_phone']);
                         ?>
+                        <script>
+                            window.checkinsMap[<?php echo (int)$c['id']; ?>] = <?php echo json_encode($c, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+                        </script>
                         <tr class="<?php echo $c['match_status'] === 'matched' ? 'row-checked-in' : ''; ?>">
                             <td><strong><?php echo esc($c['full_name_entered']); ?></strong></td>
                             <td><?php echo esc($c['phone_entered']); ?></td>
@@ -229,7 +235,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                             </td>
                             <?php if(!isKinhDoanh()): ?>
                             <td>
-                                <button class="btn btn-info" onclick='openAssignModal(<?php echo json_encode($c); ?>)'>Xếp bàn</button>
+                                <button type="button" class="btn btn-info" onclick="openAssignModal(<?php echo (int)$c['id']; ?>)">Xếp bàn</button>
                                 
                                 <?php if(isAdmin()): ?>
                                 <form action="" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
@@ -283,10 +289,16 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
     const isKinhDoanhUser = <?php echo isKinhDoanh() ? 'true' : 'false'; ?>;
     const csrfTokenValue = '<?php echo $_SESSION[CSRF_TOKEN_KEY] ?? ""; ?>';
     
-    function openAssignModal(c) {
+    function openAssignModal(checkinId) {
+        const c = window.checkinsMap ? window.checkinsMap[checkinId] : null;
+        if (!c) {
+            console.error('Checkin record not found:', checkinId);
+            return;
+        }
+
         document.getElementById('modalCheckinId').value = c.id;
-        document.getElementById('modalGuestName').innerText = c.full_name_entered || c.full_name;
-        document.getElementById('modalGuestPhone').innerText = c.phone_entered || c.phone;
+        document.getElementById('modalGuestName').innerText = c.full_name_entered || c.full_name || '';
+        document.getElementById('modalGuestPhone').innerText = c.phone_entered || c.phone || '';
         
         const select = document.getElementById('modalTableSelect');
         select.innerHTML = '<option value="">-- Chưa xếp bàn --</option>';
@@ -328,6 +340,8 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
 
                 let html = '';
                 result.data.recent_checkins.forEach(item => {
+                    window.checkinsMap[item.id] = item;
+
                     const isCheckedIn = item.status === 'matched';
                     const rowClass = isCheckedIn ? 'row-checked-in' : '';
                     
@@ -350,13 +364,11 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                         ? `<strong style="color: #2e7d32;">${item.table_name}</strong>`
                         : `<span style="color: #888;">Chưa xếp</span>`;
 
-                    const itemJson = JSON.stringify(item).replace(/'/g, "&apos;");
-
                     let actionsHtml = '';
                     if (!isKinhDoanhUser) {
                         actionsHtml = `
                             <td>
-                                <button class="btn btn-info" onclick='openAssignModal(${itemJson})'>Xếp bàn</button>
+                                <button type="button" class="btn btn-info" onclick="openAssignModal(${item.id})">Xếp bàn</button>
                                 ${isAdminUser ? `
                                 <form action="" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
                                     <input type="hidden" name="csrf_token" value="${csrfTokenValue}">
