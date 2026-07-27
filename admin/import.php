@@ -5,20 +5,14 @@ requireAdmin();
 
 require_once __DIR__ . '/../includes/xlsx_reader.php';
 
-// Xử lý Xuất File Mẫu Excel (.csv mở chuẩn bằng Excel)
+// Xử lý Xuất File Mẫu Excel chuẩn (.xlsx)
 if (isset($_GET['action']) && $_GET['action'] === 'download_template') {
-    header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="Mau_Danh_Sach_Khach_Hang.csv"');
-    
-    // Thêm UTF-8 BOM để Microsoft Excel mở lên tự động hiển thị Tiếng Việt chuẩn 100%
-    echo "\xEF\xBB\xBF";
-    
-    $output = fopen('php://output', 'w');
-    fputcsv($output, ['Họ và tên', 'Số điện thoại', 'Mã bàn', 'Mã bốc thăm', 'Đơn vị công tác']);
-    fputcsv($output, ['Nguyễn Văn A', '0987654321', 'VIP1', '101', 'Công ty Hòa Vinh']);
-    fputcsv($output, ['Trần Thị B', '0912345678', 'TB02', '102', 'Tập đoàn Vĩnh Phú']);
-    fclose($output);
-    exit;
+    $headers = ['Họ và tên', 'Số điện thoại', 'Mã bàn', 'Mã bốc thăm', 'Đơn vị công tác'];
+    $sampleData = [
+        ['Nguyễn Văn A', '0987654321', 'VIP1', '101', 'Công ty Hòa Vinh'],
+        ['Trần Thị B', '0912345678', 'TB02', '102', 'Tập đoàn Vĩnh Phú']
+    ];
+    downloadXlsxFile('Mau_Danh_Sach_Khach_Hang.xlsx', $headers, $sampleData);
 }
 
 $db = Database::getConnection();
@@ -27,7 +21,7 @@ $message = '';
 $error = '';
 $results = [];
 
-if (isPost() && (isset($_FILES['csv_file']) || isset($_FILES['excel_file']))) {
+if (isPost() && (isset($_FILES['excel_file']) || isset($_FILES['csv_file']))) {
     requireCsrfToken();
     $eventId = (int)$_POST['event_id'];
     $uploadedFile = $_FILES['excel_file'] ?? $_FILES['csv_file'];
@@ -39,23 +33,12 @@ if (isPost() && (isset($_FILES['csv_file']) || isset($_FILES['excel_file']))) {
         $tmpPath = $uploadedFile['tmp_name'];
         $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
         
-        if (!in_array($ext, ['xlsx', 'csv', 'xls'])) {
-            $error = 'Vui lòng chọn file định dạng Excel (.xlsx) hoặc (.csv)';
+        if ($ext !== 'xlsx') {
+            $error = 'Vui lòng chọn file Excel định dạng chuẩn (.xlsx).';
         } else {
-            $rowsData = [];
-            
-            if ($ext === 'xlsx') {
-                $rowsData = parseXlsxFile($tmpPath);
-                if (!empty($rowsData)) {
-                    array_shift($rowsData); // Bỏ qua dòng tiêu đề
-                }
-            } else { // CSV
-                $file = fopen($tmpPath, "r");
-                fgetcsv($file); // Bỏ dòng tiêu đề
-                while (($data = fgetcsv($file)) !== FALSE) {
-                    $rowsData[] = $data;
-                }
-                fclose($file);
+            $rowsData = parseXlsxFile($tmpPath);
+            if (!empty($rowsData)) {
+                array_shift($rowsData); // Bỏ qua dòng tiêu đề
             }
             
             $successCount = 0;
@@ -163,7 +146,7 @@ $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetc
     </div>
     <div class="main-content">
         <div class="header">
-            <h1>Import Khách bằng File Excel (.xlsx / .csv)</h1>
+            <h1>Import Khách bằng File Excel (.xlsx)</h1>
         </div>
         
         <?php if($message): ?><div class="alert success"><?php echo esc($message); ?></div><?php endif; ?>
@@ -173,14 +156,14 @@ $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetc
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                 <a href="guests.php" style="color: #666; text-decoration: none; font-weight: 500;">&larr; Quay lại danh sách khách</a>
                 <a href="import.php?action=download_template" class="btn btn-success" style="background: #2e7d32; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: bold; padding: 10px 18px; border-radius: 8px;">
-                    📥 Tải File Mẫu Excel (.xlsx / .csv)
+                    📥 Tải File Mẫu Excel (.xlsx)
                 </a>
             </div>
             
             <div class="alert info">
                 <strong>Hướng dẫn:</strong><br>
-                1. Bấm nút <b>"Tải File Mẫu Excel"</b> phía trên để tải mẫu chuẩn về máy.<br>
-                2. Điền thông tin danh sách khách mời vào file Excel (hỗ trợ đuôi <b>.xlsx</b> hoặc <b>.csv</b>).<br>
+                1. Bấm nút <b>"Tải File Mẫu Excel (.xlsx)"</b> phía trên để tải file Excel chuẩn về máy.<br>
+                2. Điền thông tin danh sách khách mời vào file Excel (định dạng chuẩn <b>.xlsx</b>).<br>
                 3. Đảm bảo cột "Mã Bàn" phải khớp chính xác với "Mã Bàn" bạn đã tạo trong phần <i>Quản lý Bàn</i>.
             </div>
             
@@ -226,8 +209,8 @@ $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetc
                 </div>
                 
                 <div class="form-group">
-                    <label>Chọn File Excel (.xlsx / .csv) *</label>
-                    <input type="file" name="excel_file" accept=".xlsx, .csv, .xls" required style="padding: 10px 0;">
+                    <label>Chọn File Excel (.xlsx) *</label>
+                    <input type="file" name="excel_file" accept=".xlsx" required style="padding: 10px 0;">
                 </div>
                 
                 <button type="submit" class="btn btn-primary" style="margin-top: 10px;" onclick="return confirm('Bạn có chắc chắn muốn Import danh sách này? Quá trình không thể hoàn tác.')">Bắt đầu Import</button>
