@@ -79,6 +79,9 @@ if (!empty($search)) {
     $normLike = "%$normalizedSearch%";
     $whereClauses[] = "(g.full_name LIKE ? OR g.phone LIKE ? OR g.normalized_phone LIKE ? OR g.lucky_draw_code LIKE ? OR t.table_name LIKE ? OR t.table_code LIKE ?)";
     $params = [$searchLike, $searchLike, $normLike, $searchLike, $searchLike, $searchLike];
+if (isKinhDoanh()) {
+    $whereClauses[] = "t.assigned_user_id = ?";
+    $params[] = $_SESSION['admin_id'];
 }
 
 $whereSql = "";

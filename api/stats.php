@@ -12,21 +12,35 @@ try {
     $filter = $_GET['filter'] ?? 'all';
     $recentCheckins = [];
 
-    $stats = [
-        'events'      => (int)$db->query("SELECT COUNT(*) FROM events")->fetchColumn(),
-        'guests'      => (int)$db->query("SELECT COUNT(*) FROM guests")->fetchColumn(),
-        'checked_in'  => (int)$db->query("SELECT COUNT(*) FROM checkins WHERE match_status = 'matched'")->fetchColumn(),
-        'walk_in'     => (int)$db->query("SELECT COUNT(*) FROM checkins WHERE match_status = 'walk_in'")->fetchColumn(),
-        'unassigned'  => (int)$db->query("SELECT COUNT(*) FROM checkins WHERE table_id IS NULL OR table_id = 0")->fetchColumn(),
-        'not_arrived' => (int)$db->query("SELECT COUNT(*) FROM guests WHERE status = 'invited'")->fetchColumn(),
-    ];
+    $userId = $_SESSION['admin_id'] ?? 0;
+
+    if (isKinhDoanh()) {
+        $stats = [
+            'events'      => (int)$db->query("SELECT COUNT(*) FROM events")->fetchColumn(),
+            'guests'      => (int)$db->query("SELECT COUNT(*) FROM guests g JOIN event_tables t ON g.table_id = t.id WHERE t.assigned_user_id = {$userId}")->fetchColumn(),
+            'checked_in'  => (int)$db->query("SELECT COUNT(*) FROM checkins c JOIN event_tables t ON c.table_id = t.id WHERE c.match_status = 'matched' AND t.assigned_user_id = {$userId}")->fetchColumn(),
+            'walk_in'     => 0,
+            'unassigned'  => 0,
+            'not_arrived' => (int)$db->query("SELECT COUNT(*) FROM guests g JOIN event_tables t ON g.table_id = t.id WHERE g.status = 'invited' AND t.assigned_user_id = {$userId}")->fetchColumn(),
+        ];
+    } else {
+        $stats = [
+            'events'      => (int)$db->query("SELECT COUNT(*) FROM events")->fetchColumn(),
+            'guests'      => (int)$db->query("SELECT COUNT(*) FROM guests")->fetchColumn(),
+            'checked_in'  => (int)$db->query("SELECT COUNT(*) FROM checkins WHERE match_status = 'matched'")->fetchColumn(),
+            'walk_in'     => (int)$db->query("SELECT COUNT(*) FROM checkins WHERE match_status = 'walk_in'")->fetchColumn(),
+            'unassigned'  => (int)$db->query("SELECT COUNT(*) FROM checkins WHERE table_id IS NULL OR table_id = 0")->fetchColumn(),
+            'not_arrived' => (int)$db->query("SELECT COUNT(*) FROM guests WHERE status = 'invited'")->fetchColumn(),
+        ];
+    }
 
     if ($filter === 'not_arrived') {
+        $whereKD = isKinhDoanh() ? "AND t.assigned_user_id = {$userId}" : "";
         $stmtNotArrived = $db->query("
             SELECT g.*, t.table_name 
             FROM guests g 
             LEFT JOIN event_tables t ON g.table_id = t.id 
-            WHERE g.status = 'invited' 
+            WHERE g.status = 'invited' {$whereKD}
             ORDER BY g.id DESC LIMIT 10
         ");
         while ($row = $stmtNotArrived->fetch()) {
@@ -41,15 +55,23 @@ try {
             ];
         }
     } else {
-        $whereClause = "";
+        $whereConditions = [];
         if ($filter === 'unassigned') {
-            $whereClause = "WHERE c.table_id IS NULL OR c.table_id = 0";
+            $whereConditions[] = "(c.table_id IS NULL OR c.table_id = 0)";
         } elseif ($filter === 'assigned') {
-            $whereClause = "WHERE c.table_id IS NOT NULL AND c.table_id > 0";
+            $whereConditions[] = "(c.table_id IS NOT NULL AND c.table_id > 0)";
         } elseif ($filter === 'matched') {
-            $whereClause = "WHERE c.match_status = 'matched'";
+            $whereConditions[] = "c.match_status = 'matched'";
         } elseif ($filter === 'walk_in') {
-            $whereClause = "WHERE c.match_status = 'walk_in'";
+            $whereConditions[] = "c.match_status = 'walk_in'";
+        }
+        if (isKinhDoanh()) {
+            $whereConditions[] = "t.assigned_user_id = {$userId}";
+        }
+
+        $whereClause = "";
+        if (!empty($whereConditions)) {
+            $whereClause = "WHERE " . implode(" AND ", $whereConditions);
         }
 
         $recentStmt = $db->query("

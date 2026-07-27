@@ -147,8 +147,8 @@ $usersList = $db->query("SELECT * FROM users ORDER BY id ASC")->fetchAll();
                         <td><strong><?php echo esc($u['username']); ?></strong></td>
                         <td><?php echo esc($u['full_name']); ?></td>
                         <td>
-                            <span class="badge-role <?php echo $u['role'] === 'admin' ? 'role-admin' : 'role-staff'; ?>">
-                                <?php echo $u['role'] === 'admin' ? '👑 Quản trị viên' : '👤 Nhân viên Lễ tân'; ?>
+                            <span class="badge-role role-<?php echo esc($u['role']); ?>">
+                                <?php echo getRoleLabel($u['role']); ?>
                             </span>
                         </td>
                         <td>
@@ -208,8 +208,9 @@ $usersList = $db->query("SELECT * FROM users ORDER BY id ASC")->fetchAll();
             <div class="form-group">
                 <label>Vai trò *</label>
                 <select name="role" id="role" class="form-control" required>
-                    <option value="staff">👤 Nhân viên Lễ tân (chỉ xem & checkin)</option>
-                    <option value="admin">👑 Quản trị viên (Toàn quyền hệ thống)</option>
+                    <option value="admin">👑 Admin (Quản trị viên - Toàn quyền)</option>
+                    <option value="letan">👤 Lễ tân (Xem check-in & Xếp bàn tại sự kiện)</option>
+                    <option value="kinhdoanh">💼 Kinh doanh (Xem khách hàng thuộc bàn mình phụ trách)</option>
                 </select>
             </div>
 

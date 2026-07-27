@@ -35,3 +35,12 @@ require_once ROOT_PATH . '/includes/auth.php';
 // Cấu hình Base URL
 $appUrl = env('APP_URL', 'http://localhost/CheckinQR');
 define('BASE_URL', rtrim($appUrl, '/'));
+
+// Tự động bổ sung cột assigned_user_id vào bảng event_tables nếu chưa có
+try {
+    $dbInstance = Database::getConnection();
+    $checkCol = $dbInstance->query("SHOW COLUMNS FROM event_tables LIKE 'assigned_user_id'")->fetch();
+    if (!$checkCol) {
+        $dbInstance->exec("ALTER TABLE event_tables ADD COLUMN assigned_user_id INT NULL DEFAULT NULL AFTER event_id");
+    }
+} catch (\Throwable $e) {}

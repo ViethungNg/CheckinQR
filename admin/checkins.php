@@ -107,13 +107,23 @@ if (isPost()) {
 }
 
 // Lấy danh sách lượt check-in
-$checkins = $db->query("
+$whereCheckin = "";
+$paramsCheckin = [];
+if (isKinhDoanh()) {
+    $whereCheckin = "WHERE t.assigned_user_id = ?";
+    $paramsCheckin = [$_SESSION['admin_id']];
+}
+
+$stmtCheckins = $db->prepare("
     SELECT c.*, e.event_name, t.table_name 
     FROM checkins c 
     LEFT JOIN events e ON c.event_id = e.id 
     LEFT JOIN event_tables t ON c.table_id = t.id 
+    {$whereCheckin}
     ORDER BY c.checkin_time DESC
-")->fetchAll();
+");
+$stmtCheckins->execute($paramsCheckin);
+$checkins = $stmtCheckins->fetchAll();
 
 // Lấy danh sách bàn để xếp cho khách phát sinh
 $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event_tables ORDER BY table_code ASC, table_name ASC")->fetchAll();

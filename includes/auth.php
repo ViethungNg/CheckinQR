@@ -69,6 +69,40 @@ function isAdmin(): bool {
 }
 
 /**
+ * Kiểm tra xem người dùng hiện tại có phải Kinh doanh không
+ */
+function isKinhDoanh(): bool {
+    $role = $_SESSION['admin_role'] ?? 'staff';
+    return $role === 'kinhdoanh';
+}
+
+/**
+ * Kiểm tra xem người dùng hiện tại có phải Lễ tân không
+ */
+function isLeTan(): bool {
+    $role = $_SESSION['admin_role'] ?? 'staff';
+    return in_array($role, ['letan', 'staff']);
+}
+
+/**
+ * Lấy tên vai trò hiển thị
+ */
+function getRoleLabel(string $role): string {
+    switch ($role) {
+        case 'admin':
+        case 'super_admin':
+            return '👑 Quản trị viên (Admin)';
+        case 'letan':
+        case 'staff':
+            return '👤 Nhân viên Lễ tân';
+        case 'kinhdoanh':
+            return '💼 Nhân viên Kinh doanh';
+        default:
+            return '👤 ' . ucfirst($role);
+    }
+}
+
+/**
  * Bắt buộc quyền admin mới được truy cập, nếu không sẽ báo lỗi
  */
 function requireAdmin(): void {
