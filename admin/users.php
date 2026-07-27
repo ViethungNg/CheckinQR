@@ -20,7 +20,7 @@ if (isPost()) {
         $username = trim($_POST['username'] ?? '');
         $password = trim($_POST['password'] ?? '');
         $fullName = trim($_POST['full_name'] ?? '');
-        $role     = $_POST['role'] ?? 'staff';
+        $role     = $_POST['role'] ?? 'letan';
         $status   = $_POST['status'] ?? 'active';
         
         if (empty($username) || empty($password) || empty($fullName)) {
@@ -40,7 +40,7 @@ if (isPost()) {
     } elseif ($action === 'edit') {
         $id       = (int)$_POST['id'];
         $fullName = trim($_POST['full_name'] ?? '');
-        $role     = $_POST['role'] ?? 'staff';
+        $role     = $_POST['role'] ?? 'letan';
         $status   = $_POST['status'] ?? 'active';
         $password = trim($_POST['password'] ?? '');
         
@@ -72,6 +72,18 @@ if (isPost()) {
 
 // Lấy danh sách tài khoản
 $usersList = $db->query("SELECT * FROM users ORDER BY id ASC")->fetchAll();
+
+// Thống kê vai trò
+$countTotal = count($usersList);
+$countAdmin = 0;
+$countLeTan = 0;
+$countKD    = 0;
+
+foreach ($usersList as $u) {
+    if (in_array($u['role'], ['admin', 'super_admin'])) $countAdmin++;
+    elseif ($u['role'] === 'kinhdoanh') $countKD++;
+    else $countLeTan++;
+}
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -79,28 +91,83 @@ $usersList = $db->query("SELECT * FROM users ORDER BY id ASC")->fetchAll();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản lý Tài khoản Admin - CheckinQR</title>
-    <link rel="stylesheet" href="../assets/css/admin.css">
+    <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
     <style>
-        .badge-role { padding: 4px 8px; border-radius: 4px; font-weight: 500; font-size: 0.85rem; display: inline-block; }
-        .role-admin { background: #e3f2fd; color: #1565c0; }
-        .role-staff { background: #f3e5f5; color: #7b1fa2; }
+        :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); }
+        .wrapper { display: flex; min-height: 100vh; }
+        .sidebar { width: var(--sidebar-width); background: #fff; box-shadow: 2px 0 5px rgba(0,0,0,0.05); padding: 20px; }
+        .sidebar h2 { color: var(--primary-color); margin-bottom: 30px; font-size: 1.5rem; text-align: center; }
+        .sidebar ul { list-style: none; }
+        .sidebar li { margin-bottom: 10px; }
+        .sidebar a { display: block; padding: 10px 15px; color: var(--text-color); text-decoration: none; border-radius: 6px; font-weight: 500; transition: all 0.3s; }
+        .sidebar a:hover, .sidebar a.active { background: #ffebee; color: var(--primary-color); }
+        .main-content { flex: 1; padding: 30px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .header h1 { font-size: 1.8rem; font-weight: 700; color: #111; }
         
-        .badge-status { padding: 4px 8px; border-radius: 4px; font-weight: 500; font-size: 0.85rem; display: inline-block; }
-        .status-active { background: #e8f5e9; color: #2e7d32; }
-        .status-inactive { background: #ffebee; color: #c62828; }
+        /* Stats Grid */
+        .user-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .stat-card { background: #fff; border-radius: 10px; padding: 18px 20px; border: 1px solid #e0e0e0; box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: transform 0.2s, box-shadow 0.2s; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .stat-card h4 { font-size: 0.85rem; text-transform: uppercase; color: #666; margin-bottom: 8px; font-weight: 600; }
+        .stat-card .val { font-size: 1.8rem; font-weight: 800; color: #222; }
+
+        /* Modern Table & Filters */
+        .content-box { background: #fff; border-radius: 12px; padding: 22px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); border: 1px solid #eef2f5; }
+        .search-toolbar { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 20px; background: #fafafa; padding: 12px 16px; border-radius: 8px; border: 1px solid #eee; }
+        .search-box { flex: 1; min-width: 260px; position: relative; }
+        .search-input { width: 100%; padding: 10px 14px 10px 38px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; outline: none; transition: border 0.2s; }
+        .search-input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(211,47,47,0.1); }
+        .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #888; font-size: 0.95rem; }
+
+        /* Table Aesthetics */
+        table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+        th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+        th { font-weight: 600; color: #555; background: #fcfcfc; text-transform: uppercase; font-size: 0.78rem; letter-spacing: 0.5px; }
+        tbody tr:hover { background-color: #fbfbfb; }
+
+        /* User Avatar Initials */
+        .user-cell { display: flex; align-items: center; gap: 12px; }
+        .user-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #d32f2f, #ef5350); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.95rem; text-shadow: 0 1px 2px rgba(0,0,0,0.2); flex-shrink: 0; }
+        .user-info-name { font-weight: 600; color: #222; font-size: 0.95rem; }
+        .user-info-sub { font-size: 0.8rem; color: #777; }
+
+        /* Role Badges */
+        .badge-role { padding: 5px 12px; border-radius: 20px; font-weight: 600; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 5px; }
+        .role-admin { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
+        .role-letan, .role-staff { background: #f3e5f5; color: #7b1fa2; border: 1px solid #e1bee7; }
+        .role-kinhdoanh { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
         
-        /* Modal CSS */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
-        .modal-content { background-color: #fff; margin: 5% auto; padding: 20px; border-radius: 8px; width: 450px; max-width: 90%; }
-        .modal-header { display: flex; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
-        .close { font-size: 28px; font-weight: bold; cursor: pointer; color: #aaa; }
-        .close:hover { color: #333; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
-        .form-control { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
-        .alert { padding: 10px; border-radius: 4px; margin-bottom: 15px; }
-        .alert.success { background: #e8f5e9; color: #2e7d32; }
-        .alert.error { background: #ffebee; color: #c62828; }
+        /* Status Badges */
+        .badge-status { padding: 5px 12px; border-radius: 20px; font-weight: 600; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 5px; }
+        .status-active { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+        .status-inactive { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
+
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
+        .btn-primary { background: var(--primary-color); color: #fff; box-shadow: 0 2px 6px rgba(211,47,47,0.2); }
+        .btn-primary:hover { background: #b71c1c; transform: translateY(-1px); }
+        .btn-success { background: #2e7d32; color: #fff; }
+        .btn-success:hover { background: #1b5e20; }
+        .btn-danger { background: #c62828; color: #fff; }
+        .btn-danger:hover { background: #b71c1c; }
+
+        /* Modal Design */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.55); backdrop-filter: blur(3px); }
+        .modal-content { background-color: #fff; margin: 4% auto; padding: 26px; border-radius: 12px; width: 480px; max-width: 92%; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.8); animation: modalFadeIn 0.3s ease; }
+        @keyframes modalFadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 12px; }
+        .modal-header h3 { font-size: 1.3rem; font-weight: 700; color: #222; }
+        .close { font-size: 26px; font-weight: bold; cursor: pointer; color: #999; transition: color 0.2s; }
+        .close:hover { color: #d32f2f; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.9rem; color: #444; }
+        .form-control { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; outline: none; transition: border 0.2s; }
+        .form-control:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(211,47,47,0.1); }
+        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-weight: 500; }
+        .alert.success { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+        .alert.error { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; }
     </style>
 </head>
 <body>
@@ -109,43 +176,84 @@ $usersList = $db->query("SELECT * FROM users ORDER BY id ASC")->fetchAll();
         <h2>CheckinQR</h2>
         <ul>
             <li><a href="index.php">Dashboard</a></li>
+            <?php if(isAdmin()): ?>
             <li><a href="events.php">Quản lý sự kiện</a></li>
+            <?php endif; ?>
             <li><a href="guests.php">Danh sách khách hàng dự kiến</a></li>
             <li><a href="checkins.php">Khách hàng đã checkin</a></li>
             <li><a href="tables.php">Quản lý bàn</a></li>
+            <?php if(isAdmin()): ?>
             <li><a href="users.php" class="active">Quản lý tài khoản</a></li>
+            <?php endif; ?>
         </ul>
     </div>
+    
     <div class="main-content">
         <div class="header">
             <h1>Quản lý Tài khoản Đăng nhập</h1>
         </div>
         
-        <?php if($message): ?><div class="alert success"><?php echo esc($message); ?></div><?php endif; ?>
-        <?php if($error): ?><div class="alert error"><?php echo esc($error); ?></div><?php endif; ?>
+        <?php if($message): ?><div class="alert success">✅ <?php echo esc($message); ?></div><?php endif; ?>
+        <?php if($error): ?><div class="alert error">⚠️ <?php echo esc($error); ?></div><?php endif; ?>
+
+        <!-- Stats Bar -->
+        <div class="user-stats-grid">
+            <div class="stat-card">
+                <h4>👥 TỔNG TÀI KHOẢN</h4>
+                <div class="val" id="stat-count-total"><?php echo $countTotal; ?></div>
+            </div>
+            <div class="stat-card" style="border-left: 4px solid #1565c0;">
+                <h4 style="color: #1565c0;">👑 QUẢN TRỊ VIÊN (ADMIN)</h4>
+                <div class="val" style="color: #1565c0;"><?php echo $countAdmin; ?></div>
+            </div>
+            <div class="stat-card" style="border-left: 4px solid #7b1fa2;">
+                <h4 style="color: #7b1fa2;">👤 LỄ TÂN (LE TAN)</h4>
+                <div class="val" style="color: #7b1fa2;"><?php echo $countLeTan; ?></div>
+            </div>
+            <div class="stat-card" style="border-left: 4px solid #e65100;">
+                <h4 style="color: #e65100;">💼 KINH DOANH (SALES)</h4>
+                <div class="val" style="color: #e65100;"><?php echo $countKD; ?></div>
+            </div>
+        </div>
 
         <div class="content-box">
-            <div style="margin-bottom: 15px;">
-                <button class="btn btn-primary" onclick="openAddModal()">+ Tạo tài khoản mới</button>
+            <!-- Search & Actions Bar -->
+            <div class="search-toolbar">
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="user-search" class="search-input" placeholder="⚡ Gõ tới đâu tìm tới đó: Username, Họ tên, Vai trò..." oninput="liveFilterUsers(this.value)" autocomplete="off">
+                </div>
+                <button class="btn btn-primary" onclick="openAddModal()">
+                    <span>+</span> Tạo tài khoản mới
+                </button>
             </div>
+
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Tên đăng nhập</th>
+                        <th>Tài khoản</th>
                         <th>Họ và tên</th>
                         <th>Vai trò</th>
                         <th>Trạng thái</th>
-                        <th>Đăng nhập cuối</th>
+                        <th>Lần đăng nhập cuối</th>
                         <th>Thao tác</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <?php foreach($usersList as $u): ?>
+                <tbody id="users-table-body">
+                    <?php foreach($usersList as $u): 
+                        $firstChar = mb_strtoupper(mb_substr($u['full_name'], 0, 1, 'UTF-8'));
+                    ?>
                     <tr>
-                        <td>#<?php echo $u['id']; ?></td>
-                        <td><strong><?php echo esc($u['username']); ?></strong></td>
-                        <td><?php echo esc($u['full_name']); ?></td>
+                        <td>
+                            <div class="user-cell">
+                                <div class="user-avatar"><?php echo esc($firstChar); ?></div>
+                                <div>
+                                    <div class="user-info-name">@<?php echo esc($u['username']); ?></div>
+                                    <div class="user-info-sub">ID: #<?php echo $u['id']; ?></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td><strong><?php echo esc($u['full_name']); ?></strong></td>
                         <td>
                             <span class="badge-role role-<?php echo esc($u['role']); ?>">
                                 <?php echo getRoleLabel($u['role']); ?>
@@ -153,20 +261,22 @@ $usersList = $db->query("SELECT * FROM users ORDER BY id ASC")->fetchAll();
                         </td>
                         <td>
                             <span class="badge-status <?php echo $u['status'] === 'active' ? 'status-active' : 'status-inactive'; ?>">
-                                <?php echo $u['status'] === 'active' ? '● Đang hoạt động' : '○ Đã khóa'; ?>
+                                <?php echo $u['status'] === 'active' ? '● Hoạt động' : '○ Đã khóa'; ?>
                             </span>
                         </td>
                         <td>
-                            <?php echo !empty($u['last_login_at']) ? date('d/m/Y H:i', strtotime($u['last_login_at'])) : 'Chưa đăng nhập'; ?>
+                            <span style="font-size: 0.88rem; color: #555;">
+                                <?php echo !empty($u['last_login_at']) ? date('d/m/Y H:i', strtotime($u['last_login_at'])) : '⏳ Chưa đăng nhập'; ?>
+                            </span>
                         </td>
                         <td>
-                            <button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;" onclick='openEditModal(<?php echo json_encode($u); ?>)'>Sửa</button>
+                            <button class="btn btn-success" style="padding:4px 10px; font-size:0.82rem;" onclick='openEditModal(<?php echo json_encode($u); ?>)'>✏️ Sửa</button>
                             <?php if ($u['id'] !== (int)$_SESSION['admin_id']): ?>
                             <form action="" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa tài khoản này?');">
                                 <?php echo csrfField(); ?>
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="id" value="<?php echo $u['id']; ?>">
-                                <button type="submit" class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;">Xóa</button>
+                                <button type="submit" class="btn btn-danger" style="padding:4px 10px; font-size:0.82rem;">🗑️ Xóa</button>
                             </form>
                             <?php endif; ?>
                         </td>
@@ -178,11 +288,11 @@ $usersList = $db->query("SELECT * FROM users ORDER BY id ASC")->fetchAll();
     </div>
 </div>
 
-<!-- Modal Thêm/Sửa Tài khoản -->
+<!-- Modal Thêm/Sửa Tài khoản với UI/UX Hiện Đại -->
 <div id="userModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3 id="modalTitle">Tạo Tài Khoản Mới</h3>
+            <h3 id="modalTitle">✨ Tạo Tài Khoản Mới</h3>
             <span class="close" onclick="closeModal()">&times;</span>
         </div>
         <form action="" method="POST">
@@ -192,37 +302,39 @@ $usersList = $db->query("SELECT * FROM users ORDER BY id ASC")->fetchAll();
             
             <div class="form-group">
                 <label>Tên đăng nhập *</label>
-                <input type="text" name="username" id="username" class="form-control" required>
+                <input type="text" name="username" id="username" class="form-control" placeholder="Ví dụ: nhanvien1" required>
             </div>
 
             <div class="form-group">
-                <label>Mật khẩu <span id="passNote" style="font-weight: normal; color: #666;">*</span></label>
+                <label>Mật khẩu <span id="passNote" style="font-weight: normal; color: #d32f2f;">*</span></label>
                 <input type="password" name="password" id="password" class="form-control" placeholder="Nhập mật khẩu...">
             </div>
 
             <div class="form-group">
-                <label>Họ và tên *</label>
-                <input type="text" name="full_name" id="fullName" class="form-control" required>
+                <label>Họ và tên người dùng *</label>
+                <input type="text" name="full_name" id="fullName" class="form-control" placeholder="Ví dụ: Nguyễn Văn A" required>
             </div>
             
             <div class="form-group">
-                <label>Vai trò *</label>
-                <select name="role" id="role" class="form-control" required>
-                    <option value="admin">👑 Admin (Quản trị viên - Toàn quyền)</option>
-                    <option value="letan">👤 Lễ tân (Xem check-in & Xếp bàn tại sự kiện)</option>
-                    <option value="kinhdoanh">💼 Kinh doanh (Xem khách hàng thuộc bàn mình phụ trách)</option>
+                <label>Phân quyền vai trò *</label>
+                <select name="role" id="role" class="form-control" required style="cursor: pointer; background: #fff;">
+                    <option value="admin">👑 Admin (Quản trị viên - Toàn quyền hệ thống)</option>
+                    <option value="letan">👤 Lễ tân (Xem check-in thực tế & Xếp bàn cho khách)</option>
+                    <option value="kinhdoanh">💼 Kinh doanh (Theo dõi danh sách khách thuộc bàn phụ trách)</option>
                 </select>
             </div>
 
             <div class="form-group">
-                <label>Trạng thái *</label>
-                <select name="status" id="status" class="form-control" required>
-                    <option value="active">● Đang hoạt động (cho phép đăng nhập)</option>
-                    <option value="inactive">○ Đã khóa (không cho đăng nhập)</option>
+                <label>Trạng thái tài khoản *</label>
+                <select name="status" id="status" class="form-control" required style="cursor: pointer; background: #fff;">
+                    <option value="active">● Đang hoạt động (Cho phép đăng nhập)</option>
+                    <option value="inactive">○ Đã khóa (Không cho đăng nhập)</option>
                 </select>
             </div>
             
-            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Lưu Tài Khoản</button>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 12px; padding: 12px; justify-content: center; font-size: 1rem;">
+                💾 Lưu Thông Tin Tài Khoản
+            </button>
         </form>
     </div>
 </div>
@@ -231,7 +343,7 @@ $usersList = $db->query("SELECT * FROM users ORDER BY id ASC")->fetchAll();
     const modal = document.getElementById('userModal');
     
     function openAddModal() {
-        document.getElementById('modalTitle').innerText = 'Tạo Tài Khoản Mới';
+        document.getElementById('modalTitle').innerText = '✨ Tạo Tài Khoản Mới';
         document.getElementById('formAction').value = 'add';
         document.getElementById('userId').value = '';
         
@@ -245,14 +357,14 @@ $usersList = $db->query("SELECT * FROM users ORDER BY id ASC")->fetchAll();
         document.getElementById('passNote').innerText = '*';
         
         document.getElementById('fullName').value = '';
-        document.getElementById('role').value = 'staff';
+        document.getElementById('role').value = 'letan';
         document.getElementById('status').value = 'active';
         
         modal.style.display = 'block';
     }
     
     function openEditModal(u) {
-        document.getElementById('modalTitle').innerText = 'Sửa Tài Khoản: ' + u.username;
+        document.getElementById('modalTitle').innerText = '✏️ Sửa Tài Khoản: @' + u.username;
         document.getElementById('formAction').value = 'edit';
         document.getElementById('userId').value = u.id;
         
@@ -263,7 +375,7 @@ $usersList = $db->query("SELECT * FROM users ORDER BY id ASC")->fetchAll();
         const passInput = document.getElementById('password');
         passInput.value = '';
         passInput.required = false;
-        document.getElementById('passNote').innerText = '(Để trống nếu không muốn đổi mật khẩu)';
+        document.getElementById('passNote').innerText = '(Bỏ trống nếu giữ nguyên mật khẩu cũ)';
         
         document.getElementById('fullName').value = u.full_name;
         document.getElementById('role').value = u.role;
@@ -274,6 +386,24 @@ $usersList = $db->query("SELECT * FROM users ORDER BY id ASC")->fetchAll();
     
     function closeModal() {
         modal.style.display = 'none';
+    }
+
+    // Live Typing Filter (0ms)
+    function liveFilterUsers(query) {
+        const q = (query || '').toLowerCase().trim();
+        const rows = document.querySelectorAll('#users-table-body tr');
+        let count = 0;
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            if (q === '' || text.includes(q)) {
+                row.style.display = '';
+                count++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        const statTotal = document.getElementById('stat-count-total');
+        if (statTotal) statTotal.textContent = count;
     }
 </script>
 <script src="../assets/js/admin-mobile.js?v=<?php echo time(); ?>"></script>
