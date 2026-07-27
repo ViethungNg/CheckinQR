@@ -246,14 +246,21 @@ async function updateRealtimeStats() {
                 } else {
                     let html = '';
                     result.data.recent_checkins.slice(0, 150).forEach(item => {
+                        const isCheckedIn = item.status === 'checked_in' || item.status === 'matched';
+                        const rowClass = isCheckedIn ? 'row-checked-in' : '';
+                        let badgeText = item.status_text;
+                        if (isCheckedIn) badgeText = '✅ Đã checkin';
+                        else if (item.status === 'walk_in') badgeText = '🔸 Phát sinh';
+                        else if (item.status === 'invited') badgeText = '⏳ Chưa tới';
+
                         html += `
-                            <tr>
+                            <tr class="${rowClass}">
                                 <td>${item.full_name}</td>
                                 <td>${item.phone}</td>
                                 <td><strong>${item.table_name}</strong></td>
                                 <td>${item.time}</td>
                                 <td>
-                                    <span class="badge ${item.status}">${item.status_text}</span>
+                                    <span class="badge ${item.status}">${badgeText}</span>
                                 </td>
                             </tr>
                         `;

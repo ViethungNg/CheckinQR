@@ -728,6 +728,43 @@ body {
     font-size: 0.85rem;
 }
 
+/* ===== BADGES & STATUS HIGHLIGHTING ===== */
+.badge {
+    padding: 5px 12px !important;
+    border-radius: 20px !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    line-height: 1.2 !important;
+}
+
+.badge.matched,
+.badge.checked_in {
+    background: #e8f5e9 !important;
+    color: #1b5e20 !important;
+    border: 1.5px solid #81c784 !important;
+    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.18) !important;
+    font-weight: 800 !important;
+}
+
+.badge.invited {
+    background: #e3f2fd !important;
+    color: #1565c0 !important;
+    border: 1px solid #90caf9 !important;
+}
+
+.badge.walk_in {
+    background: #fff3e0 !important;
+    color: #e65100 !important;
+    border: 1px solid #ffcc80 !important;
+}
+
+.row-checked-in {
+    background-color: #f3faf5 !important;
+}
+
 /* ===== FLOATING TOAST NOTIFICATIONS ===== */
 .toast-container {
     position: fixed;
@@ -740,6 +777,27 @@ body {
     max-width: 380px;
     width: calc(100vw - 40px);
     pointer-events: none;
+}
+
+@media screen and (max-width: 768px) {
+    .toast-container {
+        top: 70px !important;
+        left: 10px !important;
+        right: 10px !important;
+        width: auto !important;
+        max-width: calc(100vw - 20px) !important;
+    }
+
+    .toast-item {
+        transform: translateY(-30px) scale(0.95) !important;
+        opacity: 0 !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+    }
+
+    .toast-item.show {
+        transform: translateY(0) scale(1) !important;
+        opacity: 1 !important;
+    }
 }
 
 .toast-item {

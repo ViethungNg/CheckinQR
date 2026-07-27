@@ -223,6 +223,22 @@
         listContainer.innerHTML = html;
     }
 
+    function triggerNativeNotification(item) {
+        if ('Notification' in window && Notification.permission === 'granted') {
+            const isWalkIn = item.status === 'walk_in';
+            const title = isWalkIn ? '🔸 Khách phát sinh vừa quét QR!' : '✅ Khách đã Check-in thành công!';
+            const body = `Họ tên: ${item.full_name}\nSĐT: ${item.phone}\nBàn: ${item.table_name}`;
+            try {
+                new Notification(title, {
+                    body: body,
+                    icon: '../img/logo pmt.png',
+                    badge: '../img/logo pmt.png',
+                    vibrate: [200, 100, 200]
+                });
+            } catch (e) {}
+        }
+    }
+
     async function checkNewNotifications() {
         try {
             const res = await fetch(`../api/notifications.php?action=check`);
@@ -243,7 +259,10 @@
 
                     if (newItems.length > 0) {
                         playNotifChime();
-                        newItems.forEach(item => showToastNotification(item));
+                        newItems.forEach(item => {
+                            showToastNotification(item);
+                            triggerNativeNotification(item);
+                        });
                     }
                     clientLastCheckinId = newMaxId;
                 }
@@ -287,9 +306,20 @@
         }
     });
 
-    // Mở khóa âm thanh trình duyệt ngay khi người dùng thao tác trên màn hình
+    function requestBrowserNotificationPermission() {
+        if ('Notification' in window && Notification.permission === 'default') {
+            try {
+                Notification.requestPermission();
+            } catch(e){}
+        }
+    }
+
+    // Mở khóa âm thanh trình duyệt và xin quyền thông báo khi người dùng thao tác
     ['click', 'touchstart', 'keydown', 'scroll', 'mousemove'].forEach(evt => {
-        document.addEventListener(evt, unlockAudio, { once: true });
+        document.addEventListener(evt, () => {
+            unlockAudio();
+            requestBrowserNotificationPermission();
+        }, { once: true });
     });
 
     document.addEventListener('DOMContentLoaded', () => {

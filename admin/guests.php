@@ -228,7 +228,7 @@ $guests = $stmtGuests->fetchAll();
                 </thead>
                 <tbody id="guests-table-body">
                     <?php foreach($guests as $guest): ?>
-                    <tr>
+                    <tr class="<?php echo $guest['status'] === 'checked_in' ? 'row-checked-in' : ''; ?>">
                         <td><strong><?php echo esc($guest['full_name']); ?></strong></td>
                         <td><?php echo esc($guest['phone']); ?></td>
                         <td><?php echo esc($guest['organization'] ?? '-'); ?></td>
