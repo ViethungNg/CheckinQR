@@ -150,7 +150,7 @@ $guests = $db->query("
             <?php if(isAdmin()): ?>
             <div style="margin-bottom: 15px; display: flex; gap: 10px;">
                 <button class="btn btn-primary" onclick="openAddModal()">+ Thêm khách thủ công</button>
-                <a href="import.php" class="btn btn-success">Import bằng File CSV / Excel</a>
+                <a href="import.php" class="btn btn-success">📥 Import từ Excel (.xlsx / .csv)</a>
             </div>
             <?php endif; ?>
             <table>

@@ -1,7 +1,20 @@
-<?php
-require_once __DIR__ . '/../config/bootstrap.php';
-requireLogin();
-requireAdmin();
+require_once __DIR__ . '/../includes/xlsx_reader.php';
+
+// Xử lý Xuất File Mẫu Excel (.csv mở chuẩn bằng Excel)
+if (isset($_GET['action']) && $_GET['action'] === 'download_template') {
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="Mau_Danh_Sach_Khach_Hang.csv"');
+    
+    // Thêm UTF-8 BOM để Microsoft Excel mở lên tự động hiển thị Tiếng Việt chuẩn 100%
+    echo "\xEF\xBB\xBF";
+    
+    $output = fopen('php://output', 'w');
+    fputcsv($output, ['Họ và tên', 'Số điện thoại', 'Mã bàn', 'Mã bốc thăm', 'Đơn vị công tác']);
+    fputcsv($output, ['Nguyễn Văn A', '0987654321', 'VIP1', '101', 'Công ty Hòa Vinh']);
+    fputcsv($output, ['Trần Thị B', '0912345678', 'TB02', '102', 'Tập đoàn Vĩnh Phú']);
+    fclose($output);
+    exit;
+}
 
 $db = Database::getConnection();
 
@@ -9,29 +22,41 @@ $message = '';
 $error = '';
 $results = [];
 
-if (isPost() && isset($_FILES['csv_file'])) {
+if (isPost() && (isset($_FILES['csv_file']) || isset($_FILES['excel_file']))) {
     requireCsrfToken();
     $eventId = (int)$_POST['event_id'];
+    $uploadedFile = $_FILES['excel_file'] ?? $_FILES['csv_file'];
     
     if (empty($eventId)) {
         $error = 'Vui lòng chọn sự kiện để import.';
-    } elseif ($_FILES['csv_file']['error'] == 0) {
-        $fileName = $_FILES['csv_file']['name'];
+    } elseif ($uploadedFile['error'] == 0) {
+        $fileName = $uploadedFile['name'];
+        $tmpPath = $uploadedFile['tmp_name'];
         $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
         
-        if ($ext !== 'csv') {
-            $error = 'Vui lòng chọn file định dạng .csv';
+        if (!in_array($ext, ['xlsx', 'csv', 'xls'])) {
+            $error = 'Vui lòng chọn file định dạng Excel (.xlsx) hoặc (.csv)';
         } else {
-            $file = fopen($_FILES['csv_file']['tmp_name'], "r");
+            $rowsData = [];
             
-            // Đọc header (bỏ qua dòng đầu)
-            $header = fgetcsv($file);
+            if ($ext === 'xlsx') {
+                $rowsData = parseXlsxFile($tmpPath);
+                if (!empty($rowsData)) {
+                    array_shift($rowsData); // Bỏ qua dòng tiêu đề
+                }
+            } else { // CSV
+                $file = fopen($tmpPath, "r");
+                fgetcsv($file); // Bỏ dòng tiêu đề
+                while (($data = fgetcsv($file)) !== FALSE) {
+                    $rowsData[] = $data;
+                }
+                fclose($file);
+            }
             
             $successCount = 0;
             $failCount = 0;
             
-            // Lấy trước danh sách bàn của sự kiện này (để lookup table_id)
-            // Lưu dưới dạng: 'table_code' => id
+            // Lấy danh sách bàn
             $stmtTables = $db->prepare("SELECT id, table_code FROM event_tables WHERE event_id = ? AND table_code != ''");
             $stmtTables->execute([$eventId]);
             $tableMap = [];
@@ -41,13 +66,12 @@ if (isPost() && isset($_FILES['csv_file'])) {
             
             $stmtInsert = $db->prepare("INSERT INTO guests (event_id, full_name, phone, normalized_phone, table_id, lucky_draw_code, organization, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'invited')");
             
-            while (($data = fgetcsv($file)) !== FALSE) {
-                // Giả sử Cấu trúc: 0: Họ tên, 1: SĐT, 2: Mã Bàn, 3: Mã quay giải, 4: Đơn vị
-                $fullName = trim($data[0] ?? '');
-                $phone = trim($data[1] ?? '');
+            foreach ($rowsData as $data) {
+                $fullName  = trim($data[0] ?? '');
+                $phone     = trim($data[1] ?? '');
                 $tableCode = trim($data[2] ?? '');
                 $luckyCode = trim($data[3] ?? '');
-                $org = trim($data[4] ?? '');
+                $org       = trim($data[4] ?? '');
                 
                 if (empty($fullName)) {
                     $failCount++;
@@ -56,7 +80,6 @@ if (isPost() && isset($_FILES['csv_file'])) {
                 
                 $normalizedPhone = normalizePhone($phone);
                 
-                // Lookup Table ID
                 $tableId = null;
                 if (!empty($tableCode)) {
                     $codeLower = strtolower($tableCode);
@@ -69,12 +92,11 @@ if (isPost() && isset($_FILES['csv_file'])) {
                     $stmtInsert->execute([$eventId, $fullName, $phone, $normalizedPhone, $tableId, $luckyCode, $org]);
                     $successCount++;
                 } catch(PDOException $e) {
-                    $failCount++; // Có thể do trùng SĐT
+                    $failCount++;
                 }
             }
             
-            fclose($file);
-            $message = "Đã Import xong! Thành công: $successCount khách, Thất bại/Trùng/Bỏ qua: $failCount khách.";
+            $message = "Đã Import xong từ file Excel! Thành công: $successCount khách, Thất bại/Trùng/Bỏ qua: $failCount khách.";
         }
     } else {
         $error = 'Lỗi upload file.';
@@ -136,20 +158,25 @@ $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetc
     </div>
     <div class="main-content">
         <div class="header">
-            <h1>Import Khách bằng File CSV</h1>
+            <h1>Import Khách bằng File Excel (.xlsx / .csv)</h1>
         </div>
         
         <?php if($message): ?><div class="alert success"><?php echo esc($message); ?></div><?php endif; ?>
         <?php if($error): ?><div class="alert error"><?php echo esc($error); ?></div><?php endif; ?>
 
         <div class="content-box">
-            <a href="guests.php" style="color: #666; text-decoration: none; margin-bottom: 20px; display: inline-block;">&larr; Quay lại danh sách khách</a>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                <a href="guests.php" style="color: #666; text-decoration: none; font-weight: 500;">&larr; Quay lại danh sách khách</a>
+                <a href="import.php?action=download_template" class="btn btn-success" style="background: #2e7d32; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: bold; padding: 10px 18px; border-radius: 8px;">
+                    📥 Tải File Mẫu Excel (.xlsx / .csv)
+                </a>
+            </div>
             
             <div class="alert info">
                 <strong>Hướng dẫn:</strong><br>
-                1. Tạo file Excel với cấu trúc đúng 5 cột theo thứ tự sau (không để trống dòng tiêu đề):<br>
-                2. Lưu file ở định dạng <b>CSV (Comma delimited)</b> (Bấm Save As -> Chọn định dạng CSV).<br>
-                3. Đảm bảo "Mã Bàn" phải khớp chính xác với "Mã Bàn" bạn đã tạo trong phần <i>Quản lý Bàn</i>.
+                1. Bấm nút <b>"Tải File Mẫu Excel"</b> phía trên để tải mẫu chuẩn về máy.<br>
+                2. Điền thông tin danh sách khách mời vào file Excel (hỗ trợ đuôi <b>.xlsx</b> hoặc <b>.csv</b>).<br>
+                3. Đảm bảo cột "Mã Bàn" phải khớp chính xác với "Mã Bàn" bạn đã tạo trong phần <i>Quản lý Bàn</i>.
             </div>
             
             <table class="example-table" style="margin-bottom: 30px;">
@@ -166,16 +193,16 @@ $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetc
                     <tr>
                         <td>Nguyễn Văn A</td>
                         <td>0987654321</td>
-                        <td>VIP-01</td>
-                        <td>12345</td>
-                        <td>Công ty ABC</td>
+                        <td>VIP1</td>
+                        <td>101</td>
+                        <td>Công ty Hòa Vinh</td>
                     </tr>
                     <tr>
                         <td>Trần Thị B</td>
                         <td>0912345678</td>
-                        <td>THUONG-02</td>
-                        <td></td>
-                        <td></td>
+                        <td>TB02</td>
+                        <td>102</td>
+                        <td>Tập đoàn Vĩnh Phú</td>
                     </tr>
                 </tbody>
             </table>
@@ -194,11 +221,11 @@ $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetc
                 </div>
                 
                 <div class="form-group">
-                    <label>Chọn File CSV *</label>
-                    <input type="file" name="csv_file" accept=".csv" required style="padding: 10px 0;">
+                    <label>Chọn File Excel (.xlsx / .csv) *</label>
+                    <input type="file" name="excel_file" accept=".xlsx, .csv, .xls" required style="padding: 10px 0;">
                 </div>
                 
-                <button type="submit" class="btn btn-primary" onclick="return confirm('Bạn có chắc chắn muốn Import danh sách này? Quá trình không thể hoàn tác.')">Bắt đầu Import</button>
+                <button type="submit" class="btn btn-primary" style="margin-top: 10px;" onclick="return confirm('Bạn có chắc chắn muốn Import danh sách này? Quá trình không thể hoàn tác.')">Bắt đầu Import</button>
             </form>
         </div>
     </div>
