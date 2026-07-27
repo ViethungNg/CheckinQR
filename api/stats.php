@@ -46,6 +46,10 @@ try {
             $whereClause = "WHERE c.table_id IS NULL OR c.table_id = 0";
         } elseif ($filter === 'assigned') {
             $whereClause = "WHERE c.table_id IS NOT NULL AND c.table_id > 0";
+        } elseif ($filter === 'matched') {
+            $whereClause = "WHERE c.match_status = 'matched'";
+        } elseif ($filter === 'walk_in') {
+            $whereClause = "WHERE c.match_status = 'walk_in'";
         }
 
         $recentStmt = $db->query("

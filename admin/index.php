@@ -46,7 +46,9 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
         .user-info { display: flex; align-items: center; gap: 15px; }
         .btn-logout { background: #f44336; color: white; border: none; padding: 8px 15px; border-radius: 4px; text-decoration: none; font-size: 0.9rem; }
         .dashboard-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
-        .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid var(--primary-color); }
+        .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid var(--primary-color); cursor: pointer; transition: all 0.2s ease; user-select: none; }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+        .card.active-card { background: #fff5f5; box-shadow: 0 0 0 2px var(--primary-color); }
         .card h3 { color: #777; font-size: 1rem; margin-bottom: 10px; font-weight: 500; }
         .card .value { font-size: 2.2rem; font-weight: bold; color: #333; }
         
@@ -58,6 +60,7 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
         .badge { padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
         .badge.matched { background: #e8f5e9; color: #2e7d32; }
         .badge.walk_in { background: #fff3e0; color: #ef6c00; }
+        .badge.invited { background: #e3f2fd; color: #1565c0; }
     </style>
 </head>
 <body>
@@ -88,27 +91,27 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
         </div>
         
         <div class="dashboard-cards">
-            <div class="card">
+            <div class="card active-card" id="card-all" onclick="setFilter('all')" title="Bấm để lọc tất cả lượt check-in">
                 <h3>Tổng Sự kiện</h3>
                 <div class="value" id="val-events"><?php echo $stats['events']; ?></div>
             </div>
-            <div class="card">
+            <div class="card" id="card-guests" onclick="setFilter('all')" title="Bấm để lọc tất cả khách dự kiến">
                 <h3>Khách dự kiến</h3>
                 <div class="value" id="val-guests"><?php echo $stats['guests']; ?></div>
             </div>
-            <div class="card">
+            <div class="card" id="card-matched" onclick="setFilter('matched')" title="Bấm để lọc khách đã Check-in hợp lệ">
                 <h3>Đã Check-in (Khớp)</h3>
                 <div class="value" id="val-checked-in" style="color: #2e7d32;"><?php echo $stats['checked_in']; ?></div>
             </div>
-            <div class="card">
+            <div class="card" id="card-walk_in" onclick="setFilter('walk_in')" title="Bấm để lọc khách phát sinh">
                 <h3>Khách phát sinh (Walk-in)</h3>
                 <div class="value" id="val-walk-in" style="color: #ef6c00;"><?php echo $stats['walk_in']; ?></div>
             </div>
-            <div class="card" style="border-top-color: #c62828;">
+            <div class="card" id="card-unassigned" style="border-top-color: #c62828;" onclick="setFilter('unassigned')" title="Bấm để lọc khách chưa xếp bàn">
                 <h3>Chưa xếp bàn</h3>
                 <div class="value" id="val-unassigned" style="color: #c62828;"><?php echo $db->query("SELECT COUNT(*) FROM checkins WHERE table_id IS NULL OR table_id = 0")->fetchColumn(); ?></div>
             </div>
-            <div class="card" style="border-top-color: #1976d2;">
+            <div class="card" id="card-not_arrived" style="border-top-color: #1976d2;" onclick="setFilter('not_arrived')" title="Bấm để lọc khách dự kiến chưa tới">
                 <h3>Khách chưa tới</h3>
                 <div class="value" id="val-not-arrived" style="color: #1976d2;"><?php echo $db->query("SELECT COUNT(*) FROM guests WHERE status = 'invited'")->fetchColumn(); ?></div>
             </div>
@@ -118,11 +121,12 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                 <h3 style="margin-bottom: 0;">Lượt check-in mới nhất</h3>
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <select id="table-filter" onchange="updateFilter(this.value)" style="padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; border: 1px solid #d32f2f; background: #fff; color: #333; font-weight: bold; cursor: pointer;">
+                    <select id="table-filter" onchange="setFilter(this.value)" style="padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; border: 1px solid #d32f2f; background: #fff; color: #333; font-weight: bold; cursor: pointer;">
                         <option value="all">🔍 Tất cả lượt check-in</option>
-                        <option value="unassigned">⚠️ Chỉ hiện Chưa xếp bàn</option>
-                        <option value="not_arrived">⏳ Chỉ hiện Khách chưa tới</option>
-                        <option value="assigned">✅ Chỉ hiện Đã xếp bàn</option>
+                        <option value="matched">✅ Đã Check-in (Khớp)</option>
+                        <option value="walk_in">🔸 Khách phát sinh (Walk-in)</option>
+                        <option value="unassigned">⚠️ Chưa xếp bàn</option>
+                        <option value="not_arrived">⏳ Khách chưa tới</option>
                     </select>
                     <span id="realtime-status" style="font-size: 0.85rem; color: #2e7d32; font-weight: 500;">
                         🟢 Real-time (Mỗi 3s)
@@ -170,8 +174,18 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
 <script>
 let currentFilter = 'all';
 
-function updateFilter(val) {
+function setFilter(val) {
     currentFilter = val;
+    
+    // Đồng bộ select dropdown
+    const select = document.getElementById('table-filter');
+    if (select) select.value = val;
+    
+    // Highlight Card active
+    document.querySelectorAll('.card').forEach(card => card.classList.remove('active-card'));
+    const activeCard = document.getElementById('card-' + val);
+    if (activeCard) activeCard.classList.add('active-card');
+    
     updateRealtimeStats();
 }
 
