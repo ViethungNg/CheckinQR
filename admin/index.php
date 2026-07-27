@@ -24,7 +24,7 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - CheckinQR</title>
-    <link rel="stylesheet" href="../assets/css/admin-responsive.css">
+    <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
     <style>
         :root {
             --primary-color: #d32f2f;
@@ -196,6 +196,6 @@ async function updateRealtimeStats() {
 setInterval(updateRealtimeStats, 3000);
 </script>
 
-<script src="../assets/js/admin-mobile.js"></script>
+<script src="../assets/js/admin-mobile.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>

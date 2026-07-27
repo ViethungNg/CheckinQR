@@ -93,7 +93,7 @@ $tablesList = $db->query("SELECT id, table_name, event_id FROM event_tables ORDE
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Check-in trực tiếp - CheckinQR</title>
-    <link rel="stylesheet" href="../assets/css/admin-responsive.css">
+    <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
     <style>
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -262,6 +262,6 @@ $tablesList = $db->query("SELECT id, table_name, event_id FROM event_tables ORDE
         modal.style.display = 'none';
     }
 </script>
-<script src="../assets/js/admin-mobile.js"></script>
+<script src="../assets/js/admin-mobile.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>
