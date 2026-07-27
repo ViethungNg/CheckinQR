@@ -168,6 +168,7 @@ if (isKinhDoanh()) {
                             <th>Khách nhập</th>
                             <th>SĐT</th>
                             <th>Bàn</th>
+                            <th>Hình thức Check-in</th>
                             <th>Thời gian</th>
                             <th>Trạng thái</th>
                         </tr>
@@ -253,11 +254,21 @@ async function updateRealtimeStats() {
                         else if (item.status === 'walk_in') badgeText = '🔸 Phát sinh';
                         else if (item.status === 'invited') badgeText = '⏳ Chưa tới';
 
+                        let methodBadge = `<span style="font-size:0.78rem; font-weight:bold; padding:3px 8px; border-radius:12px; background:#e8f5e9; color:#1b5e20; border:1px solid #c8e6c9;">📱 Khớp SĐT</span>`;
+                        if (item.status === 'walk_in') {
+                            methodBadge = `<span style="font-size:0.78rem; font-weight:bold; padding:3px 8px; border-radius:12px; background:#fff3e0; color:#ef6c00; border:1px solid #ffcc80;">🔸 Khách phát sinh</span>`;
+                        } else if (item.is_by_code) {
+                            methodBadge = `<span style="font-size:0.78rem; font-weight:bold; padding:3px 8px; border-radius:12px; background:#f3e5f5; color:#7b1fa2; border:1px solid #ab47bc;">🎟️ Khớp Mã dự thưởng</span>`;
+                        } else if (item.status === 'invited') {
+                            methodBadge = `<span style="font-size:0.78rem; color:#888;">-</span>`;
+                        }
+
                         html += `
                             <tr class="${rowClass}">
                                 <td>${item.full_name}</td>
                                 <td>${item.phone}</td>
                                 <td><strong>${item.table_name}</strong></td>
+                                <td>${methodBadge}</td>
                                 <td>${item.time}</td>
                                 <td>
                                     <span class="badge ${item.status}">${badgeText}</span>

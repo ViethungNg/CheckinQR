@@ -92,14 +92,20 @@ $stmtGuest = $db->prepare("SELECT * FROM guests WHERE event_id = ? AND normalize
 $stmtGuest->execute([$eventId, $normalizedPhone]);
 $guest = $stmtGuest->fetch();
 
+$guestMatchedByCode = false;
+
 // 3b. Nếu SĐT không khớp (khách nhập sai SĐT) nhưng có nhập Mã trúng giải, thử khớp theo Mã trúng giải
 if (!$guest && !empty($luckyDrawCodeInput)) {
     $stmtGuestByCode = $db->prepare("SELECT * FROM guests WHERE event_id = ? AND LOWER(TRIM(lucky_draw_code)) = LOWER(TRIM(?)) AND lucky_draw_code != ''");
     $stmtGuestByCode->execute([$eventId, $luckyDrawCodeInput]);
     $guest = $stmtGuestByCode->fetch();
+    if ($guest) {
+        $guestMatchedByCode = true;
+    }
 }
 
 $matchStatus = 'walk_in';
+$checkinMethod = 'walk_in';
 $guestId = null;
 $tableId = null;
 
@@ -108,6 +114,7 @@ $tableName = null;
 
 if ($guest) {
     $matchStatus = 'matched';
+    $checkinMethod = $guestMatchedByCode ? 'lucky_code' : 'phone';
     $guestId = $guest['id'];
     $tableId = $guest['table_id'];
     
@@ -139,8 +146,8 @@ if ($guest) {
 $ip = $_SERVER['REMOTE_ADDR'] ?? null;
 $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
 
-$insertSql = "INSERT INTO checkins (event_id, guest_id, table_id, lucky_draw_code, full_name_entered, phone_entered, normalized_phone, address_entered, match_status, ip_address, user_agent) 
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+$insertSql = "INSERT INTO checkins (event_id, guest_id, table_id, lucky_draw_code, full_name_entered, phone_entered, normalized_phone, address_entered, match_status, checkin_method, ip_address, user_agent) 
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 $stmtInsert = $db->prepare($insertSql);
 $success = $stmtInsert->execute([
     $eventId,
@@ -152,6 +159,7 @@ $success = $stmtInsert->execute([
     $normalizedPhone,
     $address,
     $matchStatus,
+    $checkinMethod,
     $ip,
     $userAgent
 ]);

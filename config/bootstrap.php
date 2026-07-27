@@ -47,7 +47,7 @@ require_once ROOT_PATH . '/includes/auth.php';
 $appUrl = env('APP_URL', 'http://localhost/CheckinQR');
 define('BASE_URL', rtrim($appUrl, '/'));
 
-// Tự động bổ sung cột assigned_user_id và sort_order vào bảng event_tables nếu chưa có và mở rộng cột role trong users
+// Tự động bổ sung cột assigned_user_id, sort_order vào event_tables và checkin_method vào checkins nếu chưa có
 try {
     $dbInstance = Database::getConnection();
     $checkCol = $dbInstance->query("SHOW COLUMNS FROM event_tables LIKE 'assigned_user_id'")->fetch();
@@ -58,6 +58,11 @@ try {
     $checkSortCol = $dbInstance->query("SHOW COLUMNS FROM event_tables LIKE 'sort_order'")->fetch();
     if (!$checkSortCol) {
         $dbInstance->exec("ALTER TABLE event_tables ADD COLUMN sort_order INT NOT NULL DEFAULT 0 AFTER location");
+    }
+
+    $checkMethodCol = $dbInstance->query("SHOW COLUMNS FROM checkins LIKE 'checkin_method'")->fetch();
+    if (!$checkMethodCol) {
+        $dbInstance->exec("ALTER TABLE checkins ADD COLUMN checkin_method VARCHAR(50) NULL DEFAULT 'phone' AFTER match_status");
     }
 
     // Mở rộng role sang VARCHAR(50)

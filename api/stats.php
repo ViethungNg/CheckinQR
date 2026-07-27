@@ -128,22 +128,33 @@ try {
 
         $limitSql = "LIMIT 150";
         $recentStmt = $db->query("
-            SELECT c.*, t.table_name 
+            SELECT c.*, t.table_name, g.normalized_phone as guest_normalized_phone 
             FROM checkins c 
             LEFT JOIN event_tables t ON c.table_id = t.id 
+            LEFT JOIN guests g ON c.guest_id = g.id
             {$whereClause}
             ORDER BY c.checkin_time DESC {$limitSql}
         ");
 
         while ($row = $recentStmt->fetch()) {
+            $isByLuckyCode = ($row['checkin_method'] ?? '') === 'lucky_code' || (!empty($row['guest_normalized_phone']) && $row['normalized_phone'] !== $row['guest_normalized_phone']);
+            $methodText = '📱 Khớp SĐT';
+            if ($row['match_status'] === 'walk_in') {
+                $methodText = '🔸 Khách phát sinh';
+            } elseif ($isByLuckyCode) {
+                $methodText = '🎟️ Khớp Mã dự thưởng';
+            }
+
             $recentCheckins[] = [
-                'id'          => $row['id'],
-                'full_name'   => esc($row['full_name_entered']),
-                'phone'       => esc($row['phone_entered']),
-                'table_name'  => esc($row['table_name'] ?? 'Chưa xếp bàn'),
-                'time'        => date('d/m/Y H:i:s', strtotime($row['checkin_time'])),
-                'status'      => esc($row['match_status']),
-                'status_text' => $row['match_status'] === 'matched' ? 'Hợp lệ' : 'Phát sinh',
+                'id'                  => $row['id'],
+                'full_name'           => esc($row['full_name_entered']),
+                'phone'               => esc($row['phone_entered']),
+                'table_name'          => esc($row['table_name'] ?? 'Chưa xếp bàn'),
+                'time'                => date('d/m/Y H:i:s', strtotime($row['checkin_time'])),
+                'status'              => esc($row['match_status']),
+                'status_text'         => $row['match_status'] === 'matched' ? 'Hợp lệ' : 'Phát sinh',
+                'checkin_method_text' => $methodText,
+                'is_by_code'          => $isByLuckyCode
             ];
         }
     }

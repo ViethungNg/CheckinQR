@@ -119,10 +119,11 @@ if (isKinhDoanh()) {
 }
 
 $stmtCheckins = $db->prepare("
-    SELECT c.*, e.event_name, t.table_name 
+    SELECT c.*, e.event_name, t.table_name, g.normalized_phone as guest_normalized_phone, g.lucky_draw_code as guest_lucky_code 
     FROM checkins c 
     LEFT JOIN events e ON c.event_id = e.id 
     LEFT JOIN event_tables t ON c.table_id = t.id 
+    LEFT JOIN guests g ON c.guest_id = g.id
     {$whereCheckin}
     ORDER BY c.checkin_time DESC
 ");
@@ -191,53 +192,84 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
         <?php if($error): ?><div class="alert error"><?php echo esc($error); ?></div><?php endif; ?>
 
         <div class="content-box">
-            <p style="margin-bottom: 15px; color: #666;">Danh sách hiển thị realtime khách quét QR. Bạn có thể xóa bản ghi Test hoặc xếp bàn cho khách phát sinh tại đây.</p>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Họ Tên</th>
-                        <th>SĐT</th>
-                        <th>Vị trí bàn</th>
-                        <th>Thời gian</th>
-                        <th>Trạng thái</th>
-                        <?php if(!isKinhDoanh()): ?><th>Thao tác</th><?php endif; ?>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach($checkins as $c): ?>
-                    <tr>
-                        <td><strong><?php echo esc($c['full_name_entered']); ?></strong></td>
-                        <td><?php echo esc($c['phone_entered']); ?></td>
-                        <td>
-                            <?php if (!empty($c['table_name'])): ?>
-                                <strong style="color: #2e7d32;"><?php echo esc($c['table_name']); ?></strong>
-                            <?php else: ?>
-                                <span style="color: #888;">Chưa xếp</span>
+            <p style="margin-bottom: 15px; color: #666;">Danh sách hiển thị realtime khách quét QR. Bạn có thể xem chi tiết khách khớp theo SĐT hay theo Mã dự thưởng tại đây.</p>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Họ Tên</th>
+                            <th>SĐT</th>
+                            <th>Vị trí bàn</th>
+                            <th>Mã dự thưởng</th>
+                            <th>Phương thức Check-in</th>
+                            <th>Thời gian</th>
+                            <th>Trạng thái</th>
+                            <?php if(!isKinhDoanh()): ?><th>Thao tác</th><?php endif; ?>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach($checkins as $c): 
+                            $isByLuckyCode = ($c['checkin_method'] ?? '') === 'lucky_code' || (!empty($c['guest_normalized_phone']) && $c['normalized_phone'] !== $c['guest_normalized_phone']);
+                        ?>
+                        <tr class="<?php echo $c['match_status'] === 'matched' ? 'row-checked-in' : ''; ?>">
+                            <td><strong><?php echo esc($c['full_name_entered']); ?></strong></td>
+                            <td><?php echo esc($c['phone_entered']); ?></td>
+                            <td>
+                                <?php if (!empty($c['table_name'])): ?>
+                                    <strong style="color: #2e7d32;"><?php echo esc($c['table_name']); ?></strong>
+                                <?php else: ?>
+                                    <span style="color: #888;">Chưa xếp</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if (!empty($c['lucky_draw_code'])): ?>
+                                    <span style="font-weight: bold; color: #7b1fa2; background: #f3e5f5; border: 1px solid #e1bee7; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">
+                                        🎟️ <?php echo esc($c['lucky_draw_code']); ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span style="color: #aaa;">-</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if ($c['match_status'] === 'walk_in'): ?>
+                                    <span style="background: #fff3e0; color: #ef6c00; border: 1px solid #ffcc80; padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px;">
+                                        🔸 Khách phát sinh
+                                    </span>
+                                <?php elseif ($isByLuckyCode): ?>
+                                    <span style="background: #f3e5f5; color: #7b1fa2; border: 1.5px solid #ab47bc; padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(123, 31, 162, 0.15);">
+                                        🎟️ Khớp Mã dự thưởng
+                                    </span>
+                                <?php else: ?>
+                                    <span style="background: #e8f5e9; color: #1b5e20; border: 1.5px solid #81c784; padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(46, 125, 50, 0.15);">
+                                        📱 Khớp SĐT
+                                    </span>
+                                <?php endif; ?>
+                            </td>
+                            <td><?php echo date('d/m/Y H:i:s', strtotime($c['checkin_time'])); ?></td>
+                            <td>
+                                <span class="badge <?php echo esc($c['match_status']); ?>">
+                                    <?php echo $c['match_status'] === 'matched' ? '✅ Khách hợp lệ' : '🔸 Khách phát sinh'; ?>
+                                </span>
+                            </td>
+                            <?php if(!isKinhDoanh()): ?>
+                            <td>
+                                <button class="btn btn-info" onclick='openAssignModal(<?php echo json_encode($c); ?>)'>Xếp bàn</button>
+                                
+                                <?php if(isAdmin()): ?>
+                                <form action="" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
+                                    <?php echo csrfField(); ?>
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="id" value="<?php echo $c['id']; ?>">
+                                    <button type="submit" class="btn btn-danger">Xóa Test</button>
+                                </form>
+                                <?php endif; ?>
+                            </td>
                             <?php endif; ?>
-                        </td>
-                        <td><?php echo date('d/m/Y H:i:s', strtotime($c['checkin_time'])); ?></td>
-                        <td>
-                            <span class="badge <?php echo esc($c['match_status']); ?>">
-                                <?php echo $c['match_status'] === 'matched' ? 'Khách hợp lệ' : 'Khách phát sinh'; ?>
-                            </span>
-                        </td>
-                        <?php if(!isKinhDoanh()): ?>
-                        <td>
-                            <button class="btn btn-info" onclick='openAssignModal(<?php echo json_encode($c); ?>)'>Xếp bàn</button>
-                            
-                            <?php if(isAdmin()): ?>
-                            <form action="" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
-                                <?php echo csrfField(); ?>
-                                <input type="hidden" name="action" value="delete">
-                                <input type="hidden" name="id" value="<?php echo $c['id']; ?>">
-                                <button type="submit" class="btn btn-danger">Xóa Test</button>
-                            </form>
-                            <?php endif; ?>
-                        </td>
-                        <?php endif; ?>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
             </table>
         </div>
     </div>
