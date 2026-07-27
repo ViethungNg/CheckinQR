@@ -334,10 +334,9 @@ $guests = $stmtGuests->fetchAll();
     
     function filterTables(eventId, selectedTableId = null) {
         tableSelect.innerHTML = '<option value="">-- Chưa xếp bàn --</option>';
-        if (!eventId) return;
         
         allTables.forEach(t => {
-            if (t.event_id == eventId) {
+            if (!eventId || t.event_id == eventId) {
                 const opt = document.createElement('option');
                 opt.value = t.id;
                 opt.textContent = t.table_name;
@@ -351,13 +350,21 @@ $guests = $stmtGuests->fetchAll();
         document.getElementById('modalTitle').innerText = 'Thêm Khách Mới';
         document.getElementById('formAction').value = 'add';
         document.getElementById('guestId').value = '';
-        document.getElementById('eventId').value = '';
+        
+        const eventSelect = document.getElementById('eventId');
+        if (eventSelect.options.length > 1) {
+            eventSelect.selectedIndex = 1; // Tự động chọn sự kiện sẵn có
+        } else {
+            eventSelect.value = '';
+        }
+        
         document.getElementById('fullName').value = '';
         document.getElementById('phone').value = '';
         document.getElementById('luckyCode').value = '';
         document.getElementById('organization').value = '';
         document.getElementById('status').value = 'invited';
-        filterTables(null);
+        
+        filterTables(eventSelect.value);
         modal.style.display = 'block';
     }
     
