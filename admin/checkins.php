@@ -12,29 +12,33 @@ if (isPost() && !isKinhDoanh()) {
     $action = $_POST['action'] ?? '';
     
     if ($action === 'delete') {
-        $id = (int)$_POST['id'];
-        
-        // Lấy thông tin checkin trước khi xóa
-        $stmtCheck = $db->prepare("SELECT * FROM checkins WHERE id = ?");
-        $stmtCheck->execute([$id]);
-        $checkin = $stmtCheck->fetch();
-        
-        if ($checkin) {
-            // Nếu lượt check-in này có khớp với 1 khách dự kiến, cập nhật lại trạng thái khách đó về 'invited'
-            if ($checkin['guest_id']) {
-                // Kiểm tra xem khách đó còn lượt checkin nào khác không
-                $otherCheckins = $db->prepare("SELECT COUNT(*) FROM checkins WHERE guest_id = ? AND id != ?");
-                $otherCheckins->execute([$checkin['guest_id'], $id]);
-                if ($otherCheckins->fetchColumn() == 0) {
-                    $resetGuest = $db->prepare("UPDATE guests SET status = 'invited' WHERE id = ?");
-                    $resetGuest->execute([$checkin['guest_id']]);
-                }
-            }
+        if (!isAdmin()) {
+            $error = 'Chỉ Quản trị viên (Admin) mới có quyền xóa lượt check-in!';
+        } else {
+            $id = (int)$_POST['id'];
             
-            // Xóa bản ghi checkin
-            $stmtDel = $db->prepare("DELETE FROM checkins WHERE id = ?");
-            $stmtDel->execute([$id]);
-            $message = 'Đã xóa lượt check-in (dữ liệu test) thành công!';
+            // Lấy thông tin checkin trước khi xóa
+            $stmtCheck = $db->prepare("SELECT * FROM checkins WHERE id = ?");
+            $stmtCheck->execute([$id]);
+            $checkin = $stmtCheck->fetch();
+            
+            if ($checkin) {
+                // Nếu lượt check-in này có khớp với 1 khách dự kiến, cập nhật lại trạng thái khách đó về 'invited'
+                if ($checkin['guest_id']) {
+                    // Kiểm tra xem khách đó còn lượt checkin nào khác không
+                    $otherCheckins = $db->prepare("SELECT COUNT(*) FROM checkins WHERE guest_id = ? AND id != ?");
+                    $otherCheckins->execute([$checkin['guest_id'], $id]);
+                    if ($otherCheckins->fetchColumn() == 0) {
+                        $resetGuest = $db->prepare("UPDATE guests SET status = 'invited' WHERE id = ?");
+                        $resetGuest->execute([$checkin['guest_id']]);
+                    }
+                }
+                
+                // Xóa bản ghi checkin
+                $stmtDel = $db->prepare("DELETE FROM checkins WHERE id = ?");
+                $stmtDel->execute([$id]);
+                $message = 'Đã xóa lượt check-in (dữ liệu test) thành công!';
+            }
         }
     } elseif ($action === 'assign_table') {
         $checkinId = (int)$_POST['checkin_id'];
@@ -235,12 +239,14 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                         <td>
                             <button class="btn btn-info" onclick='openAssignModal(<?php echo json_encode($c); ?>)'>Xếp bàn</button>
                             
+                            <?php if(isAdmin()): ?>
                             <form action="" method="POST" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
                                 <?php echo csrfField(); ?>
                                 <input type="hidden" name="action" value="delete">
                                 <input type="hidden" name="id" value="<?php echo $c['id']; ?>">
                                 <button type="submit" class="btn btn-danger">Xóa Test</button>
                             </form>
+                            <?php endif; ?>
                         </td>
                         <?php endif; ?>
                     </tr>
