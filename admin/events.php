@@ -17,6 +17,7 @@ if (isPost()) {
         $eventCode = trim($_POST['event_code'] ?? '');
         $slug = trim($_POST['slug'] ?? '');
         $eventDate = $_POST['event_date'] ?? date('Y-m-d');
+        $location = trim($_POST['location'] ?? '');
         $status = $_POST['status'] ?? 'active';
         $checkinEnabled = isset($_POST['checkin_enabled']) ? 1 : 0;
         
@@ -24,8 +25,8 @@ if (isPost()) {
             $error = 'Vui lòng nhập Tên và Slug sự kiện';
         } else {
             try {
-                $stmt = $db->prepare("INSERT INTO events (event_name, event_code, slug, event_date, status, checkin_enabled) VALUES (?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$eventName, $eventCode, $slug, $eventDate, $status, $checkinEnabled]);
+                $stmt = $db->prepare("INSERT INTO events (event_name, event_code, slug, event_date, location, status, checkin_enabled) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$eventName, $eventCode, $slug, $eventDate, $location, $status, $checkinEnabled]);
                 $message = 'Thêm sự kiện thành công!';
             } catch(PDOException $e) {
                 $error = 'Lỗi thêm sự kiện (Có thể trùng Slug hoặc Mã sự kiện).';
@@ -37,12 +38,13 @@ if (isPost()) {
         $eventCode = trim($_POST['event_code'] ?? '');
         $slug = trim($_POST['slug'] ?? '');
         $eventDate = $_POST['event_date'] ?? date('Y-m-d');
+        $location = trim($_POST['location'] ?? '');
         $status = $_POST['status'] ?? 'active';
         $checkinEnabled = isset($_POST['checkin_enabled']) ? 1 : 0;
         
         try {
-            $stmt = $db->prepare("UPDATE events SET event_name=?, event_code=?, slug=?, event_date=?, status=?, checkin_enabled=? WHERE id=?");
-            $stmt->execute([$eventName, $eventCode, $slug, $eventDate, $status, $checkinEnabled, $id]);
+            $stmt = $db->prepare("UPDATE events SET event_name=?, event_code=?, slug=?, event_date=?, location=?, status=?, checkin_enabled=? WHERE id=?");
+            $stmt->execute([$eventName, $eventCode, $slug, $eventDate, $location, $status, $checkinEnabled, $id]);
             $message = 'Cập nhật sự kiện thành công!';
         } catch(PDOException $e) {
             $error = 'Lỗi cập nhật sự kiện.';
@@ -132,6 +134,7 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
                         <th>Tên sự kiện</th>
                         <th>Mã</th>
                         <th>Ngày tổ chức</th>
+                        <th>Địa điểm</th>
                         <th>Trạng thái</th>
                         <th>Thao tác</th>
                         <th>Link/QR Code</th>
@@ -143,6 +146,7 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
                         <td><strong><?php echo esc($event['event_name']); ?></strong></td>
                         <td><?php echo esc($event['event_code']); ?></td>
                         <td><?php echo date('d/m/Y', strtotime($event['event_date'])); ?></td>
+                        <td><?php echo esc($event['location'] ?? '-'); ?></td>
                         <td><span class="badge <?php echo esc($event['status']); ?>"><?php echo esc($event['status']); ?></span></td>
                         <td>
                             <button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;" onclick='openEditModal(<?php echo json_encode($event); ?>)'>Sửa</button>
@@ -194,6 +198,10 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
                 <input type="date" name="event_date" id="eventDate" class="form-control" required>
             </div>
             <div class="form-group">
+                <label>Địa điểm tổ chức</label>
+                <input type="text" name="location" id="eventLocation" class="form-control" placeholder="Ví dụ: Hội trường Công ty Hòa Vinh">
+            </div>
+            <div class="form-group">
                 <label>Trạng thái</label>
                 <select name="status" id="eventStatus" class="form-control">
                     <option value="active">Active</option>
@@ -223,6 +231,7 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
         document.getElementById('eventCode').value = '';
         document.getElementById('eventSlug').value = '';
         document.getElementById('eventDate').value = '';
+        document.getElementById('eventLocation').value = '';
         document.getElementById('eventStatus').value = 'active';
         document.getElementById('checkinEnabled').checked = true;
         modal.style.display = 'block';
@@ -236,6 +245,7 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
         document.getElementById('eventCode').value = eventData.event_code;
         document.getElementById('eventSlug').value = eventData.slug;
         document.getElementById('eventDate').value = eventData.event_date;
+        document.getElementById('eventLocation').value = eventData.location || '';
         document.getElementById('eventStatus').value = eventData.status;
         document.getElementById('checkinEnabled').checked = eventData.checkin_enabled == 1;
         modal.style.display = 'block';
