@@ -78,7 +78,7 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
                 <h3>Tổng Sự kiện</h3>
                 <div class="value" id="val-events"><?php echo $stats['events']; ?></div>
             </div>
-            <div class="card" id="card-guests" onclick="setFilter('all')" title="Bấm để lọc tất cả khách dự kiến">
+            <div class="card" id="card-guests" onclick="setFilter('guests')" title="Bấm để lọc tất cả khách dự kiến">
                 <h3>Khách dự kiến</h3>
                 <div class="value" id="val-guests"><?php echo $stats['guests']; ?></div>
             </div>
@@ -106,6 +106,7 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <select id="table-filter" onchange="setFilter(this.value)" style="padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; border: 1px solid #d32f2f; background: #fff; color: #333; font-weight: bold; cursor: pointer;">
                         <option value="all">🔍 Tất cả lượt check-in</option>
+                        <option value="guests">📋 Danh sách Khách dự kiến (Tất cả)</option>
                         <option value="matched">✅ Đã Check-in (Khớp)</option>
                         <option value="walk_in">🔸 Khách phát sinh (Walk-in)</option>
                         <option value="unassigned">⚠️ Chưa xếp bàn</option>

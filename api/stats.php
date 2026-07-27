@@ -34,24 +34,30 @@ try {
         ];
     }
 
-    if ($filter === 'not_arrived') {
-        $whereKD = isKinhDoanh() ? "AND t.assigned_user_id = {$userId}" : "";
-        $stmtNotArrived = $db->query("
+    if ($filter === 'not_arrived' || $filter === 'guests') {
+        $whereClause = "";
+        if ($filter === 'not_arrived') {
+            $whereClause = isKinhDoanh() ? "WHERE g.status = 'invited' AND t.assigned_user_id = {$userId}" : "WHERE g.status = 'invited'";
+        } else {
+            $whereClause = isKinhDoanh() ? "WHERE t.assigned_user_id = {$userId}" : "";
+        }
+
+        $stmtGuests = $db->query("
             SELECT g.*, t.table_name 
             FROM guests g 
             LEFT JOIN event_tables t ON g.table_id = t.id 
-            WHERE g.status = 'invited' {$whereKD}
-            ORDER BY g.id DESC LIMIT 10
+            {$whereClause}
+            ORDER BY g.id DESC LIMIT 15
         ");
-        while ($row = $stmtNotArrived->fetch()) {
+        while ($row = $stmtGuests->fetch()) {
             $recentCheckins[] = [
                 'id'          => $row['id'],
                 'full_name'   => esc($row['full_name']),
                 'phone'       => esc($row['phone']),
                 'table_name'  => esc($row['table_name'] ?? 'Chưa xếp bàn'),
-                'time'        => '⏳ Chưa tới',
-                'status'      => 'invited',
-                'status_text' => 'Chưa tới',
+                'time'        => $row['status'] === 'checked_in' ? '✅ Đã checkin' : '⏳ Chưa tới',
+                'status'      => $row['status'],
+                'status_text' => $row['status'] === 'checked_in' ? 'Đã checkin' : 'Chưa tới',
             ];
         }
     } else {
