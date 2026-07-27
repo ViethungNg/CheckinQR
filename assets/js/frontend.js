@@ -106,12 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <div style="margin-bottom: 8px; font-size: 0.95rem; color: #333;">
                                         📞 <strong>Số điện thoại:</strong> ${data.data.phone || ''}
                                     </div>
-                                    <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed #ffcdd2; text-align: center;">
-                                        <div style="font-size: 0.8rem; color: #666; margin-bottom: 4px; font-weight: 600;">🎁 MÃ THAM GIA BỐC THĂM / QUAY THƯỞNG</div>
-                                        <div style="font-size: 1.4rem; font-weight: 800; color: #d32f2f; letter-spacing: 1px; background: #fff5f5; display: inline-block; padding: 4px 16px; border-radius: 16px; border: 1px solid #ffcdd2;">
-                                            ${data.data.lucky_draw_code || ''}
-                                        </div>
-                                    </div>
+                                    ${data.data.address ? `<div style="margin-bottom: 8px; font-size: 0.95rem; color: #333;">🏠 <strong>Địa chỉ:</strong> ${data.data.address}</div>` : ''}
                                 </div>
                             </div>
                         `;

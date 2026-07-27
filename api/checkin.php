@@ -139,8 +139,9 @@ if ($success) {
             'match_status'    => $matchStatus,
             'full_name'       => esc($fullName),
             'phone'           => esc($phone),
+            'address'         => esc($address),
             'table_name'      => $tableName,
-            'lucky_draw_code' => $luckyDrawCode ?? ('#CKI-' . substr($normalizedPhone, -4))
+            'lucky_draw_code' => $luckyDrawCode
         ]
     ]);
 } else {

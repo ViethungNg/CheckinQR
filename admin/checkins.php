@@ -45,32 +45,47 @@ if (isPost()) {
         $checkin = $stmtCheck->fetch();
         
         if ($checkin) {
-            // 1. Cập nhật table_id trong checkins
-            $updateCheckin = $db->prepare("UPDATE checkins SET table_id = ? WHERE id = ?");
-            $updateCheckin->execute([$tableId, $checkinId]);
-            
-            // 2. Đồng bộ sang bảng guests
-            if (!empty($checkin['guest_id'])) {
-                $updateGuest = $db->prepare("UPDATE guests SET table_id = ? WHERE id = ?");
-                $updateGuest->execute([$tableId, $checkin['guest_id']]);
-            } elseif ($tableId !== null) {
-                // Nếu chưa có (khách phát sinh) và chọn bàn cụ thể -> tự động thêm vào guests
-                $stmtAddGuest = $db->prepare("INSERT INTO guests (event_id, full_name, phone, normalized_phone, table_id, status) VALUES (?, ?, ?, ?, ?, 'checked_in')");
-                $stmtAddGuest->execute([
-                    $checkin['event_id'],
-                    $checkin['full_name_entered'],
-                    $checkin['phone_entered'],
-                    $checkin['normalized_phone'],
-                    $tableId
-                ]);
-                $newGuestId = $db->lastInsertId();
+            if ($tableId === null) {
+                // Hủy xếp bàn: Đặt table_id = NULL
+                $updateCheckin = $db->prepare("UPDATE checkins SET table_id = NULL WHERE id = ?");
+                $updateCheckin->execute([$checkinId]);
                 
-                // Link ngược lại checkin
-                $linkStmt = $db->prepare("UPDATE checkins SET guest_id = ?, match_status = 'matched' WHERE id = ?");
-                $linkStmt->execute([$newGuestId, $checkinId]);
+                if (!empty($checkin['guest_id'])) {
+                    $updateGuest = $db->prepare("UPDATE guests SET table_id = NULL WHERE id = ?");
+                    $updateGuest->execute([$checkin['guest_id']]);
+                } else {
+                    // Trả về trạng thái Khách phát sinh (walk_in)
+                    $resetMatch = $db->prepare("UPDATE checkins SET match_status = 'walk_in' WHERE id = ?");
+                    $resetMatch->execute([$checkinId]);
+                }
+                
+                $message = 'Đã trả khách về trạng thái Khách phát sinh (Chưa xếp bàn)!';
+            } else {
+                // Xếp bàn cụ thể
+                $updateCheckin = $db->prepare("UPDATE checkins SET table_id = ? WHERE id = ?");
+                $updateCheckin->execute([$tableId, $checkinId]);
+                
+                if (!empty($checkin['guest_id'])) {
+                    $updateGuest = $db->prepare("UPDATE guests SET table_id = ? WHERE id = ?");
+                    $updateGuest->execute([$tableId, $checkin['guest_id']]);
+                } else {
+                    // Nếu chưa có (khách phát sinh), tự động thêm vào guests và đổi match_status thành matched
+                    $stmtAddGuest = $db->prepare("INSERT INTO guests (event_id, full_name, phone, normalized_phone, table_id, status) VALUES (?, ?, ?, ?, ?, 'checked_in')");
+                    $stmtAddGuest->execute([
+                        $checkin['event_id'],
+                        $checkin['full_name_entered'],
+                        $checkin['phone_entered'],
+                        $checkin['normalized_phone'],
+                        $tableId
+                    ]);
+                    $newGuestId = $db->lastInsertId();
+                    
+                    $linkStmt = $db->prepare("UPDATE checkins SET guest_id = ?, match_status = 'matched' WHERE id = ?");
+                    $linkStmt->execute([$newGuestId, $checkinId]);
+                }
+                
+                $message = 'Đã xếp bàn và đồng bộ dữ liệu thành công!';
             }
-            
-            $message = ($tableId === null) ? 'Đã hủy xếp bàn (cập nhật về Chưa xếp bàn) thành công!' : 'Đã xếp bàn và đồng bộ dữ liệu thành công!';
         }
     }
 }
