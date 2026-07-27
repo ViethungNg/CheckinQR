@@ -53,8 +53,8 @@ if (isPost()) {
             if (!empty($checkin['guest_id'])) {
                 $updateGuest = $db->prepare("UPDATE guests SET table_id = ? WHERE id = ?");
                 $updateGuest->execute([$tableId, $checkin['guest_id']]);
-            } else {
-                // Nếu chưa có (khách phát sinh), tự động thêm vào guests
+            } elseif ($tableId !== null) {
+                // Nếu chưa có (khách phát sinh) và chọn bàn cụ thể -> tự động thêm vào guests
                 $stmtAddGuest = $db->prepare("INSERT INTO guests (event_id, full_name, phone, normalized_phone, table_id, status) VALUES (?, ?, ?, ?, ?, 'checked_in')");
                 $stmtAddGuest->execute([
                     $checkin['event_id'],
@@ -70,7 +70,7 @@ if (isPost()) {
                 $linkStmt->execute([$newGuestId, $checkinId]);
             }
             
-            $message = 'Đã xếp bàn và đồng bộ dữ liệu thành công!';
+            $message = ($tableId === null) ? 'Đã hủy xếp bàn (cập nhật về Chưa xếp bàn) thành công!' : 'Đã xếp bàn và đồng bộ dữ liệu thành công!';
         }
     }
 }
@@ -224,7 +224,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
             <div class="form-group">
                 <label>Chọn Bàn</label>
                 <select name="table_id" id="modalTableSelect" class="form-control">
-                    <option value="">⚠️ -- Chưa xếp bàn (Bỏ xếp bàn / Đặt về trống) --</option>
+                    <option value="">-- Chưa xếp bàn --</option>
                 </select>
             </div>
             
@@ -243,7 +243,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
         document.getElementById('modalGuestPhone').innerText = c.phone_entered;
         
         const select = document.getElementById('modalTableSelect');
-        select.innerHTML = '<option value="">⚠️ -- Chưa xếp bàn (Bỏ xếp bàn / Đặt về trống) --</option>';
+        select.innerHTML = '<option value="">-- Chưa xếp bàn --</option>';
         
         allTables.forEach(t => {
             if (t.event_id == c.event_id) {
