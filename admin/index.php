@@ -104,14 +104,25 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
                 <h3>Khách phát sinh (Walk-in)</h3>
                 <div class="value" id="val-walk-in" style="color: #ef6c00;"><?php echo $stats['walk_in']; ?></div>
             </div>
+            <div class="card" style="border-top-color: #c62828;">
+                <h3>Chưa xếp bàn</h3>
+                <div class="value" id="val-unassigned" style="color: #c62828;"><?php echo $db->query("SELECT COUNT(*) FROM checkins WHERE table_id IS NULL OR table_id = 0")->fetchColumn(); ?></div>
+            </div>
         </div>
 
         <div class="recent-section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                 <h3 style="margin-bottom: 0;">Lượt check-in mới nhất</h3>
-                <span id="realtime-status" style="font-size: 0.85rem; color: #2e7d32; font-weight: 500;">
-                    🟢 Cập nhật Real-time (Mỗi 3s)
-                </span>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <select id="table-filter" onchange="updateFilter(this.value)" style="padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; border: 1px solid #d32f2f; background: #fff; color: #333; font-weight: bold; cursor: pointer;">
+                        <option value="all">🔍 Tất cả lượt check-in</option>
+                        <option value="unassigned">⚠️ Chỉ hiện Chưa xếp bàn</option>
+                        <option value="assigned">✅ Chỉ hiện Đã xếp bàn</option>
+                    </select>
+                    <span id="realtime-status" style="font-size: 0.85rem; color: #2e7d32; font-weight: 500;">
+                        🟢 Real-time (Mỗi 3s)
+                    </span>
+                </div>
             </div>
             <table>
                 <thead>
@@ -152,9 +163,16 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
 </div>
 
 <script>
+let currentFilter = 'all';
+
+function updateFilter(val) {
+    currentFilter = val;
+    updateRealtimeStats();
+}
+
 async function updateRealtimeStats() {
     try {
-        const response = await fetch('../api/stats.php');
+        const response = await fetch('../api/stats.php?filter=' + currentFilter);
         if (!response.ok) return;
         const result = await response.json();
         
@@ -166,25 +184,32 @@ async function updateRealtimeStats() {
             document.getElementById('val-guests').textContent = data.guests;
             document.getElementById('val-checked-in').textContent = data.checked_in;
             document.getElementById('val-walk-in').textContent = data.walk_in;
+            if (document.getElementById('val-unassigned')) {
+                document.getElementById('val-unassigned').textContent = data.unassigned;
+            }
             
             // Cập nhật danh sách check-in
             const tbody = document.getElementById('recent-checkins-body');
-            if (result.data.recent_checkins.length > 0) {
-                let html = '';
-                result.data.recent_checkins.slice(0, 5).forEach(item => {
-                    html += `
-                        <tr>
-                            <td>${item.full_name}</td>
-                            <td>${item.phone}</td>
-                            <td><strong>${item.table_name}</strong></td>
-                            <td>${item.time}</td>
-                            <td>
-                                <span class="badge ${item.status}">${item.status_text}</span>
-                            </td>
-                        </tr>
-                    `;
-                });
-                tbody.innerHTML = html;
+            if (result.data.recent_checkins) {
+                if (result.data.recent_checkins.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#777; padding:20px;">Không tìm thấy dữ liệu phù hợp với bộ lọc</td></tr>`;
+                } else {
+                    let html = '';
+                    result.data.recent_checkins.slice(0, 5).forEach(item => {
+                        html += `
+                            <tr>
+                                <td>${item.full_name}</td>
+                                <td>${item.phone}</td>
+                                <td><strong>${item.table_name}</strong></td>
+                                <td>${item.time}</td>
+                                <td>
+                                    <span class="badge ${item.status}">${item.status_text}</span>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    tbody.innerHTML = html;
+                }
             }
         }
     } catch (e) {

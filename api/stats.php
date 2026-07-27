@@ -9,17 +9,27 @@ header('Content-Type: application/json; charset=utf-8');
 try {
     $db = Database::getConnection();
 
+    $filter = $_GET['filter'] ?? 'all';
+    $whereClause = "";
+    if ($filter === 'unassigned') {
+        $whereClause = "WHERE c.table_id IS NULL OR c.table_id = 0";
+    } elseif ($filter === 'assigned') {
+        $whereClause = "WHERE c.table_id IS NOT NULL AND c.table_id > 0";
+    }
+
     $stats = [
         'events'     => (int)$db->query("SELECT COUNT(*) FROM events")->fetchColumn(),
         'guests'     => (int)$db->query("SELECT COUNT(*) FROM guests")->fetchColumn(),
         'checked_in' => (int)$db->query("SELECT COUNT(*) FROM checkins WHERE match_status = 'matched'")->fetchColumn(),
         'walk_in'    => (int)$db->query("SELECT COUNT(*) FROM checkins WHERE match_status = 'walk_in'")->fetchColumn(),
+        'unassigned' => (int)$db->query("SELECT COUNT(*) FROM checkins WHERE table_id IS NULL OR table_id = 0")->fetchColumn(),
     ];
 
     $recentStmt = $db->query("
         SELECT c.*, t.table_name 
         FROM checkins c 
         LEFT JOIN event_tables t ON c.table_id = t.id 
+        {$whereClause}
         ORDER BY c.checkin_time DESC LIMIT 10
     ");
     $recentCheckins = [];
