@@ -7,7 +7,7 @@ $db = Database::getConnection();
 $message = '';
 $error = '';
 
-if (isPost()) {
+if (isPost() && !isKinhDoanh()) {
     requireCsrfToken();
     $action = $_POST['action'] ?? '';
     
@@ -210,7 +210,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                         <th>Vị trí bàn</th>
                         <th>Thời gian</th>
                         <th>Trạng thái</th>
-                        <th>Thao tác</th>
+                        <?php if(!isKinhDoanh()): ?><th>Thao tác</th><?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
@@ -231,6 +231,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                                 <?php echo $c['match_status'] === 'matched' ? 'Khách hợp lệ' : 'Khách phát sinh'; ?>
                             </span>
                         </td>
+                        <?php if(!isKinhDoanh()): ?>
                         <td>
                             <button class="btn btn-info" onclick='openAssignModal(<?php echo json_encode($c); ?>)'>Xếp bàn</button>
                             
@@ -241,6 +242,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                                 <button type="submit" class="btn btn-danger">Xóa Test</button>
                             </form>
                         </td>
+                        <?php endif; ?>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
