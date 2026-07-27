@@ -36,11 +36,13 @@ require_once ROOT_PATH . '/includes/auth.php';
 $appUrl = env('APP_URL', 'http://localhost/CheckinQR');
 define('BASE_URL', rtrim($appUrl, '/'));
 
-// Tự động bổ sung cột assigned_user_id vào bảng event_tables nếu chưa có
+// Tự động bổ sung cột assigned_user_id vào bảng event_tables nếu chưa có và mở rộng cột role trong users
 try {
     $dbInstance = Database::getConnection();
     $checkCol = $dbInstance->query("SHOW COLUMNS FROM event_tables LIKE 'assigned_user_id'")->fetch();
     if (!$checkCol) {
         $dbInstance->exec("ALTER TABLE event_tables ADD COLUMN assigned_user_id INT NULL DEFAULT NULL AFTER event_id");
     }
+    // Mở rộng role sang VARCHAR(50)
+    $dbInstance->exec("ALTER TABLE users MODIFY COLUMN role VARCHAR(50) NOT NULL DEFAULT 'letan'");
 } catch (\Throwable $e) {}

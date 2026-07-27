@@ -16,57 +16,61 @@ if (isPost()) {
     requireCsrfToken();
     $action = $_POST['action'] ?? '';
     
-    if ($action === 'add') {
-        $username = trim($_POST['username'] ?? '');
-        $password = trim($_POST['password'] ?? '');
-        $fullName = trim($_POST['full_name'] ?? '');
-        $role     = $_POST['role'] ?? 'letan';
-        $status   = $_POST['status'] ?? 'active';
-        
-        if (empty($username) || empty($password) || empty($fullName)) {
-            $error = 'Vui lòng điền đầy đủ Tên đăng nhập, Mật khẩu và Họ tên!';
-        } else {
-            // Kiểm tra username trùng lặp
-            $checkStmt = $db->prepare("SELECT COUNT(*) FROM users WHERE username = ?");
-            $checkStmt->execute([$username]);
-            if ($checkStmt->fetchColumn() > 0) {
-                $error = 'Tên đăng nhập đã tồn tại. Vui lòng chọn tên khác!';
+    try {
+        if ($action === 'add') {
+            $username = trim($_POST['username'] ?? '');
+            $password = trim($_POST['password'] ?? '');
+            $fullName = trim($_POST['full_name'] ?? '');
+            $role     = $_POST['role'] ?? 'letan';
+            $status   = $_POST['status'] ?? 'active';
+            
+            if (empty($username) || empty($password) || empty($fullName)) {
+                $error = 'Vui lòng điền đầy đủ Tên đăng nhập, Mật khẩu và Họ tên!';
             } else {
-                $stmt = $db->prepare("INSERT INTO users (username, password_hash, full_name, role, status, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
-                $stmt->execute([$username, $password, $fullName, $role, $status]);
-                $message = 'Tạo tài khoản mới thành công!';
+                // Kiểm tra username trùng lặp
+                $checkStmt = $db->prepare("SELECT COUNT(*) FROM users WHERE username = ?");
+                $checkStmt->execute([$username]);
+                if ($checkStmt->fetchColumn() > 0) {
+                    $error = 'Tên đăng nhập đã tồn tại. Vui lòng chọn tên khác!';
+                } else {
+                    $stmt = $db->prepare("INSERT INTO users (username, password_hash, full_name, role, status, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+                    $stmt->execute([$username, $password, $fullName, $role, $status]);
+                    $message = 'Tạo tài khoản mới thành công!';
+                }
+            }
+        } elseif ($action === 'edit') {
+            $id       = (int)$_POST['id'];
+            $fullName = trim($_POST['full_name'] ?? '');
+            $role     = $_POST['role'] ?? 'letan';
+            $status   = $_POST['status'] ?? 'active';
+            $password = trim($_POST['password'] ?? '');
+            
+            if (empty($fullName)) {
+                $error = 'Họ tên không được để trống!';
+            } else {
+                if (!empty($password)) {
+                    $stmt = $db->prepare("UPDATE users SET full_name = ?, role = ?, status = ?, password_hash = ?, updated_at = NOW() WHERE id = ?");
+                    $stmt->execute([$fullName, $role, $status, $password, $id]);
+                } else {
+                    $stmt = $db->prepare("UPDATE users SET full_name = ?, role = ?, status = ?, updated_at = NOW() WHERE id = ?");
+                    $stmt->execute([$fullName, $role, $status, $id]);
+                }
+                $message = 'Cập nhật tài khoản thành công!';
+            }
+        } elseif ($action === 'delete') {
+            $id = (int)$_POST['id'];
+            
+            // Không cho phép tự xóa tài khoản của chính mình
+            if ($id === (int)$_SESSION['admin_id']) {
+                $error = 'Bạn không thể tự xóa tài khoản đang đăng nhập của chính mình!';
+            } else {
+                $stmt = $db->prepare("DELETE FROM users WHERE id = ?");
+                $stmt->execute([$id]);
+                $message = 'Xóa tài khoản thành công!';
             }
         }
-    } elseif ($action === 'edit') {
-        $id       = (int)$_POST['id'];
-        $fullName = trim($_POST['full_name'] ?? '');
-        $role     = $_POST['role'] ?? 'letan';
-        $status   = $_POST['status'] ?? 'active';
-        $password = trim($_POST['password'] ?? '');
-        
-        if (empty($fullName)) {
-            $error = 'Họ tên không được để trống!';
-        } else {
-            if (!empty($password)) {
-                $stmt = $db->prepare("UPDATE users SET full_name = ?, role = ?, status = ?, password_hash = ?, updated_at = NOW() WHERE id = ?");
-                $stmt->execute([$fullName, $role, $status, $password, $id]);
-            } else {
-                $stmt = $db->prepare("UPDATE users SET full_name = ?, role = ?, status = ?, updated_at = NOW() WHERE id = ?");
-                $stmt->execute([$fullName, $role, $status, $id]);
-            }
-            $message = 'Cập nhật tài khoản thành công!';
-        }
-    } elseif ($action === 'delete') {
-        $id = (int)$_POST['id'];
-        
-        // Không cho phép tự xóa tài khoản của chính mình
-        if ($id === (int)$_SESSION['admin_id']) {
-            $error = 'Bạn không thể tự xóa tài khoản đang đăng nhập của chính mình!';
-        } else {
-            $stmt = $db->prepare("DELETE FROM users WHERE id = ?");
-            $stmt->execute([$id]);
-            $message = 'Xóa tài khoản thành công!';
-        }
+    } catch (\Throwable $e) {
+        $error = 'Đã xảy ra lỗi khi xử lý CSDL: ' . $e->getMessage();
     }
 }
 
