@@ -28,58 +28,6 @@ if (isPost()) {
             $stmt->execute([$id]);
             $message = 'Đã xóa lượt check-in thành công!';
         }
-    } elseif ($action === 'assign_table' && !isKinhDoanh()) {
-        $checkinId = (int)$_POST['checkin_id'];
-        $tableId = !empty($_POST['table_id']) ? (int)$_POST['table_id'] : null;
-        
-        // Lấy thông tin check-in
-        $stmtC = $db->prepare("SELECT * FROM checkins WHERE id = ?");
-        $stmtC->execute([$checkinId]);
-        $c = $stmtC->fetch();
-        
-        if ($c) {
-            if (empty($tableId)) {
-                // Nếu Vị trí bàn = Chưa xếp hoặc rỗng:
-                // 1. Chuyển lượt checkin này thành Khách phát sinh (walk_in) & rỗng bàn
-                $gId = $c['guest_id'];
-                $db->prepare("UPDATE checkins SET table_id = NULL, guest_id = NULL, match_status = 'walk_in' WHERE id = ?")->execute([$checkinId]);
-                
-                // 2. Xóa thông tin người đó khỏi Danh sách khách hàng (guests)
-                if (!empty($gId)) {
-                    $db->prepare("DELETE FROM guests WHERE id = ?")->execute([$gId]);
-                }
-                $message = 'Đã chuyển thành Khách phát sinh và xóa khỏi Danh sách khách hàng!';
-            } else {
-                // 1. Cập nhật bàn cho checkin này
-                $stmtUp = $db->prepare("UPDATE checkins SET table_id = ?, match_status = 'matched' WHERE id = ?");
-                $stmtUp->execute([$tableId, $checkinId]);
-                
-                // 2. Nếu check-in này đã gắn với guest_id thì cập nhật table_id cho guest đó luôn
-                if (!empty($c['guest_id'])) {
-                    $stmtUpG = $db->prepare("UPDATE guests SET table_id = ?, status = 'checked_in' WHERE id = ?");
-                    $stmtUpG->execute([$tableId, $c['guest_id']]);
-                    $message = 'Đã xếp bàn thành công cho khách!';
-                } else {
-                    // Nếu đây là khách phát sinh (walk_in), kiểm tra xem có SĐT trùng trong danh sách không
-                    $stmtUpG = $db->prepare("SELECT id FROM guests WHERE event_id = ? AND normalized_phone = ?");
-                    $stmtUpG->execute([$c['event_id'], $c['normalized_phone']]);
-                    $gExist = $stmtUpG->fetch();
-                    
-                    if ($gExist) {
-                        $db->prepare("UPDATE checkins SET guest_id = ?, match_status = 'matched' WHERE id = ?")->execute([$gExist['id'], $checkinId]);
-                        $db->prepare("UPDATE guests SET status = 'checked_in', table_id = ? WHERE id = ?")->execute([$tableId, $gExist['id']]);
-                    } else {
-                        // Tạo mới 1 bản ghi khách dự kiến cho khách phát sinh này để tiện quản lý sau này
-                        $stmtInsG = $db->prepare("INSERT INTO guests (event_id, full_name, phone, normalized_phone, table_id, status, notes) VALUES (?, ?, ?, ?, ?, 'checked_in', 'Khách phát sinh được xếp bàn trực tiếp')");
-                        $stmtInsG->execute([$c['event_id'], $c['full_name_entered'], $c['phone_entered'], $c['normalized_phone'], $tableId]);
-                        $newGuestId = $db->lastInsertId();
-                        
-                        $db->prepare("UPDATE checkins SET guest_id = ?, match_status = 'matched' WHERE id = ?")->execute([$newGuestId, $checkinId]);
-                    }
-                    $message = 'Đã xếp bàn thành công cho khách phát sinh!';
-                }
-            }
-        }
     }
 }
 
@@ -102,9 +50,6 @@ $stmtCheckins = $db->prepare("
 ");
 $stmtCheckins->execute($paramsCheckin);
 $checkins = $stmtCheckins->fetchAll();
-
-// Lấy danh sách bàn để xếp cho khách phát sinh
-$tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event_tables ORDER BY sort_order ASC, id ASC")->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -134,7 +79,6 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
         .btn-primary { background: var(--primary-color); color: white; }
         .btn-success { background: #4caf50; color: white; }
         .btn-danger { background: #f44336; color: white; }
-        .btn-info { background: #0288d1; color: white; }
         .badge { padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
         .badge.matched { background: #e8f5e9; color: #2e7d32; }
         .badge.walk_in { background: #fff3e0; color: #ef6c00; }
@@ -142,15 +86,6 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
         .alert { padding: 10px 15px; border-radius: 4px; margin-bottom: 15px; }
         .alert.success { background: #e8f5e9; color: #2e7d32; }
         .alert.error { background: #ffebee; color: #c62828; }
-        
-        /* Modal */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); }
-        .modal-content { background-color: #fff; margin: 10% auto; padding: 20px; border-radius: 8px; width: 400px; max-width: 90%; }
-        .modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
-        .close { font-size: 24px; font-weight: bold; cursor: pointer; color: #aaa; }
-        .form-group { margin-bottom: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
-        .form-control { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
     </style>
 </head>
 <body>
@@ -180,7 +115,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                             <th>Phương thức Check-in</th>
                             <th>Thời gian</th>
                             <th>Trạng thái</th>
-                            <?php if(!isKinhDoanh()): ?><th>Thao tác</th><?php endif; ?>
+                            <?php if(isAdmin()): ?><th>Thao tác</th><?php endif; ?>
                         </tr>
                     </thead>
                     <tbody id="checkins-table-body">
@@ -227,26 +162,14 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                                     <?php echo $c['match_status'] === 'matched' ? '✅ Khách hợp lệ' : '🔸 Khách phát sinh'; ?>
                                 </span>
                             </td>
-                            <?php if(!isKinhDoanh()): ?>
+                            <?php if(isAdmin()): ?>
                             <td>
-                                <button type="button" 
-                                        class="btn btn-info btn-assign-table" 
-                                        data-id="<?php echo (int)$c['id']; ?>" 
-                                        data-event="<?php echo (int)($c['event_id'] ?? 0); ?>" 
-                                        data-table="<?php echo $c['table_id'] ? (int)$c['table_id'] : ''; ?>" 
-                                        data-name="<?php echo esc($c['full_name_entered']); ?>" 
-                                        data-phone="<?php echo esc($c['phone_entered']); ?>">
-                                    Xếp bàn
-                                </button>
-                                
-                                <?php if(isAdmin()): ?>
                                 <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
                                     <?php echo csrfField(); ?>
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?php echo $c['id']; ?>">
                                     <button type="submit" class="btn btn-danger">Xóa Test</button>
                                 </form>
-                                <?php endif; ?>
                             </td>
                             <?php endif; ?>
                         </tr>
@@ -258,111 +181,14 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
     </div>
 </div>
 
-<!-- Modal Xếp Bàn -->
-<div id="assignModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>Xếp Bàn Cho Khách</h3>
-            <span class="close" onclick="closeModal()">&times;</span>
-        </div>
-        <form method="POST" action="">
-            <?php echo csrfField(); ?>
-            <input type="hidden" name="action" value="assign_table">
-            <input type="hidden" name="checkin_id" id="modalCheckinId" value="">
-            
-            <p style="margin-bottom: 15px;">Khách: <strong id="modalGuestName"></strong> (<span id="modalGuestPhone"></span>)</p>
-            
-            <div class="form-group">
-                <label>Chọn Bàn</label>
-                <select name="table_id" id="modalTableSelect" class="form-control">
-                    <option value="">-- Chưa xếp bàn --</option>
-                </select>
-            </div>
-            
-            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Lưu & Duyệt Khách</button>
-        </form>
-    </div>
-</div>
-
 <script>
-    const allTables = <?php echo json_encode($tablesList); ?>;
     const isAdminUser = <?php echo isAdmin() ? 'true' : 'false'; ?>;
     const isKinhDoanhUser = <?php echo isKinhDoanh() ? 'true' : 'false'; ?>;
     const csrfTokenValue = '<?php echo $_SESSION[CSRF_TOKEN_KEY] ?? ""; ?>';
 
-    function escapeHtml(str) {
-        if (!str) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#39;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;');
-    }
-
-    function closeModal() {
-        const modalEl = document.getElementById('assignModal');
-        if (modalEl) modalEl.style.display = 'none';
-    }
-
-    window.onclick = function(e) {
-        const modalEl = document.getElementById('assignModal');
-        if (modalEl && e.target === modalEl) {
-            modalEl.style.display = 'none';
-        }
-    };
-
-    // Event Delegation: Tự động bắt sự kiện nhấp vào nút .btn-assign-table 100% chuẩn xác
-    document.addEventListener('click', function(e) {
-        const btn = e.target.closest('.btn-assign-table');
-        if (!btn) return;
-
-        e.preventDefault();
-        e.stopPropagation();
-
-        const id = btn.getAttribute('data-id');
-        const eventId = btn.getAttribute('data-event');
-        const tableId = btn.getAttribute('data-table');
-        const name = btn.getAttribute('data-name');
-        const phone = btn.getAttribute('data-phone');
-
-        const modalIdInput = document.getElementById('modalCheckinId');
-        const modalNameEl = document.getElementById('modalGuestName');
-        const modalPhoneEl = document.getElementById('modalGuestPhone');
-        const modalTableSelect = document.getElementById('modalTableSelect');
-        const modalEl = document.getElementById('assignModal');
-
-        if (modalIdInput) modalIdInput.value = id || '';
-        if (modalNameEl) modalNameEl.textContent = name || '';
-        if (modalPhoneEl) modalPhoneEl.textContent = phone || '';
-
-        if (modalTableSelect) {
-            modalTableSelect.innerHTML = '<option value="">-- Chưa xếp bàn --</option>';
-            if (Array.isArray(allTables)) {
-                allTables.forEach(t => {
-                    if (!eventId || eventId == '0' || !t.event_id || t.event_id == eventId) {
-                        const opt = document.createElement('option');
-                        opt.value = t.id;
-                        opt.textContent = t.table_code ? `${t.table_code} (${t.table_name})` : t.table_name;
-                        if (tableId && t.id == tableId) opt.selected = true;
-                        modalTableSelect.appendChild(opt);
-                    }
-                });
-            }
-        }
-
-        if (modalEl) {
-            modalEl.style.display = 'block';
-        }
-    });
-
     let lastCheckinsDataHash = '';
 
     async function updateRealtimeCheckinsList() {
-        const modalEl = document.getElementById('assignModal');
-        // Nếu modal xếp bàn đang mở, tạm hoãn cập nhật để không làm phiền thao tác của người dùng
-        if (modalEl && modalEl.style.display === 'block') return;
-
         try {
             const response = await fetch(`../api/stats.php?filter=all&table_id=all&_t=${Date.now()}`, { cache: 'no-store' });
             if (!response.ok) return;
@@ -378,7 +204,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                 if (!tbody) return;
 
                 if (result.data.recent_checkins.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="${isKinhDoanhUser ? 7 : 8}" style="text-align:center; color:#777; padding:20px;">Chưa có lượt check-in nào</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="${isAdminUser ? 8 : 7}" style="text-align:center; color:#777; padding:20px;">Chưa có lượt check-in nào</td></tr>`;
                     return;
                 }
 
@@ -407,26 +233,15 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                         : `<span style="color: #888;">Chưa xếp</span>`;
 
                     let actionsHtml = '';
-                    if (!isKinhDoanhUser) {
+                    if (isAdminUser) {
                         actionsHtml = `
                             <td>
-                                <button type="button" 
-                                        class="btn btn-info btn-assign-table" 
-                                        data-id="${item.id}" 
-                                        data-event="${item.event_id || 0}" 
-                                        data-table="${item.table_id || ''}" 
-                                        data-name="${escapeHtml(item.full_name)}" 
-                                        data-phone="${escapeHtml(item.phone)}">
-                                    Xếp bàn
-                                </button>
-                                ${isAdminUser ? `
                                 <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
                                     <input type="hidden" name="csrf_token" value="${csrfTokenValue}">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="${item.id}">
                                     <button type="submit" class="btn btn-danger">Xóa Test</button>
                                 </form>
-                                ` : ''}
                             </td>
                         `;
                     }
