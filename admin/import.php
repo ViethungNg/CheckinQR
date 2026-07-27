@@ -203,5 +203,6 @@ $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetc
         </div>
     </div>
 </div>
+<script src="../assets/js/admin-mobile.js"></script>
 </body>
 </html>

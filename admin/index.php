@@ -196,5 +196,6 @@ async function updateRealtimeStats() {
 setInterval(updateRealtimeStats, 3000);
 </script>
 
+<script src="../assets/js/admin-mobile.js"></script>
 </body>
 </html>

@@ -262,5 +262,6 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
     //     }
     // }
 </script>
+<script src="../assets/js/admin-mobile.js"></script>
 </body>
 </html>

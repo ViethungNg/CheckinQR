@@ -318,5 +318,6 @@ $guests = $db->query("
     //     }
     // }
 </script>
+<script src="../assets/js/admin-mobile.js"></script>
 </body>
 </html>

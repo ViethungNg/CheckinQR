@@ -262,5 +262,6 @@ $tablesList = $db->query("SELECT id, table_name, event_id FROM event_tables ORDE
         modal.style.display = 'none';
     }
 </script>
+<script src="../assets/js/admin-mobile.js"></script>
 </body>
 </html>
