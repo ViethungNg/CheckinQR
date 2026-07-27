@@ -728,6 +728,44 @@ body {
     font-size: 0.85rem;
 }
 
+/* ===== STICKY TABLE HEADERS & SMART SCROLLING ===== */
+.table-responsive {
+    max-height: 72vh;
+    overflow-y: auto;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    background: #ffffff;
+}
+
+.table-responsive table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table-responsive table thead th {
+    position: sticky !important;
+    top: 0 !important;
+    background: #f8fafc !important;
+    color: #475569 !important;
+    font-weight: 700 !important;
+    font-size: 0.85rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    z-index: 10 !important;
+    border-bottom: 2px solid #cbd5e1 !important;
+    padding: 12px 14px !important;
+}
+
+.table-responsive table tbody tr {
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.table-responsive table tbody tr:hover {
+    background-color: #f1f5f9 !important;
+}
+
 /* ===== BADGES & STATUS HIGHLIGHTING ===== */
 .badge {
     padding: 5px 12px !important;
@@ -742,27 +780,28 @@ body {
 
 .badge.matched,
 .badge.checked_in {
-    background: #e8f5e9 !important;
-    color: #1b5e20 !important;
-    border: 1.5px solid #81c784 !important;
-    box-shadow: 0 2px 8px rgba(46, 125, 50, 0.18) !important;
+    background: #ecfdf5 !important;
+    color: #065f46 !important;
+    border: 1.5px solid #a7f3d0 !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.18) !important;
     font-weight: 800 !important;
 }
 
 .badge.invited {
-    background: #e3f2fd !important;
-    color: #1565c0 !important;
-    border: 1px solid #90caf9 !important;
+    background: #eff6ff !important;
+    color: #1e40af !important;
+    border: 1.5px solid #bfdbfe !important;
 }
 
 .badge.walk_in {
-    background: #fff3e0 !important;
-    color: #e65100 !important;
-    border: 1px solid #ffcc80 !important;
+    background: #fffbeb !important;
+    color: #92400e !important;
+    border: 1.5px solid #fde68a !important;
 }
 
 .row-checked-in {
-    background-color: #f3faf5 !important;
+    background-color: #f0fdf4 !important;
+    border-left: 4px solid #10b981 !important;
 }
 
 /* ===== FLOATING TOAST NOTIFICATIONS ===== */

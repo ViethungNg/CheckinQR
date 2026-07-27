@@ -216,11 +216,18 @@ function setTableFilter(tableId) {
     updateRealtimeStats();
 }
 
+let lastIndexDataHash = '';
+
 async function updateRealtimeStats() {
     try {
         const response = await fetch(`../api/stats.php?filter=${encodeURIComponent(currentFilter)}&table_id=${encodeURIComponent(selectedTableId)}&_t=${Date.now()}`, { cache: 'no-store' });
         if (!response.ok) return;
-        const result = await response.json();
+        const textData = await response.text();
+
+        if (textData === lastIndexDataHash) return;
+        lastIndexDataHash = textData;
+
+        const result = JSON.parse(textData);
         
         if (result.status === 'success') {
             const data = result.data.stats;

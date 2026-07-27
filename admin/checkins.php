@@ -340,6 +340,8 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
         modal.style.display = 'none';
     }
 
+    let lastCheckinsDataHash = '';
+
     async function updateRealtimeCheckinsList() {
         // Nếu modal xếp bàn đang mở, tạm hoãn cập nhật để không làm phiền thao tác của người dùng
         if (modal && modal.style.display === 'block') return;
@@ -347,7 +349,12 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
         try {
             const response = await fetch(`../api/stats.php?filter=all&table_id=all&_t=${Date.now()}`, { cache: 'no-store' });
             if (!response.ok) return;
-            const result = await response.json();
+            const textData = await response.text();
+
+            if (textData === lastCheckinsDataHash) return;
+            lastCheckinsDataHash = textData;
+
+            const result = JSON.parse(textData);
 
             if (result.status === 'success' && result.data.recent_checkins) {
                 const tbody = document.getElementById('checkins-table-body');
