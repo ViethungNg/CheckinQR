@@ -45,9 +45,16 @@ if (isPost() && isAdmin()) {
         $normalizedPhone = normalizePhone($phone);
         
         try {
-            $stmt = $db->prepare("UPDATE guests SET event_id=?, full_name=?, phone=?, normalized_phone=?, table_id=?, lucky_draw_code=?, organization=?, status=? WHERE id=?");
-            $stmt->execute([$eventId, $fullName, $phone, $normalizedPhone, $tableId, $luckyDrawCode, $organization, $status, $id]);
-            $message = 'Cập nhật thông tin khách thành công!';
+            if (empty($tableId)) {
+                // Nếu đổi Vị trí bàn thành Chưa xếp / rỗng: Chuyển các lượt check-in liên quan thành Khách phát sinh & xóa khỏi Danh sách khách hàng
+                $db->prepare("UPDATE checkins SET table_id = NULL, guest_id = NULL, match_status = 'walk_in' WHERE guest_id = ?")->execute([$id]);
+                $db->prepare("DELETE FROM guests WHERE id = ?")->execute([$id]);
+                $message = 'Đã chuyển khách thành Khách phát sinh và xóa khỏi Danh sách khách hàng!';
+            } else {
+                $stmt = $db->prepare("UPDATE guests SET event_id=?, full_name=?, phone=?, normalized_phone=?, table_id=?, lucky_draw_code=?, organization=?, status=? WHERE id=?");
+                $stmt->execute([$eventId, $fullName, $phone, $normalizedPhone, $tableId, $luckyDrawCode, $organization, $status, $id]);
+                $message = 'Cập nhật thông tin khách thành công!';
+            }
         } catch(PDOException $e) {
             $error = 'Lỗi cập nhật khách.';
         }

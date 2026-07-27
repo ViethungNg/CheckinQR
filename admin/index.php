@@ -218,7 +218,7 @@ function setTableFilter(tableId) {
 
 async function updateRealtimeStats() {
     try {
-        const response = await fetch(`../api/stats.php?filter=${encodeURIComponent(currentFilter)}&table_id=${encodeURIComponent(selectedTableId)}`);
+        const response = await fetch(`../api/stats.php?filter=${encodeURIComponent(currentFilter)}&table_id=${encodeURIComponent(selectedTableId)}&_t=${Date.now()}`, { cache: 'no-store' });
         if (!response.ok) return;
         const result = await response.json();
         
@@ -346,6 +346,12 @@ function populateTableSelectOptions(tables) {
 // Chạy ngay khi tải trang và lặp lại mỗi 3 giây
 updateRealtimeStats();
 setInterval(updateRealtimeStats, 3000);
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        updateRealtimeStats();
+    }
+});
 </script>
 
 <script src="../assets/js/admin-mobile.js?v=<?php echo time(); ?>"></script>

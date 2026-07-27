@@ -38,33 +38,46 @@ if (isPost()) {
         $c = $stmtC->fetch();
         
         if ($c) {
-            // 1. Cập nhật bàn cho checkin này
-            $stmtUp = $db->prepare("UPDATE checkins SET table_id = ? WHERE id = ?");
-            $stmtUp->execute([$tableId, $checkinId]);
-            
-            // 2. Nếu check-in này đã gắn với guest_id thì cập nhật table_id cho guest đó luôn
-            if (!empty($c['guest_id'])) {
-                $stmtUpG = $db->prepare("UPDATE guests SET table_id = ? WHERE id = ?");
-                $stmtUpG->execute([$tableId, $c['guest_id']]);
-                $message = 'Đã xếp bàn thành công cho khách!';
-            } else {
-                // Nếu đây là khách phát sinh (walk_in), hỏi xem có muốn chuyển thành khách chính thức không hoặc giữ nguyên
-                $stmtUpG = $db->prepare("SELECT id FROM guests WHERE event_id = ? AND normalized_phone = ?");
-                $stmtUpG->execute([$c['event_id'], $c['normalized_phone']]);
-                $gExist = $stmtUpG->fetch();
+            if (empty($tableId)) {
+                // Nếu Vị trí bàn = Chưa xếp hoặc rỗng:
+                // 1. Chuyển lượt checkin này thành Khách phát sinh (walk_in) & rỗng bàn
+                $gId = $c['guest_id'];
+                $db->prepare("UPDATE checkins SET table_id = NULL, guest_id = NULL, match_status = 'walk_in' WHERE id = ?")->execute([$checkinId]);
                 
-                if ($gExist) {
-                    $db->prepare("UPDATE checkins SET guest_id = ?, match_status = 'matched' WHERE id = ?")->execute([$gExist['id'], $checkinId]);
-                    $db->prepare("UPDATE guests SET status = 'checked_in', table_id = ? WHERE id = ?")->execute([$tableId, $gExist['id']]);
-                } else {
-                    // Tạo mới 1 bản ghi khách dự kiến cho khách phát sinh này để tiện quản lý sau này
-                    $stmtInsG = $db->prepare("INSERT INTO guests (event_id, full_name, phone, normalized_phone, table_id, status, notes) VALUES (?, ?, ?, ?, ?, 'checked_in', 'Khách phát sinh được xếp bàn trực tiếp')");
-                    $stmtInsG->execute([$c['event_id'], $c['full_name_entered'], $c['phone_entered'], $c['normalized_phone'], $tableId]);
-                    $newGuestId = $db->lastInsertId();
-                    
-                    $db.prepare("UPDATE checkins SET guest_id = ?, match_status = 'matched' WHERE id = ?")->execute([$newGuestId, $checkinId]);
+                // 2. Xóa thông tin người đó khỏi Danh sách khách hàng (guests)
+                if (!empty($gId)) {
+                    $db->prepare("DELETE FROM guests WHERE id = ?")->execute([$gId]);
                 }
-                $message = 'Đã xếp bàn thành công cho khách phát sinh!';
+                $message = 'Đã chuyển thành Khách phát sinh và xóa khỏi Danh sách khách hàng!';
+            } else {
+                // 1. Cập nhật bàn cho checkin này
+                $stmtUp = $db->prepare("UPDATE checkins SET table_id = ?, match_status = 'matched' WHERE id = ?");
+                $stmtUp->execute([$tableId, $checkinId]);
+                
+                // 2. Nếu check-in này đã gắn với guest_id thì cập nhật table_id cho guest đó luôn
+                if (!empty($c['guest_id'])) {
+                    $stmtUpG = $db->prepare("UPDATE guests SET table_id = ?, status = 'checked_in' WHERE id = ?");
+                    $stmtUpG->execute([$tableId, $c['guest_id']]);
+                    $message = 'Đã xếp bàn thành công cho khách!';
+                } else {
+                    // Nếu đây là khách phát sinh (walk_in), kiểm tra xem có SĐT trùng trong danh sách không
+                    $stmtUpG = $db->prepare("SELECT id FROM guests WHERE event_id = ? AND normalized_phone = ?");
+                    $stmtUpG->execute([$c['event_id'], $c['normalized_phone']]);
+                    $gExist = $stmtUpG->fetch();
+                    
+                    if ($gExist) {
+                        $db->prepare("UPDATE checkins SET guest_id = ?, match_status = 'matched' WHERE id = ?")->execute([$gExist['id'], $checkinId]);
+                        $db->prepare("UPDATE guests SET status = 'checked_in', table_id = ? WHERE id = ?")->execute([$tableId, $gExist['id']]);
+                    } else {
+                        // Tạo mới 1 bản ghi khách dự kiến cho khách phát sinh này để tiện quản lý sau này
+                        $stmtInsG = $db->prepare("INSERT INTO guests (event_id, full_name, phone, normalized_phone, table_id, status, notes) VALUES (?, ?, ?, ?, ?, 'checked_in', 'Khách phát sinh được xếp bàn trực tiếp')");
+                        $stmtInsG->execute([$c['event_id'], $c['full_name_entered'], $c['phone_entered'], $c['normalized_phone'], $tableId]);
+                        $newGuestId = $db->lastInsertId();
+                        
+                        $db->prepare("UPDATE checkins SET guest_id = ?, match_status = 'matched' WHERE id = ?")->execute([$newGuestId, $checkinId]);
+                    }
+                    $message = 'Đã xếp bàn thành công cho khách phát sinh!';
+                }
             }
         }
     }
@@ -300,7 +313,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
         if (modal && modal.style.display === 'block') return;
 
         try {
-            const response = await fetch(`../api/stats.php?filter=all&table_id=all`);
+            const response = await fetch(`../api/stats.php?filter=all&table_id=all&_t=${Date.now()}`, { cache: 'no-store' });
             if (!response.ok) return;
             const result = await response.json();
 
@@ -378,7 +391,14 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
     }
 
     // Chạy kiểm tra mỗi 3 giây
+    updateRealtimeCheckinsList();
     setInterval(updateRealtimeCheckinsList, 3000);
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            updateRealtimeCheckinsList();
+        }
+    });
 </script>
 
 <script src="../assets/js/notifications.js?v=<?php echo time(); ?>"></script>

@@ -241,7 +241,7 @@
 
     async function checkNewNotifications() {
         try {
-            const res = await fetch(`../api/notifications.php?action=check`);
+            const res = await fetch(`../api/notifications.php?action=check&_t=${Date.now()}`, { cache: 'no-store' });
             if (!res.ok) return;
             const data = await res.json();
 
@@ -273,6 +273,12 @@
             console.error('Notification check error:', err);
         }
     }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            checkNewNotifications();
+        }
+    });
 
     window.markAllNotifsRead = async function (e) {
         if (e) e.stopPropagation();
