@@ -19,7 +19,7 @@ jobs:
         server: ${{ secrets.FTP_SERVER }}
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
-        server-dir: domains/hoavinh.com.vn/public_html/CheckinQR/
+        server-dir: ./
         exclude: |
           **/.git*
           **/.git*/**
