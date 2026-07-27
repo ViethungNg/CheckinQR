@@ -116,7 +116,7 @@ if (isPost()) {
 
 <div class="login-container">
     <div class="login-header">
-        <h1>Admin Login</h1>
+        <h2>Admin Login v2.0</h2>
         <p>Hệ thống quản lý Check-in</p>
     </div>
     
