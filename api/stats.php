@@ -42,7 +42,7 @@ try {
             $whereClause = isKinhDoanh() ? "WHERE t.assigned_user_id = {$userId}" : "";
         }
 
-        $limitSql = ($filter === 'all') ? "LIMIT 10" : "LIMIT 500";
+        $limitSql = ($filter === 'all') ? "LIMIT 10" : "";
         $stmtGuests = $db->query("
             SELECT g.*, t.table_name 
             FROM guests g 
@@ -81,7 +81,7 @@ try {
             $whereClause = "WHERE " . implode(" AND ", $whereConditions);
         }
 
-        $limitSql = ($filter === 'all') ? "LIMIT 10" : "LIMIT 500";
+        $limitSql = ($filter === 'all') ? "LIMIT 10" : "";
         $recentStmt = $db->query("
             SELECT c.*, t.table_name 
             FROM checkins c 

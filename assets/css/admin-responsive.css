@@ -199,6 +199,13 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-
         box-sizing: border-box !important;
     }
 
+    .sidebar-brand {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        width: 100% !important;
+    }
+
     .sidebar-brand h2 {
         margin: 0 !important;
         font-size: 1.25rem !important;
@@ -207,6 +214,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-
     }
 
     .mobile-menu-btn {
+        margin-left: auto !important;
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;

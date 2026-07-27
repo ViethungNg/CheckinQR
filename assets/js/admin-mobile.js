@@ -6,16 +6,22 @@
 document.addEventListener('DOMContentLoaded', function() {
     // 1. Xử lý Sidebar Mobile Menu Toggle
     const sidebar = document.querySelector('.sidebar');
+    let toggleBtn = document.getElementById('mobileMenuBtn');
+    
     if (sidebar) {
-        const sidebarH2 = sidebar.querySelector('h2');
-        if (sidebarH2 && !sidebar.querySelector('.mobile-menu-btn')) {
-            const toggleBtn = document.createElement('button');
-            toggleBtn.className = 'mobile-menu-btn';
-            toggleBtn.type = 'button';
-            toggleBtn.innerHTML = '<span>☰</span> Menu';
+        if (!toggleBtn) {
+            const sidebarBrand = sidebar.querySelector('.sidebar-brand') || sidebar.querySelector('h2');
+            if (sidebarBrand) {
+                toggleBtn = document.createElement('button');
+                toggleBtn.className = 'mobile-menu-btn';
+                toggleBtn.id = 'mobileMenuBtn';
+                toggleBtn.type = 'button';
+                toggleBtn.innerHTML = '<span>☰</span> Menu';
+                sidebarBrand.appendChild(toggleBtn);
+            }
+        }
 
-            sidebarH2.appendChild(toggleBtn);
-
+        if (toggleBtn) {
             toggleBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 const isOpen = sidebar.classList.toggle('mobile-open');
