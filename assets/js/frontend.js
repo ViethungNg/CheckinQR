@@ -107,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                         📞 <strong>Số điện thoại:</strong> ${data.data.phone || ''}
                                     </div>
                                     ${data.data.address ? `<div style="margin-bottom: 8px; font-size: 0.95rem; color: #333;">🏠 <strong>Địa chỉ:</strong> ${data.data.address}</div>` : ''}
+                                    ${data.data.lucky_draw_code ? `<div style="margin-bottom: 8px; font-size: 0.95rem; color: #d32f2f;">🎁 <strong>Mã trúng giải:</strong> ${data.data.lucky_draw_code}</div>` : ''}
                                 </div>
                             </div>
                         `;

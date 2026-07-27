@@ -12,6 +12,7 @@ $eventId = (int)($_POST['event_id'] ?? 0);
 $fullName = trim($_POST['full_name'] ?? '');
 $phone = trim($_POST['phone'] ?? '');
 $address = trim($_POST['address'] ?? '');
+$luckyDrawCodeInput = trim($_POST['lucky_draw_code'] ?? '');
 
 if (empty($eventId) || empty($fullName) || empty($phone)) {
     jsonResponse(['status' => 'error', 'message' => 'Vui lòng nhập đầy đủ Họ tên và Số điện thoại']);
@@ -86,14 +87,22 @@ $matchStatus = 'walk_in';
 $guestId = null;
 $tableId = null;
 
-$luckyDrawCode = null;
+$luckyDrawCode = !empty($luckyDrawCodeInput) ? $luckyDrawCodeInput : null;
 $tableName = null;
 
 if ($guest) {
     $matchStatus = 'matched';
     $guestId = $guest['id'];
     $tableId = $guest['table_id'];
-    $luckyDrawCode = $guest['lucky_draw_code'];
+    
+    // Nếu trong DB đã có mã do BTC gán thì ưu tiên dùng, nếu chưa có thì lấy mã người dùng vừa nhập
+    if (!empty($guest['lucky_draw_code'])) {
+        $luckyDrawCode = $guest['lucky_draw_code'];
+    } elseif (!empty($luckyDrawCodeInput)) {
+        $luckyDrawCode = $luckyDrawCodeInput;
+        $updateLucky = $db->prepare("UPDATE guests SET lucky_draw_code = ? WHERE id = ?");
+        $updateLucky->execute([$luckyDrawCodeInput, $guestId]);
+    }
     
     // Lấy tên bàn
     if ($tableId) {
