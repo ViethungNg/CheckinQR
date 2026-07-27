@@ -235,7 +235,6 @@ $guests = $stmtGuests->fetchAll();
                     </tr>
                 </thead>
                 <tbody id="guests-table-body">
-                <tbody>
                     <?php foreach($guests as $guest): ?>
                     <tr>
                         <td><strong><?php echo esc($guest['full_name']); ?></strong></td>
@@ -384,7 +383,7 @@ $guests = $stmtGuests->fetchAll();
     
     // Hàm Lọc Siêu Tốc 0ms: Gõ tới đâu lọc tới đó ngay trên màn hình!
     function liveSearchGuests(val) {
-        const query = val.toLowerCase().trim();
+        const query = (val || '').toLowerCase().trim();
         const tbody = document.getElementById('guests-table-body');
         if (!tbody) return;
         
@@ -406,6 +405,20 @@ $guests = $stmtGuests->fetchAll();
             counter.textContent = count;
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const input = document.getElementById('search-input');
+        if (input) {
+            ['input', 'keyup', 'change', 'search', 'paste'].forEach(evt => {
+                input.addEventListener(evt, function() {
+                    liveSearchGuests(this.value);
+                });
+            });
+            if (input.value) {
+                liveSearchGuests(input.value);
+            }
+        }
+    });
 </script>
 <script src="../assets/js/admin-mobile.js?v=<?php echo time(); ?>"></script>
 </body>
