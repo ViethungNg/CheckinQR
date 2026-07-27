@@ -64,7 +64,7 @@ elseif (isPost() && !isAdmin()) {
 
 // Lấy danh sách sự kiện và bàn để đưa vào form
 $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetchAll();
-$tablesList = $db->query("SELECT id, table_name, event_id FROM event_tables ORDER BY table_name ASC")->fetchAll();
+$tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event_tables ORDER BY table_code ASC, table_name ASC")->fetchAll();
 
 // Lấy tham số Tìm kiếm & Sắp xếp
 $search = trim($_GET['search'] ?? '');
@@ -98,7 +98,7 @@ if ($sort === 'table_asc') {
 }
 
 $stmtGuests = $db->prepare("
-    SELECT g.*, e.event_name, t.table_name 
+    SELECT g.*, e.event_name, t.table_name, t.table_code 
     FROM guests g 
     LEFT JOIN events e ON g.event_id = e.id 
     LEFT JOIN event_tables t ON g.table_id = t.id 
@@ -240,7 +240,7 @@ $guests = $stmtGuests->fetchAll();
                         <td><strong><?php echo esc($guest['full_name']); ?></strong></td>
                         <td><?php echo esc($guest['phone']); ?></td>
                         <td><?php echo esc($guest['organization'] ?? '-'); ?></td>
-                        <td><?php echo esc($guest['table_name'] ?? 'Chưa xếp'); ?></td>
+                        <td><?php echo esc($guest['table_name'] ? ($guest['table_name'] . ($guest['table_code'] ? ' (' . $guest['table_code'] . ')' : '')) : 'Chưa xếp'); ?></td>
                         <td><?php echo esc($guest['lucky_draw_code'] ?? '-'); ?></td>
                         <td><span class="badge <?php echo esc($guest['status']); ?>"><?php echo esc($guest['status']); ?></span></td>
                         <?php if(isAdmin()): ?>
@@ -339,7 +339,7 @@ $guests = $stmtGuests->fetchAll();
             if (!eventId || t.event_id == eventId) {
                 const opt = document.createElement('option');
                 opt.value = t.id;
-                opt.textContent = t.table_name;
+                opt.textContent = t.table_code ? `${t.table_code} (${t.table_name})` : t.table_name;
                 if (t.id == selectedTableId) opt.selected = true;
                 tableSelect.appendChild(opt);
             }
