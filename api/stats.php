@@ -16,7 +16,12 @@ try {
         'walk_in'    => (int)$db->query("SELECT COUNT(*) FROM checkins WHERE match_status = 'walk_in'")->fetchColumn(),
     ];
 
-    $recentStmt = $db->query("SELECT * FROM checkins ORDER BY checkin_time DESC LIMIT 10");
+    $recentStmt = $db->query("
+        SELECT c.*, t.table_name 
+        FROM checkins c 
+        LEFT JOIN event_tables t ON c.table_id = t.id 
+        ORDER BY c.checkin_time DESC LIMIT 10
+    ");
     $recentCheckins = [];
 
     while ($row = $recentStmt->fetch()) {
@@ -24,6 +29,7 @@ try {
             'id'          => $row['id'],
             'full_name'   => esc($row['full_name_entered']),
             'phone'       => esc($row['phone_entered']),
+            'table_name'  => esc($row['table_name'] ?? 'Chưa xếp bàn'),
             'time'        => date('d/m/Y H:i:s', strtotime($row['checkin_time'])),
             'status'      => esc($row['match_status']),
             'status_text' => $row['match_status'] === 'matched' ? 'Hợp lệ' : 'Phát sinh',

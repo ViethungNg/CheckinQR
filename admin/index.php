@@ -117,18 +117,25 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
                     <tr>
                         <th>Khách nhập</th>
                         <th>SĐT</th>
+                        <th>Bàn</th>
                         <th>Thời gian</th>
                         <th>Trạng thái</th>
                     </tr>
                 </thead>
                 <tbody id="recent-checkins-body">
                     <?php
-                    $recentStmt = $db->query("SELECT * FROM checkins ORDER BY checkin_time DESC LIMIT 5");
+                    $recentStmt = $db->query("
+                        SELECT c.*, t.table_name 
+                        FROM checkins c 
+                        LEFT JOIN event_tables t ON c.table_id = t.id 
+                        ORDER BY c.checkin_time DESC LIMIT 5
+                    ");
                     while($row = $recentStmt->fetch()):
                     ?>
                     <tr>
                         <td><?php echo esc($row['full_name_entered']); ?></td>
                         <td><?php echo esc($row['phone_entered']); ?></td>
+                        <td><strong><?php echo esc($row['table_name'] ?? 'Chưa xếp bàn'); ?></strong></td>
                         <td><?php echo date('d/m/Y H:i:s', strtotime($row['checkin_time'])); ?></td>
                         <td>
                             <span class="badge <?php echo esc($row['match_status']); ?>">
@@ -168,6 +175,7 @@ async function updateRealtimeStats() {
                         <tr>
                             <td>${item.full_name}</td>
                             <td>${item.phone}</td>
+                            <td><strong>${item.table_name}</strong></td>
                             <td>${item.time}</td>
                             <td>
                                 <span class="badge ${item.status}">${item.status_text}</span>
