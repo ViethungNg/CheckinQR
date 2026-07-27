@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         extraMsg += `</div>`;
                     } else if (data.data.match_status === 'walk_in') {
                         extraMsg = `<div style="margin-top:10px; padding-top:10px; border-top:1px dashed #4caf50;">
-                            Thông tin của quý khách đã được ghi nhận. Vui lòng đợi lễ tân hỗ trợ trong giây lát.
+                            Thông tin của quý khách hiện không có trong danh sách của tổ chức. Vui lòng liên hệ với lễ tân để được hỗ trợ!
                         </div>`;
                     }
                     alertBox.innerHTML += extraMsg;
