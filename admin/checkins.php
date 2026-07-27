@@ -178,6 +178,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
             <li><a href="checkins.php" class="active">Khách hàng đã checkin</a></li>
             <?php if(isAdmin()): ?>
             <li><a href="tables.php">Quản lý bàn</a></li>
+            <li><a href="users.php">Quản lý tài khoản</a></li>
             <?php endif; ?>
         </ul>
     </div>

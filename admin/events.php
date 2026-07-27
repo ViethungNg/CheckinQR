@@ -114,7 +114,10 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
             <li><a href="events.php" class="active">Quản lý sự kiện</a></li>
             <li><a href="guests.php">Danh sách khách hàng dự kiến</a></li>
             <li><a href="checkins.php">Khách hàng đã checkin</a></li>
+            <?php if(isAdmin()): ?>
             <li><a href="tables.php">Quản lý bàn</a></li>
+            <li><a href="users.php">Quản lý tài khoản</a></li>
+            <?php endif; ?>
         </ul>
     </div>
     <div class="main-content">

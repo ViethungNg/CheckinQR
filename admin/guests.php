@@ -171,6 +171,7 @@ $guests = $stmtGuests->fetchAll();
             <li><a href="checkins.php">Khách hàng đã checkin</a></li>
             <?php if(isAdmin()): ?>
             <li><a href="tables.php">Quản lý bàn</a></li>
+            <li><a href="users.php">Quản lý tài khoản</a></li>
             <?php endif; ?>
         </ul>
     </div>
