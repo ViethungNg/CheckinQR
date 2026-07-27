@@ -35,8 +35,16 @@ if (!$event) {
 }
 
 // 2. Kiểm tra khách đã check-in chưa?
-$stmtCheck = $db->prepare("SELECT * FROM checkins WHERE event_id = ? AND normalized_phone = ? ORDER BY checkin_time DESC LIMIT 1");
-$stmtCheck->execute([$eventId, $normalizedPhone]);
+$checkSql = "SELECT * FROM checkins WHERE event_id = ? AND (normalized_phone = ?";
+$paramsCheck = [$eventId, $normalizedPhone];
+if (!empty($luckyDrawCodeInput)) {
+    $checkSql .= " OR (lucky_draw_code IS NOT NULL AND lucky_draw_code != '' AND LOWER(TRIM(lucky_draw_code)) = LOWER(TRIM(?)))";
+    $paramsCheck[] = $luckyDrawCodeInput;
+}
+$checkSql .= ") ORDER BY checkin_time DESC LIMIT 1";
+
+$stmtCheck = $db->prepare($checkSql);
+$stmtCheck->execute($paramsCheck);
 $existingCheckin = $stmtCheck->fetch();
 
 if ($existingCheckin) {
@@ -79,9 +87,17 @@ if ($existingCheckin) {
 }
 
 // 3. Đối chiếu danh sách khách dự kiến
+// 3a. Thử khớp theo Số điện thoại
 $stmtGuest = $db->prepare("SELECT * FROM guests WHERE event_id = ? AND normalized_phone = ?");
 $stmtGuest->execute([$eventId, $normalizedPhone]);
 $guest = $stmtGuest->fetch();
+
+// 3b. Nếu SĐT không khớp (khách nhập sai SĐT) nhưng có nhập Mã trúng giải, thử khớp theo Mã trúng giải
+if (!$guest && !empty($luckyDrawCodeInput)) {
+    $stmtGuestByCode = $db->prepare("SELECT * FROM guests WHERE event_id = ? AND LOWER(TRIM(lucky_draw_code)) = LOWER(TRIM(?)) AND lucky_draw_code != ''");
+    $stmtGuestByCode->execute([$eventId, $luckyDrawCodeInput]);
+    $guest = $stmtGuestByCode->fetch();
+}
 
 $matchStatus = 'walk_in';
 $guestId = null;
