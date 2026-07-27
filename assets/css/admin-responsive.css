@@ -347,62 +347,67 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-
     }
 }
 
-/* ===== GLOBAL REALTIME NOTIFICATION SYSTEM ===== */
-.sidebar-notif-box {
+/* ===== GLOBAL REALTIME NOTIFICATION SYSTEM (TOP CORNER BELL) ===== */
+.header-notif-box {
     position: relative;
-    margin-bottom: 12px;
+    display: inline-flex;
+    align-items: center;
+    margin-left: auto;
 }
 
-.notif-bell-btn {
-    width: 100%;
+.notif-bell-btn-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 10px 14px;
-    background: #fff0f0;
-    border: 1px solid #ffcdd2;
-    border-radius: 8px;
-    color: #c62828;
-    font-weight: 700;
-    font-size: 0.9rem;
+    justify-content: center;
+    font-size: 1.25rem;
     cursor: pointer;
+    position: relative;
     transition: all 0.2s ease;
+    user-select: none;
 }
 
-.notif-bell-btn:hover {
-    background: #ffe0e0;
+.notif-bell-btn-icon:hover {
+    background: #fff5f5;
     border-color: #ef9a9a;
-}
-
-.notif-bell-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    transform: scale(1.05);
 }
 
 .notif-badge-count {
+    position: absolute;
+    top: -3px;
+    right: -3px;
     background: #d32f2f;
     color: #ffffff;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     font-weight: 800;
-    padding: 2px 8px;
+    padding: 2px 6px;
     border-radius: 20px;
-    box-shadow: 0 2px 6px rgba(211, 47, 47, 0.4);
+    min-width: 18px;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(211, 47, 47, 0.5);
+    border: 2px solid #ffffff;
     animation: pulseBadge 2s infinite;
 }
 
 @keyframes pulseBadge {
     0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
+    50% { transform: scale(1.15); }
     100% { transform: scale(1); }
 }
 
 /* Notification Dropdown Panel */
 .notif-dropdown {
     position: absolute;
-    bottom: 100%;
-    left: 0;
-    width: 320px;
+    top: calc(100% + 10px);
+    right: 0;
+    left: auto;
+    width: 340px;
     max-height: 420px;
     background: #ffffff;
     border-radius: 12px;
@@ -412,18 +417,17 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-
     display: none;
     flex-direction: column;
     overflow: hidden;
-    margin-bottom: 8px;
     animation: fadeInNotif 0.2s ease-out;
 }
 
 @media screen and (max-width: 768px) {
     .notif-dropdown {
         position: fixed;
-        top: 60px;
-        left: 10px;
-        right: 10px;
-        width: calc(100vw - 20px);
-        bottom: auto;
+        top: 65px;
+        left: 12px;
+        right: 12px;
+        width: auto;
+        max-height: 75vh;
     }
 }
 

@@ -14,19 +14,15 @@ try {
     
     if ($action === 'mark_read') {
         $lastId = (int)($_POST['last_id'] ?? $_GET['last_id'] ?? 0);
-        if ($lastId > 0) {
-            $_SESSION['last_seen_checkin_id'] = $lastId;
-        } else {
-            // Lấy id mới nhất đặt làm last_seen
+        if ($lastId <= 0) {
             $whereKD = isKinhDoanh() ? "WHERE t.assigned_user_id = {$userId}" : "";
-            $maxId = (int)$db->query("SELECT MAX(c.id) FROM checkins c LEFT JOIN event_tables t ON c.table_id = t.id {$whereKD}")->fetchColumn();
-            $_SESSION['last_seen_checkin_id'] = $maxId;
+            $lastId = (int)$db->query("SELECT COALESCE(MAX(c.id), 0) FROM checkins c LEFT JOIN event_tables t ON c.table_id = t.id {$whereKD}")->fetchColumn();
         }
-        echo json_encode(['status' => 'success', 'last_seen_id' => $_SESSION['last_seen_checkin_id'] ?? 0]);
+        $_SESSION['last_seen_checkin_id'] = $lastId;
+        echo json_encode(['status' => 'success', 'last_seen_id' => $lastId]);
         exit;
     }
 
-    $clientLastId = (int)($_GET['last_id'] ?? 0);
     $lastSeenId = (int)($_SESSION['last_seen_checkin_id'] ?? 0);
 
     $whereConditions = [];
@@ -34,47 +30,31 @@ try {
         $whereConditions[] = "t.assigned_user_id = {$userId}";
     }
 
-    $whereClauseMax = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
+    $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
+    
+    // 1. Max ID hiện tại trong hệ thống
     $stmtMax = $db->query("
-        SELECT MAX(c.id) 
+        SELECT COALESCE(MAX(c.id), 0) 
         FROM checkins c 
         LEFT JOIN event_tables t ON c.table_id = t.id 
-        {$whereClauseMax}
+        {$whereClause}
     ");
     $maxId = (int)$stmtMax->fetchColumn();
 
-    // Nếu vừa đăng nhập lần đầu và chưa có session last_seen_checkin_id
+    // Lần đầu vào phiên làm việc, lưu maxId làm mốc đã xem để không báo động tất cả dữ liệu cũ
     if ($lastSeenId === 0 && $maxId > 0) {
         $lastSeenId = $maxId;
         $_SESSION['last_seen_checkin_id'] = $maxId;
     }
 
-    $whereClauseList = $whereConditions;
-    if ($clientLastId > 0) {
-        $whereClauseList[] = "c.id > {$clientLastId}";
-    }
-    
-    $whereSql = !empty($whereClauseList) ? "WHERE " . implode(" AND ", $whereClauseList) : "";
-    
-    // Nếu lấy danh sách mới theo polling clientLastId > 0
-    if ($clientLastId > 0) {
-        $stmtCheckins = $db->query("
-            SELECT c.*, t.table_name 
-            FROM checkins c 
-            LEFT JOIN event_tables t ON c.table_id = t.id 
-            {$whereSql}
-            ORDER BY c.id DESC LIMIT 15
-        ");
-    } else {
-        // Lấy 10 lượt checkin gần nhất để hiển thị dropdown ban đầu
-        $stmtCheckins = $db->query("
-            SELECT c.*, t.table_name 
-            FROM checkins c 
-            LEFT JOIN event_tables t ON c.table_id = t.id 
-            {$whereClauseMax}
-            ORDER BY c.id DESC LIMIT 10
-        ");
-    }
+    // 2. Luôn lấy 15 lượt checkin mới nhất để hiển thị nội dung trong Dropdown
+    $stmtCheckins = $db->query("
+        SELECT c.*, t.table_name 
+        FROM checkins c 
+        LEFT JOIN event_tables t ON c.table_id = t.id 
+        {$whereClause}
+        ORDER BY c.id DESC LIMIT 15
+    ");
 
     $checkinsList = [];
     while ($row = $stmtCheckins->fetch()) {
@@ -86,10 +66,11 @@ try {
             'time'        => date('H:i:s d/m/Y', strtotime($row['checkin_time'])),
             'status'      => esc($row['match_status']),
             'status_text' => $row['match_status'] === 'matched' ? 'Hợp lệ' : 'Phát sinh',
-            'is_new'      => ((int)$row['id'] > $lastSeenId)
+            'is_new'      => ($lastSeenId > 0 && (int)$row['id'] > $lastSeenId)
         ];
     }
 
+    // 3. Số lượng lượt checkin chưa đọc
     $unreadCount = 0;
     if ($lastSeenId > 0) {
         $unreadWhere = $whereConditions;

@@ -52,25 +52,6 @@ $firstChar = mb_strtoupper(mb_substr($adminName, 0, 1, 'UTF-8'));
 
     <!-- User Profile & Logout Box inside Left Sidebar -->
     <div class="sidebar-user-box">
-        <!-- Real-time Notification Box -->
-        <div class="sidebar-notif-box">
-            <button type="button" class="notif-bell-btn" id="notifBellBtn" onclick="toggleNotifDropdown(event)" title="Xem thông báo lượt quét QR">
-                <span class="notif-bell-left">🔔 Thông báo QR</span>
-                <span class="notif-badge-count" id="notifBadgeCount" style="display:none;">0</span>
-            </button>
-
-            <!-- Dropdown Popup Panel -->
-            <div class="notif-dropdown" id="notifDropdown">
-                <div class="notif-dropdown-header">
-                    <span>🔔 Thông báo quét QR mới</span>
-                    <button type="button" class="notif-mark-read-btn" onclick="markAllNotifsRead()">Đã đọc tất cả</button>
-                </div>
-                <div class="notif-dropdown-list" id="notifDropdownList">
-                    <div class="notif-empty-state">Đang tải thông báo...</div>
-                </div>
-            </div>
-        </div>
-
         <div class="user-profile-info">
             <div class="user-avatar-circle">
                 <?php echo esc($firstChar); ?>
@@ -91,4 +72,5 @@ $firstChar = mb_strtoupper(mb_substr($adminName, 0, 1, 'UTF-8'));
 </div>
 
 <script src="../assets/js/notifications.js?v=<?php echo time(); ?>"></script>
+
 
