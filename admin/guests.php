@@ -165,21 +165,7 @@ $guests = $stmtGuests->fetchAll();
 </head>
 <body>
 <div class="wrapper">
-    <div class="sidebar">
-        <h2>CheckinQR</h2>
-        <ul>
-            <li><a href="index.php">Dashboard</a></li>
-            <?php if(isAdmin()): ?>
-            <li><a href="events.php">Quản lý sự kiện</a></li>
-            <?php endif; ?>
-            <li><a href="guests.php" class="active">Danh sách khách hàng dự kiến</a></li>
-            <li><a href="checkins.php">Khách hàng đã checkin</a></li>
-            <?php if(isAdmin()): ?>
-            <li><a href="tables.php">Quản lý bàn</a></li>
-            <li><a href="users.php">Quản lý tài khoản</a></li>
-            <?php endif; ?>
-        </ul>
-    </div>
+    <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
     <div class="main-content">
         <div class="header">
             <h1>Khách dự kiến (<span id="guest-count-title"><?php echo count($guests); ?></span>)</h1>

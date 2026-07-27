@@ -107,19 +107,7 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
 </head>
 <body>
 <div class="wrapper">
-    <div class="sidebar">
-        <h2>CheckinQR</h2>
-        <ul>
-            <li><a href="index.php">Dashboard</a></li>
-            <li><a href="events.php" class="active">Quản lý sự kiện</a></li>
-            <li><a href="guests.php">Danh sách khách hàng dự kiến</a></li>
-            <li><a href="checkins.php">Khách hàng đã checkin</a></li>
-            <?php if(isAdmin()): ?>
-            <li><a href="tables.php">Quản lý bàn</a></li>
-            <li><a href="users.php">Quản lý tài khoản</a></li>
-            <?php endif; ?>
-        </ul>
-    </div>
+    <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
     <div class="main-content">
         <div class="header">
             <h1>Danh sách Sự kiện</h1>
