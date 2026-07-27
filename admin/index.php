@@ -24,6 +24,7 @@ $stats['walk_in'] = $db->query("SELECT COUNT(*) FROM checkins WHERE match_status
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - CheckinQR</title>
+    <link rel="stylesheet" href="../assets/css/admin-responsive.css">
     <style>
         :root {
             --primary-color: #d32f2f;

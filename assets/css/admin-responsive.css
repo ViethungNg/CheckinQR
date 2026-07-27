@@ -1,0 +1,113 @@
+/* ===== MOBILE RESPONSIVE STYLES FOR ADMIN AREA ===== */
+
+@media screen and (max-width: 768px) {
+    .wrapper {
+        flex-direction: column !important;
+    }
+
+    .sidebar {
+        width: 100% !important;
+        padding: 15px !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05) !important;
+    }
+
+    .sidebar h2 {
+        margin-bottom: 15px !important;
+        font-size: 1.3rem !important;
+    }
+
+    .sidebar ul {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 5px !important;
+        justify-content: center !important;
+    }
+
+    .sidebar ul li {
+        margin-bottom: 0 !important;
+    }
+
+    .sidebar ul li a {
+        padding: 8px 12px !important;
+        font-size: 0.85rem !important;
+        white-space: nowrap !important;
+    }
+
+    .main-content {
+        padding: 15px !important;
+    }
+
+    .header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+        padding: 12px 15px !important;
+    }
+
+    .header h1 {
+        font-size: 1.3rem !important;
+    }
+
+    .user-info {
+        width: 100% !important;
+        justify-content: space-between !important;
+        font-size: 0.85rem !important;
+    }
+
+    .dashboard-cards {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+    }
+
+    .card {
+        padding: 12px !important;
+    }
+
+    .card h3 {
+        font-size: 0.85rem !important;
+    }
+
+    .card .value {
+        font-size: 1.6rem !important;
+    }
+
+    /* Bảng dữ liệu tự cuộn ngang trên điện thoại */
+    .table-responsive, .recent-section {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    table {
+        min-width: 600px !important;
+    }
+
+    th, td {
+        padding: 8px 10px !important;
+        font-size: 0.85rem !important;
+    }
+
+    /* Modal Form hiển thị vừa vặn màn hình điện thoại */
+    .modal-content {
+        width: 94% !important;
+        margin: 5% auto !important;
+        padding: 15px !important;
+        max-height: 90vh !important;
+        overflow-y: auto !important;
+    }
+
+    .form-control {
+        font-size: 0.95rem !important;
+        padding: 10px !important;
+    }
+
+    .btn {
+        padding: 8px 12px !important;
+        font-size: 0.85rem !important;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .dashboard-cards {
+        grid-template-columns: 1fr !important;
+    }
+}

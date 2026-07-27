@@ -80,7 +80,7 @@ $guests = $db->query("
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Khách dự kiến - CheckinQR</title>
-    <!-- CSS dùng chung đơn giản -->
+    <link rel="stylesheet" href="../assets/css/admin-responsive.css">
     <style>
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
