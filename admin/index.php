@@ -133,12 +133,11 @@ if (isKinhDoanh()) {
             </div>
         </div>
 
-        <!-- Sơ đồ trạng thái Khách theo Bàn (Chỉ dành cho Admin và Lễ Tân) -->
-        <?php if(!isKinhDoanh()): ?>
+        <!-- Sơ đồ trạng thái Khách theo Bàn (Real-time) - Hiển thị cho Admin, Lễ Tân và Kinh Doanh (bàn phụ trách) -->
         <div class="content-box" style="margin-top: 25px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                 <h3 style="margin: 0; color: #d32f2f; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
-                    <span>🪑</span> Sơ đồ trạng thái Khách theo Bàn (Real-time)
+                    <span>🪑</span> Sơ đồ trạng thái Khách theo Bàn (Real-time) <?php echo isKinhDoanh() ? '(Bàn Phụ Trách)' : ''; ?>
                 </h3>
                 <span style="font-size: 0.85rem; color: #666;">Bấm vào thẻ Bàn bên dưới để lọc xem danh sách khách của bàn đó</span>
             </div>
@@ -146,7 +145,6 @@ if (isKinhDoanh()) {
                 <!-- Rendered dynamically by JavaScript -->
             </div>
         </div>
-        <?php endif; ?>
 
         <!-- Table & Guest Details Section -->
         <div class="recent-section">
@@ -309,29 +307,37 @@ function renderTableCards(tables) {
         </div>
     `;
     
-    tables.forEach(t => {
-        const isActive = String(selectedTableId) === String(t.id) ? 'active-table' : '';
-        const pct = t.total_guests > 0 ? Math.round((t.arrived_guests / t.total_guests) * 100) : 0;
-        
+    if (!tables || tables.length === 0) {
         html += `
-            <div class="table-overview-card ${isActive}" id="table-card-${t.id}" onclick="setTableFilter('${t.id}')">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                    <strong style="font-size:0.95rem; color:#d32f2f;">🪑 ${t.table_name}</strong>
-                    <span style="font-size:0.78rem; background:#ffebee; color:#d32f2f; padding:2px 6px; border-radius:4px; font-weight:bold;">${t.arrived_guests}/${t.total_guests}</span>
-                </div>
-                <div style="font-size:0.78rem; color:#666; margin-bottom:6px;">
-                    💼 ${t.assigned_user_name}
-                </div>
-                <div style="display:flex; gap:6px; font-size:0.75rem; font-weight:600; margin-bottom:6px;">
-                    <span style="color:#2e7d32;">✅ ${t.arrived_guests} Đã tới</span>
-                    <span style="color:#1565c0;">⏳ ${t.not_arrived_guests} Chưa tới</span>
-                </div>
-                <div style="background:#e0e0e0; height:6px; border-radius:3px; overflow:hidden;">
-                    <div style="background:#2e7d32; width:${pct}%; height:100%; transition:width 0.3s ease;"></div>
-                </div>
+            <div style="grid-column: 1 / -1; padding: 12px 15px; background: #fff3e0; color: #e65100; border-radius: 8px; font-size: 0.85rem; border: 1px dashed #ffb74d;">
+                ⚠️ Hiện chưa có bàn nào được phân công phụ trách.
             </div>
         `;
-    });
+    } else {
+        tables.forEach(t => {
+            const isActive = String(selectedTableId) === String(t.id) ? 'active-table' : '';
+            const pct = t.total_guests > 0 ? Math.round((t.arrived_guests / t.total_guests) * 100) : 0;
+            
+            html += `
+                <div class="table-overview-card ${isActive}" id="table-card-${t.id}" onclick="setTableFilter('${t.id}')">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                        <strong style="font-size:0.95rem; color:#d32f2f;">🪑 ${t.table_name}</strong>
+                        <span style="font-size:0.78rem; background:#ffebee; color:#d32f2f; padding:2px 6px; border-radius:4px; font-weight:bold;">${t.arrived_guests}/${t.total_guests}</span>
+                    </div>
+                    <div style="font-size:0.78rem; color:#666; margin-bottom:6px;">
+                        💼 ${t.assigned_user_name}
+                    </div>
+                    <div style="display:flex; gap:6px; font-size:0.75rem; font-weight:600; margin-bottom:6px;">
+                        <span style="color:#2e7d32;">✅ ${t.arrived_guests} Đã tới</span>
+                        <span style="color:#1565c0;">⏳ ${t.not_arrived_guests} Chưa tới</span>
+                    </div>
+                    <div style="background:#e0e0e0; height:6px; border-radius:3px; overflow:hidden;">
+                        <div style="background:#2e7d32; width:${pct}%; height:100%; transition:width 0.3s ease;"></div>
+                    </div>
+                </div>
+            `;
+        });
+    }
     
     container.innerHTML = html;
 }
@@ -341,9 +347,11 @@ function populateTableSelectOptions(tables) {
     if (!select || select.dataset.loaded === 'true') return;
     
     let options = `<option value="all">🔍 Tất cả các Bàn</option>`;
-    tables.forEach(t => {
-        options += `<option value="${t.id}">🪑 ${t.table_name} (${t.arrived_guests}/${t.total_guests} đã tới)</option>`;
-    });
+    if (tables && tables.length > 0) {
+        tables.forEach(t => {
+            options += `<option value="${t.id}">🪑 ${t.table_name} (${t.arrived_guests}/${t.total_guests} đã tới)</option>`;
+        });
+    }
     
     select.innerHTML = options;
     select.value = selectedTableId;
