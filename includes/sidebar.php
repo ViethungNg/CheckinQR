@@ -12,7 +12,11 @@ $firstChar = mb_strtoupper(mb_substr($adminName, 0, 1, 'UTF-8'));
         <a href="<?php echo url('admin/index.php'); ?>" class="sidebar-brand-link" title="Về trang Dashboard tổng quan" style="display: inline-block; text-decoration: none; background: transparent !important; border: none !important;">
             <img src="<?php echo url('img/logo pmt.png'); ?>" alt="Logo PMT" class="sidebar-logo-img">
         </a>
-        <button type="button" class="mobile-menu-btn" id="mobileMenuBtn"><span>☰</span> Menu</button>
+        <div class="mobile-brand-controls">
+            <span class="mobile-user-greeting" title="<?php echo esc($adminName); ?>">👋 <?php echo esc(mb_substr($adminName, 0, 12, 'UTF-8')); ?></span>
+            <a href="logout.php" class="mobile-quick-logout" title="Đăng xuất" onclick="return confirmModal(event, 'Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?');">🚪</a>
+            <button type="button" class="mobile-menu-btn" id="mobileMenuBtn"><span>☰</span> Menu</button>
+        </div>
     </div>
     
     <ul class="sidebar-nav">

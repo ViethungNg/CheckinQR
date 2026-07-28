@@ -65,12 +65,17 @@ body {
         justify-content: space-between !important;
         padding: 20px 16px !important;
         box-sizing: border-box !important;
-        overflow-y: auto !important;
+        overflow: hidden !important;
     }
 
     .sidebar-brand {
         text-align: center;
-        margin-bottom: 20px;
+        margin-bottom: 15px;
+        flex-shrink: 0;
+    }
+
+    .mobile-brand-controls {
+        display: none !important;
     }
 
     .sidebar-logo-img {
@@ -104,6 +109,9 @@ body {
         display: flex;
         flex-direction: column;
         gap: 8px;
+        flex: 1;
+        overflow-y: auto;
+        margin-bottom: 15px;
     }
 
     .sidebar-nav li a {
@@ -293,8 +301,39 @@ body {
         display: block !important;
     }
 
-    .mobile-menu-btn {
+    .mobile-brand-controls {
         margin-left: auto !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+    }
+
+    .mobile-user-greeting {
+        font-size: 0.8rem !important;
+        font-weight: 700 !important;
+        color: #1565c0 !important;
+        background: #e3f2fd !important;
+        padding: 5px 10px !important;
+        border-radius: 20px !important;
+        white-space: nowrap !important;
+        border: 1px solid #bbdefb !important;
+    }
+
+    .mobile-quick-logout {
+        font-size: 0.95rem !important;
+        padding: 5px 9px !important;
+        background: #ffebee !important;
+        border: 1px solid #ffcdd2 !important;
+        border-radius: 8px !important;
+        text-decoration: none !important;
+        color: #d32f2f !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-weight: bold !important;
+    }
+
+    .mobile-menu-btn {
         display: inline-flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -302,7 +341,7 @@ body {
         background: #d32f2f !important;
         color: #ffffff !important;
         border: none !important;
-        padding: 7px 14px !important;
+        padding: 7px 12px !important;
         border-radius: 8px !important;
         font-size: 0.85rem !important;
         font-weight: 700 !important;
