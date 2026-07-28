@@ -31,7 +31,7 @@ if (isKinhDoanh()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - CheckinQR</title>
+    <title>Dashboardđ - CheckinQR</title>
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
     <style>
         :root {
