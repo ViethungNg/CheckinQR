@@ -28,6 +28,58 @@ if (isPost()) {
             $stmt->execute([$id]);
             $message = 'Đã xóa lượt check-in thành công!';
         }
+    } elseif ($action === 'assign_table' && !isKinhDoanh()) {
+        $checkinId = (int)$_POST['checkin_id'];
+        $tableId = !empty($_POST['table_id']) ? (int)$_POST['table_id'] : null;
+        
+        // Lấy thông tin check-in
+        $stmtC = $db->prepare("SELECT * FROM checkins WHERE id = ?");
+        $stmtC->execute([$checkinId]);
+        $c = $stmtC->fetch();
+        
+        if ($c) {
+            if (empty($tableId)) {
+                // Nếu Vị trí bàn = Chưa xếp hoặc rỗng:
+                // 1. Chuyển lượt checkin này thành Khách phát sinh (walk_in) & rỗng bàn
+                $gId = $c['guest_id'];
+                $db->prepare("UPDATE checkins SET table_id = NULL, guest_id = NULL, match_status = 'walk_in' WHERE id = ?")->execute([$checkinId]);
+                
+                // 2. Xóa thông tin người đó khỏi Danh sách khách hàng (guests)
+                if (!empty($gId)) {
+                    $db->prepare("DELETE FROM guests WHERE id = ?")->execute([$gId]);
+                }
+                $message = 'Đã chuyển thành Khách phát sinh và xóa khỏi Danh sách khách hàng!';
+            } else {
+                // 1. Cập nhật bàn cho checkin này
+                $stmtUp = $db->prepare("UPDATE checkins SET table_id = ?, match_status = 'matched' WHERE id = ?");
+                $stmtUp->execute([$tableId, $checkinId]);
+                
+                // 2. Nếu check-in này đã gắn với guest_id thì cập nhật table_id cho guest đó luôn
+                if (!empty($c['guest_id'])) {
+                    $stmtUpG = $db->prepare("UPDATE guests SET table_id = ?, status = 'checked_in' WHERE id = ?");
+                    $stmtUpG->execute([$tableId, $c['guest_id']]);
+                    $message = 'Đã xếp bàn thành công cho khách!';
+                } else {
+                    // Nếu đây là khách phát sinh (walk_in), kiểm tra xem có SĐT trùng trong danh sách không
+                    $stmtUpG = $db->prepare("SELECT id FROM guests WHERE event_id = ? AND normalized_phone = ?");
+                    $stmtUpG->execute([$c['event_id'], $c['normalized_phone']]);
+                    $gExist = $stmtUpG->fetch();
+                    
+                    if ($gExist) {
+                        $db->prepare("UPDATE checkins SET guest_id = ?, match_status = 'matched' WHERE id = ?")->execute([$gExist['id'], $checkinId]);
+                        $db->prepare("UPDATE guests SET status = 'checked_in', table_id = ? WHERE id = ?")->execute([$tableId, $gExist['id']]);
+                    } else {
+                        // Tạo mới 1 bản ghi khách dự kiến cho khách phát sinh này để tiện quản lý sau này
+                        $stmtInsG = $db->prepare("INSERT INTO guests (event_id, full_name, phone, normalized_phone, table_id, status, notes) VALUES (?, ?, ?, ?, ?, 'checked_in', 'Khách phát sinh được xếp bàn trực tiếp')");
+                        $stmtInsG->execute([$c['event_id'], $c['full_name_entered'], $c['phone_entered'], $c['normalized_phone'], $tableId]);
+                        $newGuestId = $db->lastInsertId();
+                        
+                        $db->prepare("UPDATE checkins SET guest_id = ?, match_status = 'matched' WHERE id = ?")->execute([$newGuestId, $checkinId]);
+                    }
+                    $message = 'Đã xếp bàn thành công cho khách phát sinh!';
+                }
+            }
+        }
     }
 }
 
@@ -50,6 +102,22 @@ $stmtCheckins = $db->prepare("
 ");
 $stmtCheckins->execute($paramsCheckin);
 $checkins = $stmtCheckins->fetchAll();
+
+// Chuẩn bị Map cho Javascript
+$checkinsMapData = [];
+foreach ($checkins as $cItem) {
+    $checkinsMapData[$cItem['id']] = [
+        'id'               => (int)$cItem['id'],
+        'event_id'         => (int)($cItem['event_id'] ?? 0),
+        'table_id'         => $cItem['table_id'] ? (int)$cItem['table_id'] : null,
+        'full_name'        => $cItem['full_name_entered'],
+        'phone'            => $cItem['phone_entered'],
+        'table_name'       => $cItem['table_name'] ?? 'Chưa xếp bàn'
+    ];
+}
+
+// Lấy danh sách bàn để xếp cho khách phát sinh
+$tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event_tables ORDER BY sort_order ASC, id ASC")->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -79,6 +147,7 @@ $checkins = $stmtCheckins->fetchAll();
         .btn-primary { background: var(--primary-color); color: white; }
         .btn-success { background: #4caf50; color: white; }
         .btn-danger { background: #f44336; color: white; }
+        .btn-info { background: #0288d1; color: white; }
         .badge { padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
         .badge.matched { background: #e8f5e9; color: #2e7d32; }
         .badge.walk_in { background: #fff3e0; color: #ef6c00; }
@@ -86,6 +155,16 @@ $checkins = $stmtCheckins->fetchAll();
         .alert { padding: 10px 15px; border-radius: 4px; margin-bottom: 15px; }
         .alert.success { background: #e8f5e9; color: #2e7d32; }
         .alert.error { background: #ffebee; color: #c62828; }
+        
+        /* Modal CSS */
+        .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); overflow-y: auto; }
+        .modal-content { background-color: #fff; margin: 8% auto; padding: 24px; border-radius: 8px; width: 450px; max-width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px; }
+        .close { font-size: 26px; font-weight: bold; cursor: pointer; color: #aaa; }
+        .close:hover { color: #333; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+        .form-control { width: 100%; padding: 8px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
     </style>
 </head>
 <body>
@@ -115,7 +194,7 @@ $checkins = $stmtCheckins->fetchAll();
                             <th>Phương thức Check-in</th>
                             <th>Thời gian</th>
                             <th>Trạng thái</th>
-                            <?php if(isAdmin()): ?><th>Thao tác</th><?php endif; ?>
+                            <?php if(!isKinhDoanh()): ?><th>Thao tác</th><?php endif; ?>
                         </tr>
                     </thead>
                     <tbody id="checkins-table-body">
@@ -162,14 +241,18 @@ $checkins = $stmtCheckins->fetchAll();
                                     <?php echo $c['match_status'] === 'matched' ? '✅ Khách hợp lệ' : '🔸 Khách phát sinh'; ?>
                                 </span>
                             </td>
-                            <?php if(isAdmin()): ?>
+                            <?php if(!isKinhDoanh()): ?>
                             <td>
+                                <button type="button" class="btn btn-info" onclick="openAssignModal(<?php echo (int)$c['id']; ?>)">Xếp bàn</button>
+                                
+                                <?php if(isAdmin()): ?>
                                 <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
                                     <?php echo csrfField(); ?>
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?php echo $c['id']; ?>">
                                     <button type="submit" class="btn btn-danger">Xóa Test</button>
                                 </form>
+                                <?php endif; ?>
                             </td>
                             <?php endif; ?>
                         </tr>
@@ -181,14 +264,87 @@ $checkins = $stmtCheckins->fetchAll();
     </div>
 </div>
 
+<!-- Modal Xếp Bàn -->
+<div id="assignModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Xếp Bàn Cho Khách</h3>
+            <span class="close" onclick="closeModal()">&times;</span>
+        </div>
+        <form method="POST" action="">
+            <?php echo csrfField(); ?>
+            <input type="hidden" name="action" value="assign_table">
+            <input type="hidden" name="checkin_id" id="modalCheckinId" value="">
+            
+            <p style="margin-bottom: 15px;">Khách: <strong id="modalGuestName"></strong> (<span id="modalGuestPhone"></span>)</p>
+            
+            <div class="form-group">
+                <label>Chọn Bàn</label>
+                <select name="table_id" id="modalTableSelect" class="form-control">
+                    <option value="">-- Chưa xếp bàn --</option>
+                </select>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Lưu & Duyệt Khách</button>
+        </form>
+    </div>
+</div>
+
 <script>
+    window.allCheckinsMap = <?php echo json_encode($checkinsMapData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+    const allTables = <?php echo json_encode($tablesList); ?>;
     const isAdminUser = <?php echo isAdmin() ? 'true' : 'false'; ?>;
     const isKinhDoanhUser = <?php echo isKinhDoanh() ? 'true' : 'false'; ?>;
-    const csrfTokenValue = '<?php echo $_SESSION[CSRF_TOKEN_KEY] ?? ""; ?>';
+    const csrfTokenValue = '<?php echo $_SESSION['csrf_token'] ?? ""; ?>';
+
+    function openAssignModal(id) {
+        const c = (window.allCheckinsMap && window.allCheckinsMap[id]) ? window.allCheckinsMap[id] : null;
+        if (!c) {
+            console.error('Checkin record not found:', id);
+            return;
+        }
+
+        document.getElementById('modalCheckinId').value = c.id;
+        document.getElementById('modalGuestName').textContent = c.full_name || '';
+        document.getElementById('modalGuestPhone').textContent = c.phone || '';
+        
+        const select = document.getElementById('modalTableSelect');
+        select.innerHTML = '<option value="">-- Chưa xếp bàn --</option>';
+        
+        if (Array.isArray(allTables)) {
+            allTables.forEach(t => {
+                if (!c.event_id || c.event_id == 0 || !t.event_id || t.event_id == c.event_id) {
+                    const opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.textContent = t.table_code ? `${t.table_code} (${t.table_name})` : t.table_name;
+                    if (c.table_id && t.id == c.table_id) opt.selected = true;
+                    select.appendChild(opt);
+                }
+            });
+        }
+        
+        const modalEl = document.getElementById('assignModal');
+        if (modalEl) modalEl.style.display = 'block';
+    }
+
+    function closeModal() {
+        const modalEl = document.getElementById('assignModal');
+        if (modalEl) modalEl.style.display = 'none';
+    }
+
+    window.addEventListener('click', function(e) {
+        const modalEl = document.getElementById('assignModal');
+        if (modalEl && e.target === modalEl) {
+            modalEl.style.display = 'none';
+        }
+    });
 
     let lastCheckinsDataHash = '';
 
     async function updateRealtimeCheckinsList() {
+        const modalEl = document.getElementById('assignModal');
+        if (modalEl && getComputedStyle(modalEl).display !== 'none') return;
+
         try {
             const response = await fetch(`../api/stats.php?filter=all&table_id=all&_t=${Date.now()}`, { cache: 'no-store' });
             if (!response.ok) return;
@@ -204,12 +360,21 @@ $checkins = $stmtCheckins->fetchAll();
                 if (!tbody) return;
 
                 if (result.data.recent_checkins.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="${isAdminUser ? 8 : 7}" style="text-align:center; color:#777; padding:20px;">Chưa có lượt check-in nào</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="${isKinhDoanhUser ? 7 : 8}" style="text-align:center; color:#777; padding:20px;">Chưa có lượt check-in nào</td></tr>`;
                     return;
                 }
 
                 let html = '';
                 result.data.recent_checkins.forEach(item => {
+                    window.allCheckinsMap[item.id] = {
+                        id: item.id,
+                        event_id: item.event_id || 0,
+                        table_id: item.table_id || null,
+                        full_name: item.full_name,
+                        phone: item.phone,
+                        table_name: item.table_name
+                    };
+
                     const isCheckedIn = item.status === 'matched';
                     const rowClass = isCheckedIn ? 'row-checked-in' : '';
                     
@@ -233,15 +398,18 @@ $checkins = $stmtCheckins->fetchAll();
                         : `<span style="color: #888;">Chưa xếp</span>`;
 
                     let actionsHtml = '';
-                    if (isAdminUser) {
+                    if (!isKinhDoanhUser) {
                         actionsHtml = `
                             <td>
+                                <button type="button" class="btn btn-info" onclick="openAssignModal(${item.id})">Xếp bàn</button>
+                                ${isAdminUser ? `
                                 <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
                                     <input type="hidden" name="csrf_token" value="${csrfTokenValue}">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="${item.id}">
                                     <button type="submit" class="btn btn-danger">Xóa Test</button>
                                 </form>
+                                ` : ''}
                             </td>
                         `;
                     }
