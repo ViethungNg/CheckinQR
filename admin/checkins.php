@@ -130,15 +130,6 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); }
-        .wrapper { display: flex; min-height: 100vh; }
-        .sidebar { width: var(--sidebar-width); background: #fff; box-shadow: 2px 0 5px rgba(0,0,0,0.05); padding: 20px; }
-        .sidebar h2 { color: var(--primary-color); margin-bottom: 30px; font-size: 1.5rem; text-align: center; }
-        .sidebar ul { list-style: none; }
-        .sidebar ul li { margin-bottom: 10px; }
-        .sidebar ul li a { display: block; padding: 10px 15px; color: #555; text-decoration: none; border-radius: 5px; transition: background 0.3s; }
-        .sidebar ul li a:hover, .sidebar ul li a.active { background: #fce4e4; color: var(--primary-color); font-weight: 600; }
-        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #fff; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .content-box { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
@@ -206,14 +197,16 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                             <td><?php echo esc($c['phone_entered']); ?></td>
                             <td>
                                 <?php if (!empty($c['table_name'])): ?>
-                                    <strong style="color: #2e7d32;"><?php echo esc($c['table_name']); ?></strong>
+                                    <span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 4px 10px; border-radius: 8px; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(46,125,50,0.1);">
+                                        🪑 <?php echo esc($c['table_name']); ?>
+                                    </span>
                                 <?php else: ?>
-                                    <span style="color: #888;">Chưa xếp</span>
+                                    <span style="color: #888; font-style: italic;">Chưa xếp</span>
                                 <?php endif; ?>
                             </td>
                             <td>
                                 <?php if (!empty($c['lucky_draw_code'])): ?>
-                                    <span style="font-weight: bold; color: #7b1fa2; background: #f3e5f5; border: 1px solid #e1bee7; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">
+                                    <span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 4px 10px; border-radius: 8px; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(123,31,162,0.1);">
                                         🎟️ <?php echo esc($c['lucky_draw_code']); ?>
                                     </span>
                                 <?php else: ?>
@@ -379,7 +372,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                     const rowClass = isCheckedIn ? 'row-checked-in' : '';
                     
                     const luckyCodeHtml = item.lucky_draw_code 
-                        ? `<span style="font-weight: bold; color: #7b1fa2; background: #f3e5f5; border: 1px solid #e1bee7; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">🎟️ ${item.lucky_draw_code}</span>` 
+                        ? `<span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 4px 10px; border-radius: 8px; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(123,31,162,0.1);">🎟️ ${item.lucky_draw_code}</span>` 
                         : `<span style="color:#aaa;">-</span>`;
 
                     let methodBadge = `<span style="background: #e8f5e9; color: #1b5e20; border: 1.5px solid #81c784; padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(46, 125, 50, 0.15);">📱 Khớp SĐT</span>`;
@@ -394,8 +387,8 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                         : `<span class="badge walk_in">🔸 Khách phát sinh</span>`;
 
                     const tableNameHtml = item.table_name && item.table_name !== 'Chưa xếp bàn'
-                        ? `<strong style="color: #2e7d32;">${item.table_name}</strong>`
-                        : `<span style="color: #888;">Chưa xếp</span>`;
+                        ? `<span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 4px 10px; border-radius: 8px; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 4px rgba(46,125,50,0.1);">🪑 ${item.table_name}</span>`
+                        : `<span style="color: #888; font-style: italic;">Chưa xếp</span>`;
 
                     let actionsHtml = '';
                     if (!isKinhDoanhUser) {

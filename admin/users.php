@@ -100,15 +100,6 @@ foreach ($usersList as $u) {
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); }
-        .wrapper { display: flex; min-height: 100vh; }
-        .sidebar { width: var(--sidebar-width); background: #fff; box-shadow: 2px 0 5px rgba(0,0,0,0.05); padding: 20px; }
-        .sidebar h2 { color: var(--primary-color); margin-bottom: 30px; font-size: 1.5rem; text-align: center; }
-        .sidebar ul { list-style: none; }
-        .sidebar li { margin-bottom: 10px; }
-        .sidebar a { display: block; padding: 10px 15px; color: var(--text-color); text-decoration: none; border-radius: 6px; font-weight: 500; transition: all 0.3s; }
-        .sidebar a:hover, .sidebar a.active { background: #ffebee; color: var(--primary-color); }
-        .main-content { flex: 1; padding: 30px; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
         .header h1 { font-size: 1.8rem; font-weight: 700; color: #111; }
         
         /* Stats Grid */
@@ -218,62 +209,64 @@ foreach ($usersList as $u) {
                 </button>
             </div>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>Tài khoản</th>
-                        <th>Họ và tên</th>
-                        <th>Vai trò</th>
-                        <th>Trạng thái</th>
-                        <th>Lần đăng nhập cuối</th>
-                        <th>Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody id="users-table-body">
-                    <?php foreach($usersList as $u): 
-                        $firstChar = mb_strtoupper(mb_substr($u['full_name'], 0, 1, 'UTF-8'));
-                    ?>
-                    <tr>
-                        <td>
-                            <div class="user-cell">
-                                <div class="user-avatar"><?php echo esc($firstChar); ?></div>
-                                <div>
-                                    <div class="user-info-name">@<?php echo esc($u['username']); ?></div>
-                                    <div class="user-info-sub">ID: #<?php echo $u['id']; ?></div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tài khoản</th>
+                            <th>Họ và tên</th>
+                            <th>Vai trò</th>
+                            <th>Trạng thái</th>
+                            <th>Lần đăng nhập cuối</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-table-body">
+                        <?php foreach($usersList as $u): 
+                            $firstChar = mb_strtoupper(mb_substr($u['full_name'], 0, 1, 'UTF-8'));
+                        ?>
+                        <tr>
+                            <td>
+                                <div class="user-cell">
+                                    <div class="user-avatar"><?php echo esc($firstChar); ?></div>
+                                    <div>
+                                        <div class="user-info-name">@<?php echo esc($u['username']); ?></div>
+                                        <div class="user-info-sub">ID: #<?php echo $u['id']; ?></div>
+                                    </div>
                                 </div>
-                            </div>
-                        </td>
-                        <td><strong><?php echo esc($u['full_name']); ?></strong></td>
-                        <td>
-                            <span class="badge-role role-<?php echo esc($u['role']); ?>">
-                                <?php echo getRoleLabel($u['role']); ?>
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge-status <?php echo $u['status'] === 'active' ? 'status-active' : 'status-inactive'; ?>">
-                                <?php echo $u['status'] === 'active' ? '● Hoạt động' : '○ Đã khóa'; ?>
-                            </span>
-                        </td>
-                        <td>
-                            <span style="font-size: 0.88rem; color: #555;">
-                                <?php echo !empty($u['last_login_at']) ? date('d/m/Y H:i', strtotime($u['last_login_at'])) : '⏳ Chưa đăng nhập'; ?>
-                            </span>
-                        </td>
-                        <td>
-                            <button class="btn btn-success" style="padding:4px 10px; font-size:0.82rem;" onclick='openEditModal(<?php echo json_encode($u); ?>)'>✏️ Sửa</button>
-                            <?php if ($u['id'] !== (int)$_SESSION['admin_id']): ?>
-                            <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa tài khoản này?');">
-                                <?php echo csrfField(); ?>
-                                <input type="hidden" name="action" value="delete">
-                                <input type="hidden" name="id" value="<?php echo $u['id']; ?>">
-                                <button type="submit" class="btn btn-danger" style="padding:4px 10px; font-size:0.82rem;">🗑️ Xóa</button>
-                            </form>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+                            </td>
+                            <td><strong><?php echo esc($u['full_name']); ?></strong></td>
+                            <td>
+                                <span class="badge-role role-<?php echo esc($u['role']); ?>">
+                                    <?php echo getRoleLabel($u['role']); ?>
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge-status <?php echo $u['status'] === 'active' ? 'status-active' : 'status-inactive'; ?>">
+                                    <?php echo $u['status'] === 'active' ? '● Hoạt động' : '○ Đã khóa'; ?>
+                                </span>
+                            </td>
+                            <td>
+                                <span style="font-size: 0.88rem; color: #555;">
+                                    <?php echo !empty($u['last_login_at']) ? date('d/m/Y H:i', strtotime($u['last_login_at'])) : '⏳ Chưa đăng nhập'; ?>
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-success" style="padding:4px 10px; font-size:0.82rem;" onclick='openEditModal(<?php echo json_encode($u); ?>)'>✏️ Sửa</button>
+                                <?php if ($u['id'] !== (int)$_SESSION['admin_id']): ?>
+                                <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa tài khoản này?');">
+                                    <?php echo csrfField(); ?>
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="id" value="<?php echo $u['id']; ?>">
+                                    <button type="submit" class="btn btn-danger" style="padding:4px 10px; font-size:0.82rem;">🗑️ Xóa</button>
+                                </form>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

@@ -93,15 +93,6 @@ $tables = $stmtTables->fetchAll();
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); }
-        .wrapper { display: flex; min-height: 100vh; }
-        .sidebar { width: var(--sidebar-width); background: #fff; box-shadow: 2px 0 5px rgba(0,0,0,0.05); padding: 20px; }
-        .sidebar h2 { color: var(--primary-color); margin-bottom: 30px; font-size: 1.5rem; text-align: center; }
-        .sidebar ul { list-style: none; }
-        .sidebar li { margin-bottom: 10px; }
-        .sidebar a { display: block; padding: 10px 15px; color: var(--text-color); text-decoration: none; border-radius: 6px; font-weight: 500; transition: all 0.3s; }
-        .sidebar a:hover, .sidebar a.active { background: #ffebee; color: var(--primary-color); }
-        .main-content { flex: 1; padding: 30px; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
         .header h1 { font-size: 1.8rem; }
         .content-box { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: 500; text-decoration: none; display: inline-block; }

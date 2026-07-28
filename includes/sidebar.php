@@ -9,7 +9,7 @@ $firstChar = mb_strtoupper(mb_substr($adminName, 0, 1, 'UTF-8'));
 ?>
 <div class="sidebar" id="adminSidebar">
     <div class="sidebar-brand">
-        <a href="<?php echo url('admin/index.php'); ?>" title="Về trang Dashboard tổng quan" style="display: inline-block; text-decoration: none;">
+        <a href="<?php echo url('admin/index.php'); ?>" class="sidebar-brand-link" title="Về trang Dashboard tổng quan" style="display: inline-block; text-decoration: none; background: transparent !important; border: none !important;">
             <img src="<?php echo url('img/logo pmt.png'); ?>" alt="Logo PMT" class="sidebar-logo-img">
         </a>
         <button type="button" class="mobile-menu-btn" id="mobileMenuBtn"><span>☰</span> Menu</button>

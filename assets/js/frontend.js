@@ -11,12 +11,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         // Reset trạng thái
         alertBox.style.display = 'none';
         alertBox.className = 'alert';
         alertBox.innerHTML = '';
-        
+
         // Khóa nút
         submitBtn.disabled = true;
         spinner.style.display = 'inline-block';
@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 alertBox.classList.add('info');
                 if (formBody) formBody.style.display = 'none';
                 submitBtn.style.display = 'none';
-                
+
                 alertBox.innerHTML = `
                     <div style="text-align: center; padding: 5px 0;">
                         <div style="font-size: 1.25rem; font-weight: bold; color: #1565c0; margin-bottom: 6px;">
@@ -72,23 +72,37 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (data.status === 'success') {
                 alertBox.classList.add('success');
                 alertBox.innerHTML = `<strong>Thành công!</strong> ${data.message}`;
-                
+
                 // Ẩn form nhập liệu sau khi thành công
                 if (formBody) formBody.style.display = 'none';
                 submitBtn.style.display = 'none';
-                
+
                 if (data.data && data.data.match_status) {
                     let extraMsg = '';
                     if (data.data.match_status === 'matched') {
-                        extraMsg = `<div style="margin-top:10px; padding-top:10px; border-top:1px dashed #4caf50;">
-                            Cảm ơn quý khách đã tham dự Hội nghị. Chúc quý khách có một buổi tối tuyệt vời<br>`;
-                        if (data.data.table_name) {
-                            extraMsg += `<strong>Vị trí ngồi của quý khách:</strong> ${data.data.table_name}<br>`;
-                        }
-                        if (data.data.lucky_draw_code) {
-                            extraMsg += `<strong>Mã bốc thăm:</strong> ${data.data.lucky_draw_code}<br>`;
-                        }
-                        extraMsg += `</div>`;
+                        extraMsg = `
+                            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #81c784; text-align: center;">
+                                <div style="font-size: 0.95rem; color: #2e7d32; font-weight: 600; margin-bottom: 12px; line-height: 1.5;">
+                                    🎉 Sự hiện diện của Quý khách là niềm vinh hạnh của chúng tôi. Chúc Quý khách có một buổi hội nghị tràn đầy năng lượng và gặt hái nhiều thành công!
+                                </div>
+                                
+                                <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px;">
+                                    ${data.data.table_name ? `
+                                        <div style="flex: 1; min-width: 140px; background: #e8f5e9; border: 2px solid #66bb6a; border-radius: 12px; padding: 10px 14px; text-align: center; box-shadow: 0 3px 8px rgba(46,125,50,0.12);">
+                                            <div style="font-size: 0.75rem; color: #2e7d32; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">🪑 Vị trí ngồi</div>
+                                            <div style="font-size: 1.25rem; font-weight: 800; color: #1b5e20;">${data.data.table_name}</div>
+                                        </div>
+                                    ` : ''}
+                                    
+                                    ${data.data.lucky_draw_code ? `
+                                        <div style="flex: 1; min-width: 140px; background: #f3e5f5; border: 2px solid #ab47bc; border-radius: 12px; padding: 10px 14px; text-align: center; box-shadow: 0 3px 8px rgba(123,31,162,0.12);">
+                                            <div style="font-size: 0.75rem; color: #7b1fa2; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">🎟️ Mã bốc thăm</div>
+                                            <div style="font-size: 1.25rem; font-weight: 800; color: #4a148c;">${data.data.lucky_draw_code}</div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
                     } else if (data.data.match_status === 'walk_in') {
                         extraMsg = `
                             <div style="margin-top: 15px; padding-top: 12px; border-top: 1px dashed #ef5350;">
@@ -122,12 +136,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 spinner.style.display = 'none';
                 btnText.textContent = 'Xác nhận Check-in';
             }
-            
+
         } catch (error) {
             alertBox.style.display = 'block';
             alertBox.classList.add('error');
             alertBox.innerHTML = '<strong>Lỗi:</strong> Không thể kết nối đến máy chủ. Vui lòng thử lại!';
-            
+
             // Mở khóa nút
             submitBtn.disabled = false;
             spinner.style.display = 'none';

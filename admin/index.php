@@ -42,15 +42,6 @@ if (isKinhDoanh()) {
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); }
-        .wrapper { display: flex; min-height: 100vh; }
-        .sidebar { width: var(--sidebar-width); background: #fff; box-shadow: 2px 0 5px rgba(0,0,0,0.05); padding: 20px; }
-        .sidebar h2 { color: var(--primary-color); margin-bottom: 30px; font-size: 1.5rem; text-align: center; }
-        .sidebar ul { list-style: none; }
-        .sidebar ul li { margin-bottom: 10px; }
-        .sidebar ul li a { display: block; padding: 10px 15px; color: #555; text-decoration: none; border-radius: 5px; transition: background 0.3s; }
-        .sidebar ul li a:hover, .sidebar ul li a.active { background: #fce4e4; color: var(--primary-color); font-weight: 600; }
-        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; background: #fff; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .user-info { display: flex; align-items: center; gap: 15px; }
         .btn-logout { background: #f44336; color: white; border: none; padding: 8px 15px; border-radius: 4px; text-decoration: none; font-size: 0.9rem; }
         .dashboard-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
@@ -268,11 +259,15 @@ async function updateRealtimeStats() {
                             methodBadge = `<span style="font-size:0.78rem; color:#888;">-</span>`;
                         }
 
+                        const tableNameHtml = item.table_name && item.table_name !== 'Chưa xếp bàn'
+                            ? `<span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">🪑 ${item.table_name}</span>`
+                            : `<span style="color: #888; font-style: italic;">Chưa xếp</span>`;
+
                         html += `
                             <tr class="${rowClass}">
                                 <td>${item.full_name}</td>
                                 <td>${item.phone}</td>
-                                <td><strong>${item.table_name}</strong></td>
+                                <td>${tableNameHtml}</td>
                                 <td>${methodBadge}</td>
                                 <td>${item.time}</td>
                                 <td>

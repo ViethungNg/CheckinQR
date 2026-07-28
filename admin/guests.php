@@ -100,9 +100,9 @@ if (!empty($whereClauses)) {
 
 $orderSql = "ORDER BY g.id DESC";
 if ($sort === 'table_asc') {
-    $orderSql = "ORDER BY t.table_name ASC, g.id DESC";
+    $orderSql = "ORDER BY (CASE WHEN g.table_id IS NULL OR g.table_id = 0 THEN 1 ELSE 0 END) ASC, t.sort_order ASC, t.id ASC, g.id DESC";
 } elseif ($sort === 'table_desc') {
-    $orderSql = "ORDER BY t.table_name DESC, g.id DESC";
+    $orderSql = "ORDER BY (CASE WHEN g.table_id IS NULL OR g.table_id = 0 THEN 1 ELSE 0 END) ASC, t.sort_order DESC, t.id DESC, g.id DESC";
 } elseif ($sort === 'code_asc') {
     $orderSql = "ORDER BY CAST(g.lucky_draw_code AS UNSIGNED) ASC, g.lucky_draw_code ASC, g.id DESC";
 } elseif ($sort === 'code_desc') {
@@ -119,6 +119,36 @@ $stmtGuests = $db->prepare("
 ");
 $stmtGuests->execute($params);
 $guests = $stmtGuests->fetchAll();
+
+if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+    
+    $guestList = [];
+    foreach ($guests as $g) {
+        $guestList[] = [
+            'id'              => (int)$g['id'],
+            'event_id'        => (int)$g['event_id'],
+            'full_name'       => esc($g['full_name']),
+            'phone'           => esc($g['phone']),
+            'organization'    => esc($g['organization'] ?? ''),
+            'table_id'        => $g['table_id'] ? (int)$g['table_id'] : null,
+            'table_name'      => esc($g['table_name'] ?? ''),
+            'table_code'      => esc($g['table_code'] ?? ''),
+            'lucky_draw_code' => esc($g['lucky_draw_code'] ?? ''),
+            'status'          => esc($g['status']),
+        ];
+    }
+    
+    echo json_encode([
+        'status'       => 'success',
+        'total_count'  => count($guestList),
+        'guests'       => $guestList,
+        'is_admin'     => isAdmin(),
+        'csrf_token'   => generateCsrfToken(),
+    ]);
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -131,15 +161,6 @@ $guests = $stmtGuests->fetchAll();
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); }
-        .wrapper { display: flex; min-height: 100vh; }
-        .sidebar { width: var(--sidebar-width); background: #fff; box-shadow: 2px 0 5px rgba(0,0,0,0.05); padding: 20px; }
-        .sidebar h2 { color: var(--primary-color); margin-bottom: 30px; font-size: 1.5rem; text-align: center; }
-        .sidebar ul { list-style: none; }
-        .sidebar ul li { margin-bottom: 10px; }
-        .sidebar ul li a { display: block; padding: 10px 15px; color: #555; text-decoration: none; border-radius: 5px; transition: background 0.3s; }
-        .sidebar ul li a:hover, .sidebar ul li a.active { background: #fce4e4; color: var(--primary-color); font-weight: 600; }
-        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #fff; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .content-box { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
@@ -200,8 +221,8 @@ $guests = $stmtGuests->fetchAll();
                 <div style="min-width: 220px;">
                     <select name="sort" class="form-control" onchange="this.form.submit()" style="cursor: pointer; background: #fff; font-weight: 500;">
                         <option value="id_desc" <?php echo $sort === 'id_desc' ? 'selected' : ''; ?>>🕒 Mới nhất trước</option>
-                        <option value="table_asc" <?php echo $sort === 'table_asc' ? 'selected' : ''; ?>>🪑 Bàn: Tăng dần (A ➔ Z)</option>
-                        <option value="table_desc" <?php echo $sort === 'table_desc' ? 'selected' : ''; ?>>🪑 Bàn: Giảm dần (Z ➔ A)</option>
+                        <option value="table_asc" <?php echo $sort === 'table_asc' ? 'selected' : ''; ?>>🪑 Thứ tự Bàn: Tăng dần (1 ➔ N)</option>
+                        <option value="table_desc" <?php echo $sort === 'table_desc' ? 'selected' : ''; ?>>🪑 Thứ tự Bàn: Giảm dần (N ➔ 1)</option>
                         <option value="code_asc" <?php echo $sort === 'code_asc' ? 'selected' : ''; ?>>🎁 Mã dự thưởng: Tăng dần (0 ➔ 9)</option>
                         <option value="code_desc" <?php echo $sort === 'code_desc' ? 'selected' : ''; ?>>🎁 Mã dự thưởng: Giảm dần (9 ➔ 0)</option>
                     </select>
@@ -213,54 +234,72 @@ $guests = $stmtGuests->fetchAll();
                 <?php endif; ?>
             </form>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>Họ Tên</th>
-                        <th>SĐT</th>
-                        <th>Đơn vị</th>
-                        <th>
-                            <a href="?search=<?php echo urlencode($search); ?>&sort=<?php echo $sort === 'table_asc' ? 'table_desc' : 'table_asc'; ?>" class="sort-header" title="Bấm để đổi chiều sắp xếp bàn">
-                                Bàn <?php echo $sort === 'table_asc' ? '▲' : ($sort === 'table_desc' ? '▼' : '↕'); ?>
-                            </a>
-                        </th>
-                        <th>
-                            <a href="?search=<?php echo urlencode($search); ?>&sort=<?php echo $sort === 'code_asc' ? 'code_desc' : 'code_asc'; ?>" class="sort-header" title="Bấm để đổi chiều sắp xếp Mã dự thưởng">
-                                Mã dự thưởng <?php echo $sort === 'code_asc' ? '▲' : ($sort === 'code_desc' ? '▼' : '↕'); ?>
-                            </a>
-                        </th>
-                        <th>Trạng thái</th>
-                        <?php if(isAdmin()): ?><th>Thao tác</th><?php endif; ?>
-                    </tr>
-                </thead>
-                <tbody id="guests-table-body">
-                    <?php foreach($guests as $guest): ?>
-                    <tr class="<?php echo $guest['status'] === 'checked_in' ? 'row-checked-in' : ''; ?>">
-                        <td><strong><?php echo esc($guest['full_name']); ?></strong></td>
-                        <td><?php echo esc($guest['phone']); ?></td>
-                        <td><?php echo esc($guest['organization'] ?? '-'); ?></td>
-                        <td><?php echo esc($guest['table_name'] ? ($guest['table_name'] . ($guest['table_code'] ? ' (' . $guest['table_code'] . ')' : '')) : 'Chưa xếp'); ?></td>
-                        <td><?php echo esc($guest['lucky_draw_code'] ?? '-'); ?></td>
-                        <td>
-                            <span class="badge <?php echo esc($guest['status']); ?>">
-                                <?php echo $guest['status'] === 'checked_in' ? '✅ Đã checkin' : '⏳ Chưa tới'; ?>
-                            </span>
-                        </td>
-                        <?php if(isAdmin()): ?>
-                        <td>
-                            <button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;" onclick='openEditModal(<?php echo json_encode($guest); ?>)'>Sửa</button>
-                            <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa khách này?');">
-                                <?php echo csrfField(); ?>
-                                <input type="hidden" name="action" value="delete">
-                                <input type="hidden" name="id" value="<?php echo $guest['id']; ?>">
-                                <button type="submit" class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;">Xóa</button>
-                            </form>
-                        </td>
-                        <?php endif; ?>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Họ Tên</th>
+                            <th>SĐT</th>
+                            <th>Đơn vị</th>
+                            <th>
+                                <a href="?search=<?php echo urlencode($search); ?>&sort=<?php echo $sort === 'table_asc' ? 'table_desc' : 'table_asc'; ?>" class="sort-header" title="Bấm để đổi chiều sắp xếp bàn">
+                                    Bàn <?php echo $sort === 'table_asc' ? '▲' : ($sort === 'table_desc' ? '▼' : '↕'); ?>
+                                </a>
+                            </th>
+                            <th>
+                                <a href="?search=<?php echo urlencode($search); ?>&sort=<?php echo $sort === 'code_asc' ? 'code_desc' : 'code_asc'; ?>" class="sort-header" title="Bấm để đổi chiều sắp xếp Mã dự thưởng">
+                                    Mã dự thưởng <?php echo $sort === 'code_asc' ? '▲' : ($sort === 'code_desc' ? '▼' : '↕'); ?>
+                                </a>
+                            </th>
+                            <th>Trạng thái</th>
+                            <?php if(isAdmin()): ?><th>Thao tác</th><?php endif; ?>
+                        </tr>
+                    </thead>
+                    <tbody id="guests-table-body">
+                        <?php foreach($guests as $guest): ?>
+                        <tr class="<?php echo $guest['status'] === 'checked_in' ? 'row-checked-in' : ''; ?>">
+                            <td><strong><?php echo esc($guest['full_name']); ?></strong></td>
+                            <td><?php echo esc($guest['phone']); ?></td>
+                            <td><?php echo esc($guest['organization'] ?? '-'); ?></td>
+                            <td>
+                                <?php if (!empty($guest['table_name'])): ?>
+                                    <span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;">
+                                        🪑 <?php echo esc($guest['table_name'] . ($guest['table_code'] ? ' (' . $guest['table_code'] . ')' : '')); ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span style="color: #888; font-style: italic;">Chưa xếp</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if (!empty($guest['lucky_draw_code'])): ?>
+                                    <span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;">
+                                        🎟️ <?php echo esc($guest['lucky_draw_code']); ?>
+                                    </span>
+                                <?php else: ?>
+                                    <span style="color: #aaa;">-</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <span class="badge <?php echo esc($guest['status']); ?>">
+                                    <?php echo $guest['status'] === 'checked_in' ? '✅ Đã checkin' : '⏳ Chưa tới'; ?>
+                                </span>
+                            </td>
+                            <?php if(isAdmin()): ?>
+                            <td>
+                                <button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;" onclick='openEditModal(<?php echo json_encode($guest); ?>)'>Sửa</button>
+                                <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa khách này?');">
+                                    <?php echo csrfField(); ?>
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="id" value="<?php echo $guest['id']; ?>">
+                                    <button type="submit" class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;">Xóa</button>
+                                </form>
+                            </td>
+                            <?php endif; ?>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -334,7 +373,23 @@ $guests = $stmtGuests->fetchAll();
     const modal = document.getElementById('guestModal');
     const allTables = <?php echo json_encode($tablesList); ?>;
     const tableSelect = document.getElementById('tableId');
+    const isAdminUser = <?php echo isAdmin() ? 'true' : 'false'; ?>;
+    let csrfTokenValue = '<?php echo generateCsrfToken(); ?>';
     
+    window.allGuestsMap = {};
+    <?php foreach($guests as $g): ?>
+    window.allGuestsMap[<?php echo (int)$g['id']; ?>] = <?php echo json_encode([
+        'id'              => (int)$g['id'],
+        'event_id'        => (int)$g['event_id'],
+        'full_name'       => $g['full_name'],
+        'phone'           => $g['phone'],
+        'organization'    => $g['organization'] ?? '',
+        'table_id'        => $g['table_id'] ? (int)$g['table_id'] : null,
+        'lucky_draw_code' => $g['lucky_draw_code'] ?? '',
+        'status'          => $g['status'],
+    ]); ?>;
+    <?php endforeach; ?>
+
     function filterTables(eventId, selectedTableId = null) {
         tableSelect.innerHTML = '<option value="">-- Chưa xếp bàn --</option>';
         
@@ -372,6 +427,7 @@ $guests = $stmtGuests->fetchAll();
     }
     
     function openEditModal(data) {
+        if (!data) return;
         document.getElementById('modalTitle').innerText = 'Sửa Thông Tin Khách';
         document.getElementById('formAction').value = 'edit';
         document.getElementById('guestId').value = data.id;
@@ -416,6 +472,107 @@ $guests = $stmtGuests->fetchAll();
         }
     }
 
+    let lastGuestsHash = '';
+
+    async function fetchRealtimeGuests() {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            params.set('ajax', '1');
+            params.set('_t', Date.now());
+
+            const response = await fetch(`guests.php?${params.toString()}`, { cache: 'no-store' });
+            if (!response.ok) return;
+
+            const textData = await response.text();
+            if (textData === lastGuestsHash) return;
+            lastGuestsHash = textData;
+
+            const result = JSON.parse(textData);
+            if (result.status === 'success') {
+                csrfTokenValue = result.csrf_token || csrfTokenValue;
+                
+                const counter = document.getElementById('guest-count-title');
+                const searchInput = document.getElementById('search-input');
+                if (counter && (!searchInput || !searchInput.value)) {
+                    counter.textContent = result.total_count;
+                }
+
+                const tbody = document.getElementById('guests-table-body');
+                if (!tbody) return;
+
+                if (result.guests.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="${isAdminUser ? 7 : 6}" style="text-align:center; color:#777; padding:20px;">Không có dữ liệu khách hàng</td></tr>`;
+                    return;
+                }
+
+                let html = '';
+                result.guests.forEach(item => {
+                    window.allGuestsMap[item.id] = {
+                        id: item.id,
+                        event_id: item.event_id,
+                        full_name: item.full_name,
+                        phone: item.phone,
+                        organization: item.organization,
+                        table_id: item.table_id,
+                        lucky_draw_code: item.lucky_draw_code,
+                        status: item.status
+                    };
+
+                    const isCheckedIn = item.status === 'checked_in';
+                    const rowClass = isCheckedIn ? 'row-checked-in' : '';
+
+                    const tableNameStr = item.table_name ? (item.table_name + (item.table_code ? ` (${item.table_code})` : '')) : '';
+                    const tableHtml = tableNameStr 
+                        ? `<span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;">🪑 ${tableNameStr}</span>`
+                        : `<span style="color: #888; font-style: italic;">Chưa xếp</span>`;
+
+                    const luckyHtml = item.lucky_draw_code
+                        ? `<span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;">🎟️ ${item.lucky_draw_code}</span>`
+                        : `<span style="color: #aaa;">-</span>`;
+
+                    const statusHtml = isCheckedIn 
+                        ? `<span class="badge checked_in">✅ Đã checkin</span>`
+                        : `<span class="badge invited">⏳ Chưa tới</span>`;
+
+                    let actionsHtml = '';
+                    if (isAdminUser) {
+                        actionsHtml = `
+                            <td>
+                                <button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;" onclick="openEditModal(window.allGuestsMap[${item.id}])">Sửa</button>
+                                <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa khách này?');">
+                                    <input type="hidden" name="csrf_token" value="${csrfTokenValue}">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="id" value="${item.id}">
+                                    <button type="submit" class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;">Xóa</button>
+                                </form>
+                            </td>
+                        `;
+                    }
+
+                    html += `
+                        <tr class="${rowClass}">
+                            <td><strong>${item.full_name}</strong></td>
+                            <td>${item.phone}</td>
+                            <td>${item.organization || '-'}</td>
+                            <td>${tableHtml}</td>
+                            <td>${luckyHtml}</td>
+                            <td>${statusHtml}</td>
+                            ${actionsHtml}
+                        </tr>
+                    `;
+                });
+
+                tbody.innerHTML = html;
+
+                if (searchInput && searchInput.value) {
+                    liveSearchGuests(searchInput.value);
+                }
+            }
+        } catch (e) {
+            console.error('Realtime guests error:', e);
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const input = document.getElementById('search-input');
         if (input) {
@@ -428,6 +585,7 @@ $guests = $stmtGuests->fetchAll();
                 liveSearchGuests(input.value);
             }
         }
+        setInterval(fetchRealtimeGuests, 3000);
     });
 </script>
 <script src="../assets/js/notifications.js?v=<?php echo time(); ?>"></script>

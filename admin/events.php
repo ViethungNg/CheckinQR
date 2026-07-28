@@ -71,15 +71,6 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); }
-        .wrapper { display: flex; min-height: 100vh; }
-        .sidebar { width: var(--sidebar-width); background: #fff; box-shadow: 2px 0 5px rgba(0,0,0,0.05); padding: 20px; }
-        .sidebar h2 { color: var(--primary-color); margin-bottom: 30px; font-size: 1.5rem; text-align: center; }
-        .sidebar ul { list-style: none; }
-        .sidebar ul li { margin-bottom: 10px; }
-        .sidebar ul li a { display: block; padding: 10px 15px; color: #555; text-decoration: none; border-radius: 5px; transition: background 0.3s; }
-        .sidebar ul li a:hover, .sidebar ul li a.active { background: #fce4e4; color: var(--primary-color); font-weight: 600; }
-        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #fff; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .content-box { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
@@ -120,47 +111,49 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
             <div style="margin-bottom: 15px;">
                 <button class="btn btn-primary" onclick="openAddModal()">+ Thêm sự kiện mới</button>
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Tên sự kiện</th>
-                        <th>Mã</th>
-                        <th>Ngày tổ chức</th>
-                        <th>Địa điểm</th>
-                        <th>Trạng thái</th>
-                        <th>Thao tác</th>
-                        <th>Link/QR Code</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach($events as $event): ?>
-                    <tr>
-                        <td><strong><?php echo esc($event['event_name']); ?></strong></td>
-                        <td><?php echo esc($event['event_code']); ?></td>
-                        <td><?php echo date('d/m/Y', strtotime($event['event_date'])); ?></td>
-                        <td><?php echo esc($event['location'] ?? '-'); ?></td>
-                        <td>
-                            <span class="badge <?php echo esc($event['status']); ?>">
-                                <?php echo $event['status'] === 'active' ? '🟢 Đang diễn ra' : '🔴 Đã kết thúc'; ?>
-                            </span>
-                        </td>
-                        <td>
-                            <button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;" onclick='openEditModal(<?php echo json_encode($event); ?>)'>Sửa</button>
-                            <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa sự kiện này? Toàn bộ khách và lịch sử check-in sẽ bị xóa theo!');">
-                                <?php echo csrfField(); ?>
-                                <input type="hidden" name="action" value="delete">
-                                <input type="hidden" name="id" value="<?php echo $event['id']; ?>">
-                                <button type="submit" class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;">Xóa</button>
-                            </form>
-                        </td>
-                        <td>
-                            <a href="<?php echo url('?event=' . esc($event['slug'])); ?>" target="_blank" class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;">Form</a>
-                            <a href="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=<?php echo urlencode(url('?event=' . esc($event['slug']))); ?>" target="_blank" class="btn btn-primary" style="padding:4px 8px; font-size:0.8rem;">QR Code</a>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tên sự kiện</th>
+                            <th>Mã</th>
+                            <th>Ngày tổ chức</th>
+                            <th>Địa điểm</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
+                            <th>Link/QR Code</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach($events as $event): ?>
+                        <tr>
+                            <td><strong><?php echo esc($event['event_name']); ?></strong></td>
+                            <td><?php echo esc($event['event_code']); ?></td>
+                            <td><?php echo date('d/m/Y', strtotime($event['event_date'])); ?></td>
+                            <td><?php echo esc($event['location'] ?? '-'); ?></td>
+                            <td>
+                                <span class="badge <?php echo esc($event['status']); ?>">
+                                    <?php echo $event['status'] === 'active' ? '🟢 Đang diễn ra' : '🔴 Đã kết thúc'; ?>
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;" onclick='openEditModal(<?php echo json_encode($event); ?>)'>Sửa</button>
+                                <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa sự kiện này? Toàn bộ khách và lịch sử check-in sẽ bị xóa theo!');">
+                                    <?php echo csrfField(); ?>
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="id" value="<?php echo $event['id']; ?>">
+                                    <button type="submit" class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;">Xóa</button>
+                                </form>
+                            </td>
+                            <td>
+                                <a href="<?php echo url('?event=' . esc($event['slug'])); ?>" target="_blank" class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;">Form</a>
+                                <a href="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=<?php echo urlencode(url('?event=' . esc($event['slug']))); ?>" target="_blank" class="btn btn-primary" style="padding:4px 8px; font-size:0.8rem;">QR Code</a>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
