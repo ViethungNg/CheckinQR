@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 
                                 <div style="background: #ffffff; border: 1px solid #ffcdd2; border-radius: 12px; padding: 14px; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
                                     <div style="font-size: 0.8rem; color: #777; margin-bottom: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">
-                                        📋 THÔNG TIN VỪA NHẬP (TRÌNH LỄ TÂN HỖ TRỢ)
+                                        📋 THÔNG TIN VỪA NHẬP (LIÊN HỆ LỄ TÂN HỖ TRỢ)
                                     </div>
                                     <div style="margin-bottom: 8px; font-size: 0.95rem; color: #333;">
                                         👤 <strong>Họ tên:</strong> ${data.data.full_name || ''}
