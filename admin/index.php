@@ -187,7 +187,7 @@ if (count($activeEvents) === 1) {
                 <table class="modern-data-table">
                     <thead>
                         <tr>
-                            <th>Khách Nhập</th>
+                            <th>Họ và tên</th>
                             <th>Số Điện Thoại</th>
                             <th>Bàn Tiệc</th>
                             <th>Hình Thức Check-in</th>
