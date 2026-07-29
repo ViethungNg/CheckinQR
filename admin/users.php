@@ -94,7 +94,8 @@ foreach ($usersList as $u) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý Tài khoản Admin - CheckinQR</title>
+    <title>PMT - Checkin - Quản lý tài khoản Admin</title>
+    <link rel="icon" href="../img/logo pmt.png" type="image/png">
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
     <style>
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
@@ -251,16 +252,18 @@ foreach ($usersList as $u) {
                                 </span>
                             </td>
                             <td>
-                                <button class="btn btn-action-edit" style="padding: 5px 10px; font-size: 0.82rem;" onclick='openEditModal(<?php echo json_encode($u); ?>)'>Sửa</button>
-                                <button class="btn" style="padding: 5px 10px; font-size: 0.82rem; background: #0284c7; color: #fff; border: none; border-radius: 6px; cursor: pointer;" onclick="openVerifyAdminPassModal(<?php echo $u['id']; ?>, '<?php echo esc($u['username']); ?>')">Xem MK</button>
-                                <?php if ($u['id'] !== (int)$_SESSION['admin_id']): ?>
-                                <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa tài khoản này?');">
-                                    <?php echo csrfField(); ?>
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="id" value="<?php echo $u['id']; ?>">
-                                    <button type="submit" class="btn btn-action-danger" style="padding: 5px 10px; font-size: 0.82rem;">Xóa</button>
-                                </form>
-                                <?php endif; ?>
+                                <div class="action-btns-wrapper">
+                                    <button class="btn btn-action-edit" style="padding: 5px 10px; font-size: 0.82rem;" onclick='openEditModal(<?php echo json_encode($u); ?>)'>Sửa</button>
+                                    <button class="btn" style="padding: 5px 10px; font-size: 0.82rem; background: #0284c7; color: #fff; border: none; border-radius: 6px; cursor: pointer;" onclick="openVerifyAdminPassModal(<?php echo $u['id']; ?>, '<?php echo esc($u['username']); ?>')">Xem MK</button>
+                                    <?php if ($u['id'] !== (int)$_SESSION['admin_id']): ?>
+                                    <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa tài khoản này?');">
+                                        <?php echo csrfField(); ?>
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="id" value="<?php echo $u['id']; ?>">
+                                        <button type="submit" class="btn btn-action-danger" style="padding: 5px 10px; font-size: 0.82rem;">Xóa</button>
+                                    </form>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                         <?php endforeach; ?>

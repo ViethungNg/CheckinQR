@@ -44,7 +44,8 @@ if ($slug !== '') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title><?php echo $event ? esc($event['event_name']) : ($showEventPicker ? 'Chọn Sự Kiện' : 'Check-in Sự kiện'); ?></title>
+    <title><?php echo $event ? esc($event['event_name']) . ' - PMT Checkin' : ($showEventPicker ? 'PMT - Checkin - Chọn Sự Kiện' : 'PMT - Checkin'); ?></title>
+    <link rel="icon" href="<?php echo url('img/logo pmt.png'); ?>" type="image/png">
     <link rel="stylesheet" href="<?php echo url('assets/css/frontend.css'); ?>">
     <style>
         .event-picker-list {

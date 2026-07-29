@@ -9,8 +9,8 @@ $firstChar = mb_strtoupper(mb_substr($adminName, 0, 1, 'UTF-8'));
 ?>
 <div class="sidebar" id="adminSidebar">
     <div class="sidebar-brand">
-        <a href="<?php echo url('admin/index.php'); ?>" class="sidebar-brand-link" title="Về trang Dashboard tổng quan" style="display: inline-block; text-decoration: none; background: transparent !important; border: none !important;">
-            <img src="<?php echo url('img/logo pmt.png'); ?>" alt="Logo PMT" class="sidebar-logo-img">
+        <a href="<?php echo url('admin/index.php'); ?>" class="sidebar-brand-link" title="Về trang Dashboard tổng quan" style="display: inline-block; text-decoration: none; background: transparent !important; border: none !important; outline: none !important; -webkit-tap-highlight-color: transparent !important;">
+            <img src="<?php echo url('img/logo pmt.png'); ?>" alt="Logo PMT" class="sidebar-logo-img" style="border: none !important; outline: none !important; -webkit-tap-highlight-color: transparent !important;">
         </a>
         <div class="mobile-brand-controls">
             <?php $roleLabelText = getRoleLabel($adminRole); ?>

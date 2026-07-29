@@ -223,7 +223,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Danh sách khách hàng - CheckinQR</title>
+    <title>PMT - Checkin - Danh sách khách hàng</title>
+    <link rel="icon" href="../img/logo pmt.png" type="image/png">
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
     <style>
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
@@ -353,8 +354,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                                 </span>
                             </td>
                             <?php if(isAdmin() || isLeTan()): ?>
-                            <td>
-                                <div style="display: inline-flex; align-items: center; gap: 6px;">
+                            <td style="text-align: center;">
+                                <div class="action-btns-wrapper" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
                                     <div style="width: 105px; display: inline-flex; align-items: center;">
                                         <?php if ($guest['status'] === 'invited'): ?>
                                             <button type="button" class="btn btn-action-checkin" onclick='checkinHoGuest(<?php echo (int)$guest["id"]; ?>, <?php echo json_encode($guest["full_name"]); ?>)'>Check-in hộ</button>

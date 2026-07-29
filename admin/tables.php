@@ -87,7 +87,8 @@ $tables = $stmtTables->fetchAll();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý Bàn - CheckinQR</title>
+    <title>PMT - Checkin - Quản lý bàn</title>
+    <link rel="icon" href="../img/logo pmt.png" type="image/png">
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
     <style>
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
@@ -180,13 +181,15 @@ $tables = $stmtTables->fetchAll();
                             <td><?php echo esc($t['location'] ?? '-'); ?></td>
                             <?php if(isAdmin()): ?>
                             <td>
-                                <button type="button" class="btn btn-action-edit" onclick='openEditModal(<?php echo json_encode($t); ?>)'>Sửa</button>
-                                <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa bàn này? Khách trong bàn sẽ bị mất vị trí.');">
-                                    <?php echo csrfField(); ?>
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="id" value="<?php echo $t['id']; ?>">
-                                    <button type="submit" class="btn btn-action-delete">Xóa</button>
-                                </form>
+                                <div class="action-btns-wrapper">
+                                    <button type="button" class="btn btn-action-edit" onclick='openEditModal(<?php echo json_encode($t); ?>)'>Sửa</button>
+                                    <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa bàn này? Khách trong bàn sẽ bị mất vị trí.');">
+                                        <?php echo csrfField(); ?>
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="id" value="<?php echo $t['id']; ?>">
+                                        <button type="submit" class="btn btn-action-delete">Xóa</button>
+                                    </form>
+                                </div>
                             </td>
                             <?php endif; ?>
                         </tr>

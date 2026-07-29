@@ -295,8 +295,7 @@
                     if (newItems.length > 0) {
                         playNotifChime();
                         newItems.forEach(item => {
-                            showToastNotification(item);
-                            triggerNativeNotification(item);
+                            shownToastIds.add(item.id);
                         });
                     }
                 }
@@ -356,11 +355,10 @@
         }
     }
 
-    // Mở khóa âm thanh trình duyệt và xin quyền thông báo khi người dùng thao tác
+    // Mở khóa âm thanh trình duyệt khi người dùng tương tác
     ['click', 'touchstart', 'keydown', 'scroll', 'mousemove'].forEach(evt => {
         document.addEventListener(evt, () => {
             unlockAudio();
-            requestBrowserNotificationPermission();
         }, { once: true });
     });
 

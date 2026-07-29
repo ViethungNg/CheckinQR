@@ -65,7 +65,8 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý Sự kiện - CheckinQR</title>
+    <title>PMT - Checkin - Quản lý sự kiện</title>
+    <link rel="icon" href="../img/logo pmt.png" type="image/png">
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
     <style>
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
@@ -121,7 +122,6 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
                             <th>Địa điểm</th>
                             <th>Trạng thái</th>
                             <th>Thao tác</th>
-                            <th>Link/QR Code</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -137,17 +137,17 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
                                 </span>
                             </td>
                             <td>
-                                <button type="button" class="btn btn-action-edit" onclick='openEditModal(<?php echo json_encode($event); ?>)'>Sửa</button>
-                                <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa sự kiện này? Toàn bộ khách và lịch sử check-in sẽ bị xóa theo!');">
-                                    <?php echo csrfField(); ?>
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="id" value="<?php echo $event['id']; ?>">
-                                    <button type="submit" class="btn btn-action-delete">Xóa</button>
-                                </form>
-                            </td>
-                            <td>
-                                <a href="<?php echo url('?event=' . esc($event['slug'])); ?>" target="_blank" class="btn btn-action-assign">Form</a>
-                                <a href="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=<?php echo urlencode(url('?event=' . esc($event['slug']))); ?>" target="_blank" class="btn btn-action-primary">QR Code</a>
+                                <div class="action-btns-wrapper">
+                                    <a href="<?php echo url('?event=' . esc($event['slug'])); ?>" target="_blank" class="btn btn-action-assign" title="Mở Form check-in">Form</a>
+                                    <a href="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=<?php echo urlencode(url('?event=' . esc($event['slug']))); ?>" target="_blank" class="btn btn-action-primary" title="Tải/Xem mã QR Code">QR Code</a>
+                                    <button type="button" class="btn btn-action-edit" onclick='openEditModal(<?php echo json_encode($event); ?>)'>Sửa</button>
+                                    <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa sự kiện này? Toàn bộ khách và lịch sử check-in sẽ bị xóa theo!');">
+                                        <?php echo csrfField(); ?>
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="id" value="<?php echo $event['id']; ?>">
+                                        <button type="submit" class="btn btn-action-delete">Xóa</button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         <?php endforeach; ?>

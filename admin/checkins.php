@@ -173,7 +173,8 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Khách đã checkin - CheckinQR</title>
+    <title>PMT - Checkin - Lịch sử Check-in</title>
+    <link rel="icon" href="../img/logo pmt.png" type="image/png">
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
     <style>
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }

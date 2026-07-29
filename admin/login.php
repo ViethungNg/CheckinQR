@@ -30,7 +30,8 @@ if (isPost()) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng nhập hệ thống - CheckinQR</title>
+    <title>PMT - Checkin - Đăng nhập Quản trị</title>
+    <link rel="icon" href="<?php echo url('img/logo pmt.png'); ?>" type="image/png">
     <style>
         :root {
             --primary-color: #d32f2f;
@@ -116,8 +117,9 @@ if (isPost()) {
 
 <div class="login-container">
     <div class="login-header">
-        <h2>Nguyễn Việt Hùng</h2>
-        <p>Hệ thống quản lý Check-in</p>
+        <img src="<?php echo url('img/logo pmt.png'); ?>" alt="Logo PMT" style="max-height: 65px; max-width: 220px; width: auto; height: auto; object-fit: contain; margin-bottom: 10px;">
+        <h2 style="font-size: 1.5rem; color: #111; font-weight: 800;">PMT - Checkin</h2>
+        <p style="color: #666; font-size: 0.9rem;">Hệ thống Quản lý & Điểm danh Sự kiện</p>
     </div>
     
     <?php if ($error): ?>
