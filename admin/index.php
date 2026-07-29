@@ -219,6 +219,7 @@ function setFilter(val) {
     if (activeCard) activeCard.classList.add('active-card');
     
     updateRealtimeStats(true);
+    if (window.scrollToTableSectionOnMobile) window.scrollToTableSectionOnMobile();
 }
 
 function setTableFilter(tableId) {
@@ -238,6 +239,7 @@ function setTableFilter(tableId) {
     }
     
     updateRealtimeStats();
+    if (window.scrollToTableSectionOnMobile) window.scrollToTableSectionOnMobile();
 }
 
 function handleSearchInput(val) {

@@ -573,6 +573,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
         if (sortSelect) currentCheckinSort = sortSelect.value;
         
         updateRealtimeCheckinsList(true);
+        if (window.scrollToTableSectionOnMobile) window.scrollToTableSectionOnMobile();
     }
 
     async function updateRealtimeCheckinsList(forceRefresh = false) {

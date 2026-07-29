@@ -383,6 +383,7 @@ foreach ($usersList as $u) {
         }
 
         applyUserFilters();
+        if (window.scrollToTableSectionOnMobile) window.scrollToTableSectionOnMobile();
     }
 
     function liveFilterUsers(query) {

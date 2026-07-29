@@ -13,13 +13,8 @@ $firstChar = mb_strtoupper(mb_substr($adminName, 0, 1, 'UTF-8'));
             <img src="<?php echo url('img/logo pmt.png'); ?>" alt="Logo PMT" class="sidebar-logo-img">
         </a>
         <div class="mobile-brand-controls">
-            <?php 
-                $roleLabelText = getRoleLabel($adminRole);
-                $badgeDisplayText = ($adminName !== 'Admin' && $adminName !== $roleLabelText && !empty($adminName))
-                    ? $adminName . ' (' . $roleLabelText . ')'
-                    : $roleLabelText;
-            ?>
-            <span class="mobile-user-greeting" title="<?php echo esc($badgeDisplayText); ?>"><?php echo esc($badgeDisplayText); ?></span>
+            <?php $roleLabelText = getRoleLabel($adminRole); ?>
+            <span class="mobile-user-greeting" title="<?php echo esc($roleLabelText); ?>"><?php echo esc($roleLabelText); ?></span>
             <button type="button" class="mobile-menu-btn" id="mobileMenuBtn"><span>☰</span> Menu</button>
         </div>
     </div>
