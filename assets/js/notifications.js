@@ -629,7 +629,7 @@
             }
 
             window.showAppToast(text, type);
-            alert.style.display = 'none';
+            // Giữ lại thẻ thông báo inline (.alert) trên trang hiển thị bình thường
         });
 
         if (isAddAction) {

@@ -2473,3 +2473,44 @@ tr.row-new-highlight td {
     50% { background-color: #bbf7d0 !important; }
     100% { background-color: transparent !important; }
 }
+
+/* ===== STYLING THẺ THÔNG BÁO INLINE TRÊN CÁC TRANG ADMIN (.alert) ===== */
+.alert {
+    padding: 12px 18px !important;
+    border-radius: 8px !important;
+    margin-bottom: 16px !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    display: block !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+}
+
+.alert.success {
+    background-color: #f0fdf4 !important;
+    color: #065f46 !important;
+    border: 1px solid #bbf7d0 !important;
+    border-left: 5px solid #10b981 !important;
+}
+
+.alert.error,
+.alert.danger {
+    background-color: #fef2f2 !important;
+    color: #991b1b !important;
+    border: 1px solid #fecaca !important;
+    border-left: 5px solid #ef4444 !important;
+}
+
+.alert.info {
+    background-color: #eff6ff !important;
+    color: #1e40af !important;
+    border: 1px solid #bfdbfe !important;
+    border-left: 5px solid #3b82f6 !important;
+}
+
+@keyframes newRowGlow {
+    0% { background-color: #fef08a !important; }
+    50% { background-color: #bbf7d0 !important; }
+    100% { background-color: transparent !important; }
+}
