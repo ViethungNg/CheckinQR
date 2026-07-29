@@ -408,8 +408,17 @@ if (isset($_GET['ajax'])) {
         tbody.innerHTML = html;
     }
 
-    // Polling realtime mỗi 2 giây
-    setInterval(fetchRealtimeTables, 2000);
+    // Lắng nghe sự kiện SSE Push (0s) khi CSDL có biến động
+    window.addEventListener('dbRealtimeChange', (e) => {
+        const data = e.detail;
+        if (data && Array.isArray(data.tables)) {
+            renderTablesRows(data.tables);
+        } else {
+            fetchRealtimeTables();
+        }
+    });
+
+    setInterval(fetchRealtimeTables, 3000); // Polling dự phòng
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
             fetchRealtimeTables();

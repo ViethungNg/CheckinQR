@@ -480,10 +480,69 @@
         return false;
     };
 
+    let lastKnownCheckinId = 0;
+
+    function processSSERecentCheckins(checkins) {
+        if (!checkins || checkins.length === 0) return;
+        const latestId = parseInt(checkins[0].id) || 0;
+        
+        if (lastKnownCheckinId > 0 && latestId > lastKnownCheckinId) {
+            playNotifChime();
+        }
+        lastKnownCheckinId = latestId;
+
+        const readIds = getReadCheckinIds();
+        const unreadCount = checkins.filter(c => !readIds.includes(parseInt(c.id))).length;
+
+        const formatted = checkins.map(c => ({
+            id: c.id,
+            name: c.full_name || 'Khách mời',
+            phone: c.phone || '',
+            table: c.table_name || 'Chưa xếp bàn',
+            status: c.match_status || 'matched',
+            time: c.checkin_time || '',
+            is_new: !readIds.includes(parseInt(c.id))
+        }));
+
+        renderNotifDropdown(formatted, unreadCount);
+    }
+
+    function initRealtimeSSE() {
+        if (!window.EventSource) return;
+
+        const currentPath = window.location.pathname;
+        let ssePath = 'api/sse.php';
+        if (currentPath.includes('/admin/')) {
+            ssePath = '../api/sse.php';
+        }
+
+        try {
+            const sseSource = new EventSource(ssePath);
+
+            sseSource.onmessage = function(event) {
+                if (!event.data) return;
+                try {
+                    const payload = JSON.parse(event.data);
+                    if (payload && payload.type === 'db_change' && payload.data) {
+                        if (Array.isArray(payload.data.recent_checkins)) {
+                            processSSERecentCheckins(payload.data.recent_checkins);
+                        }
+                        window.dispatchEvent(new CustomEvent('dbRealtimeChange', { detail: payload.data }));
+                    }
+                } catch(e) {
+                    console.error('SSE JSON parse error:', e);
+                }
+            };
+        } catch(e) {
+            console.error('SSE init error:', e);
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         injectHeaderNotifBell();
         injectConfirmModalHTML();
         checkNewNotifications();
-        setInterval(checkNewNotifications, 2000);
+        initRealtimeSSE();
+        setInterval(checkNewNotifications, 3000);
     });
 })();

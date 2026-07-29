@@ -720,9 +720,13 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
         }
     }
 
-    // Chạy kiểm tra mỗi 2 giây
+    // Lắng nghe sự kiện SSE Push (0s) khi CSDL có phát sinh
     updateRealtimeCheckinsList();
-    setInterval(updateRealtimeCheckinsList, 2000);
+    setInterval(updateRealtimeCheckinsList, 3000); // Polling dự phòng
+
+    window.addEventListener('dbRealtimeChange', () => {
+        updateRealtimeCheckinsList();
+    });
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {

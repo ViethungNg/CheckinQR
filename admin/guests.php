@@ -818,7 +818,11 @@ counter.textContent = count;
                 liveSearchGuests(input.value);
             }
         }
-        setInterval(fetchRealtimeGuests, 2000);
+        setInterval(fetchRealtimeGuests, 3000); // Polling dự phòng
+
+        window.addEventListener('dbRealtimeChange', () => {
+            fetchRealtimeGuests();
+        });
     });
 </script>
 <script src="../assets/js/notifications.js?v=<?php echo time(); ?>"></script>

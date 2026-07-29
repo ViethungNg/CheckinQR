@@ -408,9 +408,13 @@ function populateTableSelectOptions(tables) {
     select.dataset.loaded = 'true';
 }
 
-// Chạy ngay khi tải trang và lặp lại mỗi 2 giây
+// Chạy ngay khi tải trang và lắng nghe sự kiện SSE Push (0s) khi CSDL có phát sinh
 updateRealtimeStats();
-setInterval(updateRealtimeStats, 2000);
+setInterval(updateRealtimeStats, 3000); // Polling dự phòng
+
+window.addEventListener('dbRealtimeChange', (e) => {
+    updateRealtimeStats();
+});
 
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
