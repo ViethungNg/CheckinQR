@@ -301,8 +301,8 @@
 
                     if (newItems.length > 0) {
                         playNotifChime();
+                        openNotifDropdown();
                         newItems.forEach(item => {
-                            showToastNotification(item);
                             triggerNativeNotification(item);
                             shownToastIds.add(item.id);
                         });
@@ -343,6 +343,14 @@
         if (dropdown) {
             const isVisible = getComputedStyle(dropdown).display !== 'none';
             dropdown.style.display = isVisible ? 'none' : 'flex';
+        }
+    };
+
+    window.openNotifDropdown = function () {
+        unlockAudio();
+        const dropdown = document.getElementById('notifDropdown');
+        if (dropdown) {
+            dropdown.style.display = 'flex';
         }
     };
 
@@ -497,17 +505,7 @@
         
         if (lastKnownCheckinId > 0 && latestId > lastKnownCheckinId) {
             playNotifChime();
-            const newCheckins = checkins.filter(c => parseInt(c.id) > lastKnownCheckinId);
-            newCheckins.forEach(c => {
-                showToastNotification({
-                    id: c.id,
-                    full_name: c.full_name || 'Khách mời',
-                    phone: c.phone || '',
-                    table_name: c.table_name || 'Chưa xếp bàn',
-                    status: c.match_status || 'matched',
-                    time: c.checkin_time || ''
-                });
-            });
+            openNotifDropdown();
         }
         lastKnownCheckinId = latestId;
 
