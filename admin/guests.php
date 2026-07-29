@@ -818,7 +818,7 @@ counter.textContent = count;
                 liveSearchGuests(input.value);
             }
         }
-        setInterval(fetchRealtimeGuests, 3000);
+        setInterval(fetchRealtimeGuests, 2000);
     });
 </script>
 <script src="../assets/js/notifications.js?v=<?php echo time(); ?>"></script>

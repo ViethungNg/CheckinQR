@@ -178,7 +178,7 @@ if (count($activeEvents) === 1) {
                         <option value="all">Tất cả các Bàn</option>
                     </select>
                     <div class="realtime-pill-badge">
-                        <div class="pulse-dot"></div> Real-time (3s)
+                        <div class="pulse-dot"></div> Real-time (2s)
                     </div>
                 </div>
             </div>
@@ -408,9 +408,9 @@ function populateTableSelectOptions(tables) {
     select.dataset.loaded = 'true';
 }
 
-// Chạy ngay khi tải trang và lặp lại mỗi 3 giây
+// Chạy ngay khi tải trang và lặp lại mỗi 2 giây
 updateRealtimeStats();
-setInterval(updateRealtimeStats, 3000);
+setInterval(updateRealtimeStats, 2000);
 
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {

@@ -215,7 +215,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
         <div class="header">
             <h1>Khách đã checkin</h1>
             <span id="realtime-status" style="font-size: 0.85rem; color: #2e7d32; font-weight: 500;">
-                🟢 Real-time (Mỗi 3s)
+                🟢 Real-time (Mỗi 2s)
             </span>
         </div>
         
@@ -720,9 +720,9 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
         }
     }
 
-    // Chạy kiểm tra mỗi 3 giây
+    // Chạy kiểm tra mỗi 2 giây
     updateRealtimeCheckinsList();
-    setInterval(updateRealtimeCheckinsList, 3000);
+    setInterval(updateRealtimeCheckinsList, 2000);
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {

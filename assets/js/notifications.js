@@ -484,6 +484,6 @@
         injectHeaderNotifBell();
         injectConfirmModalHTML();
         checkNewNotifications();
-        setInterval(checkNewNotifications, 3000);
+        setInterval(checkNewNotifications, 2000);
     });
 })();
