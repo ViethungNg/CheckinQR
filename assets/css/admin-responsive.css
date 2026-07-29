@@ -701,7 +701,8 @@ button, input, select, textarea {
     /* 4. Table Formatting for Mobile */
     .table-responsive {
         width: 100% !important;
-        overflow-x: auto !important;
+        max-height: 72vh !important;
+        overflow: auto !important;
         -webkit-overflow-scrolling: touch !important;
         border-radius: 8px !important;
         border: 1px solid #eeeeee !important;
@@ -723,6 +724,15 @@ button, input, select, textarea {
         border-spacing: 0 !important;
     }
 
+    /* Cố định HÀNG TIÊU ĐỀ (th) ở góc trên cùng khi cuộn dọc */
+    .table-responsive table th {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 25 !important;
+        background-color: #f8fafc !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
+    }
+
     /* Cố định vĩnh viễn cả trường tiêu đề (th) và dữ liệu (td) của cột 1 với cùng độ rộng 150px chuẩn tuyệt đối */
     .table-responsive table th:first-child,
     .table-responsive table td:first-child {
@@ -736,13 +746,16 @@ button, input, select, textarea {
         box-shadow: 4px 0 10px rgba(0, 0, 0, 0.08) !important;
     }
 
+    /* Ô Tiêu đề Cột 1 cố định cả chiều ngang (trái) lẫn chiều dọc (trên cùng) */
     .table-responsive table th:first-child {
-        z-index: 30 !important;
+        top: 0 !important;
+        z-index: 35 !important;
         background-color: #f8fafc !important;
         white-space: normal !important;
         word-break: break-word !important;
         font-weight: 700 !important;
         line-height: 1.3 !important;
+        box-shadow: 4px 2px 10px rgba(0, 0, 0, 0.1) !important;
     }
 
     .table-responsive table td:first-child {
@@ -754,8 +767,14 @@ button, input, select, textarea {
         line-height: 1.35 !important;
     }
 
-    /* Các cột từ cột thứ 2 trở đi luôn nằm bên dưới cột 1 khi cuộn ngang */
-    .table-responsive table th:nth-child(n+2),
+    /* Các tiêu đề từ cột 2 trở đi cố định trên cùng (top: 0) khi cuộn dọc */
+    .table-responsive table th:nth-child(n+2) {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 25 !important;
+    }
+
+    /* Các ô DỮ LIỆU từ cột 2 trở đi nằm bên dưới hàng tiêu đề và cột 1 */
     .table-responsive table td:nth-child(n+2) {
         position: relative !important;
         z-index: 1 !important;
@@ -2336,4 +2355,116 @@ body {
 .modal-content {
     margin: auto !important;
     position: relative !important;
+}
+
+/* ===== APP TOAST POPUP NOTIFICATION SYSTEM ===== */
+.app-toast-container {
+    position: fixed !important;
+    top: 20px !important;
+    right: 20px !important;
+    z-index: 999999 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    max-width: 380px !important;
+    width: calc(100% - 40px) !important;
+    pointer-events: none !important;
+}
+
+@media screen and (max-width: 768px) {
+    .app-toast-container {
+        top: 70px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        right: auto !important;
+        width: calc(100% - 30px) !important;
+    }
+}
+
+.app-toast-item {
+    pointer-events: auto !important;
+    background: #ffffff !important;
+    border-radius: 12px !important;
+    padding: 14px 18px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    border-left: 5px solid #10b981 !important;
+    animation: toastSlideIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+    transition: opacity 0.3s ease, transform 0.3s ease !important;
+}
+
+.app-toast-item.toast-success {
+    border-left-color: #10b981 !important;
+    background: #f0fdf4 !important;
+    color: #065f46 !important;
+}
+
+.app-toast-item.toast-edit {
+    border-left-color: #3b82f6 !important;
+    background: #eff6ff !important;
+    color: #1e40af !important;
+}
+
+.app-toast-item.toast-delete {
+    border-left-color: #ef4444 !important;
+    background: #fef2f2 !important;
+    color: #991b1b !important;
+}
+
+.app-toast-icon {
+    font-size: 1.3rem !important;
+    flex-shrink: 0 !important;
+}
+
+.app-toast-content {
+    flex-grow: 1 !important;
+}
+
+.app-toast-title {
+    font-weight: 700 !important;
+    font-size: 0.9rem !important;
+    margin-bottom: 2px !important;
+}
+
+.app-toast-message {
+    font-size: 0.85rem !important;
+    line-height: 1.3 !important;
+}
+
+.app-toast-close {
+    cursor: pointer !important;
+    font-size: 1.2rem !important;
+    color: #94a3b8 !important;
+    background: none !important;
+    border: none !important;
+    padding: 0 4px !important;
+    line-height: 1 !important;
+}
+
+.app-toast-close:hover {
+    color: #334155 !important;
+}
+
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Highlight phát sáng khi mới thêm dữ liệu vào bảng */
+tr.row-new-highlight td {
+    animation: newRowGlow 2.5s ease-out !important;
+}
+
+@keyframes newRowGlow {
+    0% { background-color: #fef08a !important; }
+    50% { background-color: #bbf7d0 !important; }
+    100% { background-color: transparent !important; }
 }

@@ -538,11 +538,122 @@
         }
     }
 
+    // Global Toast Notification Manager
+    window.showAppToast = function(message, type = 'success', title = '') {
+        if (!message) return;
+        let container = document.getElementById('appToastContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'appToastContainer';
+            container.className = 'app-toast-container';
+            document.body.appendChild(container);
+        }
+
+        let icon = '✅';
+        let defaultTitle = 'Thao tác thành công';
+        let toastClass = 'toast-success';
+
+        const lower = message.toLowerCase();
+        if (type === 'edit' || lower.includes('sửa') || lower.includes('cập nhật')) {
+            icon = '✏️';
+            defaultTitle = 'Cập nhật thành công';
+            toastClass = 'toast-edit';
+        } else if (type === 'delete' || lower.includes('xóa')) {
+            icon = '🗑️';
+            defaultTitle = 'Đã xóa thành công';
+            toastClass = 'toast-delete';
+        } else if (type === 'error' || lower.includes('lỗi')) {
+            icon = '⚠️';
+            defaultTitle = 'Thông báo hệ thống';
+            toastClass = 'toast-delete';
+        } else if (type === 'add' || lower.includes('thêm')) {
+            icon = '🎉';
+            defaultTitle = 'Thêm mới thành công';
+            toastClass = 'toast-success';
+        }
+
+        if (!title) title = defaultTitle;
+
+        const item = document.createElement('div');
+        item.className = `app-toast-item ${toastClass}`;
+        item.innerHTML = `
+            <div class="app-toast-icon">${icon}</div>
+            <div class="app-toast-content">
+                <div class="app-toast-title">${title}</div>
+                <div class="app-toast-message">${message}</div>
+            </div>
+            <button type="button" class="app-toast-close" onclick="this.parentElement.remove()">&times;</button>
+        `;
+
+        container.appendChild(item);
+
+        setTimeout(() => {
+            item.style.opacity = '0';
+            item.style.transform = 'translateY(-10px)';
+            setTimeout(() => item.remove(), 300);
+        }, 4000);
+    };
+
+    // Auto Intercept PHP Alert Boxes & Scroll to Bottom on Add
+    function initAlertAndAutoScrollInterceptor() {
+        const alerts = document.querySelectorAll('.alert.success, .alert.error, .alert.info');
+        let isAddAction = false;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('added') === '1' || urlParams.get('scroll') === 'bottom') {
+            isAddAction = true;
+        }
+
+        alerts.forEach(alert => {
+            const text = alert.textContent.trim();
+            if (!text) return;
+
+            const lower = text.toLowerCase();
+            let type = 'success';
+            if (alert.classList.contains('error')) type = 'error';
+
+            if (lower.includes('thêm')) {
+                isAddAction = true;
+                type = 'add';
+            } else if (lower.includes('sửa') || lower.includes('cập nhật')) {
+                type = 'edit';
+            } else if (lower.includes('xóa')) {
+                type = 'delete';
+            }
+
+            window.showAppToast(text, type);
+            alert.style.display = 'none';
+        });
+
+        if (isAddAction) {
+            setTimeout(scrollToTableBottom, 400);
+        }
+    }
+
+    function scrollToTableBottom() {
+        const tableContainers = document.querySelectorAll('.table-responsive');
+        tableContainers.forEach(container => {
+            container.scrollTo({
+                top: container.scrollHeight,
+                behavior: 'smooth'
+            });
+        });
+
+        const lastRows = document.querySelectorAll('.table-responsive table tbody tr:last-child');
+        lastRows.forEach(row => {
+            row.classList.add('row-new-highlight');
+            setTimeout(() => row.classList.remove('row-new-highlight'), 3000);
+        });
+    }
+
+    window.scrollToTableBottom = scrollToTableBottom;
+
     document.addEventListener('DOMContentLoaded', () => {
         injectHeaderNotifBell();
         injectConfirmModalHTML();
         checkNewNotifications();
         initRealtimeSSE();
+        initAlertAndAutoScrollInterceptor();
         setInterval(checkNewNotifications, 3000);
     });
 })();
