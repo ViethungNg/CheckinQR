@@ -130,19 +130,21 @@
 
         const isWalkIn = item.status === 'walk_in';
         const toast = document.createElement('div');
-        toast.className = `toast-item ${isWalkIn ? 'walk_in' : ''}`;
+        toast.className = `toast-item ${isWalkIn ? 'walk_in' : 'matched'}`;
         toast.dataset.toastId = item.id;
+
+        const timeDisplay = item.time ? item.time.split(' ')[0] : '';
 
         toast.innerHTML = `
             <div class="toast-icon">${isWalkIn ? '🔸' : '✅'}</div>
             <div class="toast-content">
                 <div class="toast-title">
-                    <span>${isWalkIn ? 'Khách phát sinh vừa quét QR!' : 'Khách dự kiến đã Check-in!'}</span>
+                    <span>${isWalkIn ? 'Khách phát sinh vừa quét QR!' : 'Khách hợp lệ đã Check-in!'}</span>
                     <button class="toast-close" onclick="this.closest('.toast-item').remove()">×</button>
                 </div>
                 <div class="toast-body">
                     <strong>👤 ${item.full_name}</strong> (${item.phone})<br>
-                    🪑 Bàn: <strong>${item.table_name}</strong> | ⏰ ${item.time.split(' ')[0]}
+                    🪑 Bàn: <strong>${item.table_name}</strong> ${timeDisplay ? '| ⏰ ' + timeDisplay : ''}
                 </div>
             </div>
         `;
@@ -233,11 +235,16 @@
         let html = '';
         checkins.forEach(item => {
             const isWalkIn = item.status === 'walk_in';
+            const statusClass = isWalkIn ? 'status-walkin' : 'status-matched';
+            const badgeClass = isWalkIn ? 'badge-walkin' : 'badge-matched';
+            const statusLabel = isWalkIn ? 'Khách phát sinh' : 'Khách hợp lệ';
+            const timeDisplay = item.time ? item.time.split(' ')[0] : '';
+
             html += `
-                <div class="notif-item ${item.is_new ? 'unread' : ''}" onclick="window.location.href='checkins.php?highlight=${item.id}'">
+                <div class="notif-item ${statusClass} ${item.is_new ? 'unread' : ''}" onclick="window.location.href='checkins.php?highlight=${item.id}'">
                     <div class="notif-item-title">
-                        <span>${isWalkIn ? 'Khách phát sinh' : 'Khách hợp lệ'}</span>
-                        <span class="notif-item-time">${item.time.split(' ')[0]}</span>
+                        <span class="notif-status-badge ${badgeClass}">${statusLabel}</span>
+                        <span class="notif-item-time">${timeDisplay}</span>
                     </div>
                     <div class="notif-item-desc">
                         <strong>${item.full_name}</strong> - ${item.phone}<br>
