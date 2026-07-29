@@ -81,6 +81,15 @@ $stmtTables = $db->prepare("
 ");
 $stmtTables->execute($paramsTables);
 $tables = $stmtTables->fetchAll();
+
+if (isset($_GET['ajax'])) {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => true,
+        'tables'  => $tables
+    ]);
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -122,8 +131,11 @@ $tables = $stmtTables->fetchAll();
 <div class="wrapper">
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
     <div class="main-content">
-        <div class="header">
+        <div class="header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
             <h1>Quản lý Bàn Sự kiện <?php echo isKinhDoanh() ? '(Đang phụ trách)' : ''; ?></h1>
+            <span id="realtime-status" style="font-size: 0.85rem; color: #2e7d32; font-weight: 500;">
+                🟢 Real-time (Mỗi 2s)
+            </span>
         </div>
         
         <?php if($message): ?><div class="alert success"><?php echo esc($message); ?></div><?php endif; ?>
@@ -151,7 +163,7 @@ $tables = $stmtTables->fetchAll();
                             <?php if(isAdmin()): ?><th>Thao tác</th><?php endif; ?>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="tablesTableBody">
                         <?php foreach($tables as $t): ?>
                         <tr>
                             <td style="text-align: center;">
@@ -297,6 +309,112 @@ $tables = $stmtTables->fetchAll();
     function closeModal() {
         modal.style.display = 'none';
     }
+
+    let isFetchingTables = false;
+    const isAdminUser = <?php echo isAdmin() ? 'true' : 'false'; ?>;
+
+    async function fetchRealtimeTables() {
+        if (isFetchingTables) return;
+        if (modal && getComputedStyle(modal).display !== 'none') return;
+
+        isFetchingTables = true;
+        try {
+            const response = await fetch('tables.php?ajax=1', { cache: 'no-store' });
+            if (!response.ok) return;
+            const data = await response.json();
+            
+            if (data && data.success && Array.isArray(data.tables)) {
+                renderTablesRows(data.tables);
+            }
+        } catch (e) {
+            console.error('Lỗi fetch realtime tables:', e);
+        } finally {
+            isFetchingTables = false;
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str && str !== 0) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function renderTablesRows(tables) {
+        const tbody = document.getElementById('tablesTableBody');
+        if (!tbody) return;
+
+        let html = '';
+        tables.forEach(t => {
+            const currentGuests = parseInt(t.current_guests) || 0;
+            const actualCheckins = parseInt(t.actual_checkins) || 0;
+            const capacity = parseInt(t.capacity) || 10;
+            const locationText = t.location ? escapeHtml(t.location) : '-';
+
+            let userBadge = '<span style="color: #aaa;">Chưa phân công</span>';
+            if (t.assigned_user_name) {
+                userBadge = `<span style="background: #fff3e0; color: #e65100; padding: 3px 8px; border-radius: 4px; font-weight: 500;">💼 ${escapeHtml(t.assigned_user_name)}</span>`;
+            }
+
+            const currentGuestsColor = currentGuests > capacity ? 'red' : '#1565c0';
+            const actualCheckinsColor = actualCheckins > capacity ? 'red' : '#2e7d32';
+
+            const jsonString = JSON.stringify(t).replace(/'/g, "&apos;");
+
+            let actionTd = '';
+            if (isAdminUser) {
+                actionTd = `
+                    <td>
+                        <div class="action-btns-wrapper">
+                            <button type="button" class="btn btn-action-edit" onclick='openEditModal(${jsonString})'>Sửa</button>
+                            <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa bàn này? Khách trong bàn sẽ bị mất vị trí.');">
+                                <input type="hidden" name="csrf_token" value="${document.querySelector('input[name="csrf_token"]')?.value || ''}">
+                                <input type="hidden" name="action" value="delete">
+                                <input type="hidden" name="id" value="${t.id}">
+                                <button type="submit" class="btn btn-action-delete">Xóa</button>
+                            </form>
+                        </div>
+                    </td>
+                `;
+            }
+
+            html += `
+                <tr>
+                    <td style="text-align: center;">
+                        <span style="font-weight: bold; color: #d32f2f; background: #ffebee; padding: 3px 10px; border-radius: 6px;">
+                            ${t.sort_order}
+                        </span>
+                    </td>
+                    <td><strong>${escapeHtml(t.table_name)}</strong></td>
+                    <td>${escapeHtml(t.table_code || '')}</td>
+                    <td>${escapeHtml(t.event_name || '')}</td>
+                    <td>${userBadge}</td>
+                    <td>${capacity} người</td>
+                    <td style="color: ${currentGuestsColor}; font-weight: bold;">
+                        ${currentGuests} / ${capacity}
+                    </td>
+                    <td style="color: ${actualCheckinsColor}; font-weight: bold;">
+                        ${actualCheckins} / ${capacity}
+                    </td>
+                    <td>${locationText}</td>
+                    ${actionTd}
+                </tr>
+            `;
+        });
+
+        tbody.innerHTML = html;
+    }
+
+    // Polling realtime mỗi 2 giây
+    setInterval(fetchRealtimeTables, 2000);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            fetchRealtimeTables();
+        }
+    });
 </script>
 <script src="../assets/js/notifications.js?v=<?php echo time(); ?>"></script>
 <script src="../assets/js/admin-mobile.js?v=<?php echo time(); ?>"></script>
