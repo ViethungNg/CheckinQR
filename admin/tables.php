@@ -180,12 +180,12 @@ $tables = $stmtTables->fetchAll();
                             <td><?php echo esc($t['location'] ?? '-'); ?></td>
                             <?php if(isAdmin()): ?>
                             <td>
-                                <button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;" onclick='openEditModal(<?php echo json_encode($t); ?>)'>Sửa</button>
+                                <button type="button" class="btn btn-action-edit" onclick='openEditModal(<?php echo json_encode($t); ?>)'>Sửa</button>
                                 <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa bàn này? Khách trong bàn sẽ bị mất vị trí.');">
                                     <?php echo csrfField(); ?>
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?php echo $t['id']; ?>">
-                                    <button type="submit" class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;">Xóa</button>
+                                    <button type="submit" class="btn btn-action-delete">Xóa</button>
                                 </form>
                             </td>
                             <?php endif; ?>

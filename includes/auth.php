@@ -97,14 +97,14 @@ function getRoleLabel(string $role): string {
     switch ($role) {
         case 'admin':
         case 'super_admin':
-            return '👑 Quản trị viên (Admin)';
+            return 'Quản trị viên (Admin)';
         case 'letan':
         case 'staff':
-            return '👤 Nhân viên Lễ tân';
+            return 'Nhân viên Lễ tân';
         case 'kinhdoanh':
-            return '💼 Nhân viên Kinh doanh';
+            return 'Nhân viên Kinh doanh';
         default:
-            return '👤 ' . ucfirst($role);
+            return ucfirst($role);
     }
 }
 

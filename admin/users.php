@@ -104,8 +104,9 @@ foreach ($usersList as $u) {
         
         /* Stats Grid */
         .user-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .stat-card { background: #fff; border-radius: 10px; padding: 18px 20px; border: 1px solid #e0e0e0; box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: transform 0.2s, box-shadow 0.2s; }
+        .stat-card { background: #fff; border-radius: 10px; padding: 18px 20px; border: 1px solid #e0e0e0; box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: all 0.2s; cursor: pointer; user-select: none; }
         .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .stat-card.active { border-width: 2px !important; background: #fafafa !important; box-shadow: 0 4px 14px rgba(0,0,0,0.12) !important; transform: translateY(-2px); }
         .stat-card h4 { font-size: 0.85rem; text-transform: uppercase; color: #666; margin-bottom: 8px; font-weight: 600; }
         .stat-card .val { font-size: 1.8rem; font-weight: 800; color: #222; }
 
@@ -113,9 +114,8 @@ foreach ($usersList as $u) {
         .content-box { background: #fff; border-radius: 12px; padding: 22px; box-shadow: 0 4px 15px rgba(0,0,0,0.04); border: 1px solid #eef2f5; }
         .search-toolbar { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 20px; background: #fafafa; padding: 12px 16px; border-radius: 8px; border: 1px solid #eee; }
         .search-box { flex: 1; min-width: 260px; position: relative; }
-        .search-input { width: 100%; padding: 10px 14px 10px 38px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; outline: none; transition: border 0.2s; }
+        .search-input { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; outline: none; transition: border 0.2s; }
         .search-input:focus { border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(211,47,47,0.1); }
-        .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #888; font-size: 0.95rem; }
 
         /* Table Aesthetics */
         table { width: 100%; border-collapse: collapse; margin-top: 5px; }
@@ -174,25 +174,25 @@ foreach ($usersList as $u) {
             <h1>Quản lý Tài khoản Đăng nhập</h1>
         </div>
         
-        <?php if($message): ?><div class="alert success">✅ <?php echo esc($message); ?></div><?php endif; ?>
-        <?php if($error): ?><div class="alert error">⚠️ <?php echo esc($error); ?></div><?php endif; ?>
+        <?php if($message): ?><div class="alert success"><?php echo esc($message); ?></div><?php endif; ?>
+        <?php if($error): ?><div class="alert error"><?php echo esc($error); ?></div><?php endif; ?>
 
-        <!-- Stats Bar -->
+        <!-- Stats Bar with Interactive Filtering -->
         <div class="user-stats-grid">
-            <div class="stat-card">
-                <h4>👥 TỔNG TÀI KHOẢN</h4>
+            <div class="stat-card active" id="card-filter-all" onclick="filterUserRole('all', this)" title="Xem tất cả tài khoản">
+                <h4>TỔNG TÀI KHOẢN</h4>
                 <div class="val" id="stat-count-total"><?php echo $countTotal; ?></div>
             </div>
-            <div class="stat-card" style="border-left: 4px solid #1565c0;">
-                <h4 style="color: #1565c0;">👑 QUẢN TRỊ VIÊN (ADMIN)</h4>
+            <div class="stat-card" id="card-filter-admin" style="border-left: 4px solid #1565c0;" onclick="filterUserRole('admin', this)" title="Lọc tài khoản Admin">
+                <h4 style="color: #1565c0;">QUẢN TRỊ VIÊN (ADMIN)</h4>
                 <div class="val" style="color: #1565c0;"><?php echo $countAdmin; ?></div>
             </div>
-            <div class="stat-card" style="border-left: 4px solid #7b1fa2;">
-                <h4 style="color: #7b1fa2;">👤 LỄ TÂN (LE TAN)</h4>
+            <div class="stat-card" id="card-filter-letan" style="border-left: 4px solid #7b1fa2;" onclick="filterUserRole('letan', this)" title="Lọc tài khoản Lễ tân">
+                <h4 style="color: #7b1fa2;">LỄ TÂN (LE TAN)</h4>
                 <div class="val" style="color: #7b1fa2;"><?php echo $countLeTan; ?></div>
             </div>
-            <div class="stat-card" style="border-left: 4px solid #e65100;">
-                <h4 style="color: #e65100;">💼 KINH DOANH (SALES)</h4>
+            <div class="stat-card" id="card-filter-kinhdoanh" style="border-left: 4px solid #e65100;" onclick="filterUserRole('kinhdoanh', this)" title="Lọc tài khoản Kinh doanh">
+                <h4 style="color: #e65100;">KINH DOANH (SALES)</h4>
                 <div class="val" style="color: #e65100;"><?php echo $countKD; ?></div>
             </div>
         </div>
@@ -201,11 +201,10 @@ foreach ($usersList as $u) {
             <!-- Search & Actions Bar -->
             <div class="search-toolbar">
                 <div class="search-box">
-                    <span class="search-icon">🔍</span>
-                    <input type="text" id="user-search" class="search-input" placeholder="⚡ Gõ tới đâu tìm tới đó: Username, Họ tên, Vai trò..." oninput="liveFilterUsers(this.value)" autocomplete="off">
+                    <input type="text" id="user-search" class="search-input" placeholder="Tìm theo Username, Họ tên, Vai trò..." oninput="liveFilterUsers(this.value)" autocomplete="off">
                 </div>
                 <button class="btn btn-primary" onclick="openAddModal()">
-                    <span>+</span> Tạo tài khoản mới
+                    Tạo tài khoản mới
                 </button>
             </div>
 
@@ -225,7 +224,7 @@ foreach ($usersList as $u) {
                         <?php foreach($usersList as $u): 
                             $firstChar = mb_strtoupper(mb_substr($u['full_name'], 0, 1, 'UTF-8'));
                         ?>
-                        <tr>
+                        <tr data-role="<?php echo esc($u['role']); ?>">
                             <td>
                                 <div class="user-cell">
                                     <div class="user-avatar"><?php echo esc($firstChar); ?></div>
@@ -243,22 +242,22 @@ foreach ($usersList as $u) {
                             </td>
                             <td>
                                 <span class="badge-status <?php echo $u['status'] === 'active' ? 'status-active' : 'status-inactive'; ?>">
-                                    <?php echo $u['status'] === 'active' ? '● Hoạt động' : '○ Đã khóa'; ?>
+                                    <?php echo $u['status'] === 'active' ? 'Hoạt động' : 'Đã khóa'; ?>
                                 </span>
                             </td>
                             <td>
                                 <span style="font-size: 0.88rem; color: #555;">
-                                    <?php echo !empty($u['last_login_at']) ? date('d/m/Y H:i', strtotime($u['last_login_at'])) : '⏳ Chưa đăng nhập'; ?>
+                                    <?php echo !empty($u['last_login_at']) ? date('d/m/Y H:i', strtotime($u['last_login_at'])) : 'Chưa đăng nhập'; ?>
                                 </span>
                             </td>
                             <td>
-                                <button class="btn btn-success" style="padding:4px 10px; font-size:0.82rem;" onclick='openEditModal(<?php echo json_encode($u); ?>)'>✏️ Sửa</button>
+                                <button class="btn btn-action-edit" style="padding: 5px 12px; font-size: 0.82rem;" onclick='openEditModal(<?php echo json_encode($u); ?>)'>Sửa</button>
                                 <?php if ($u['id'] !== (int)$_SESSION['admin_id']): ?>
                                 <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa tài khoản này?');">
                                     <?php echo csrfField(); ?>
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?php echo $u['id']; ?>">
-                                    <button type="submit" class="btn btn-danger" style="padding:4px 10px; font-size:0.82rem;">🗑️ Xóa</button>
+                                    <button type="submit" class="btn btn-action-danger" style="padding: 5px 12px; font-size: 0.82rem;">Xóa</button>
                                 </form>
                                 <?php endif; ?>
                             </td>
@@ -271,11 +270,11 @@ foreach ($usersList as $u) {
     </div>
 </div>
 
-<!-- Modal Thêm/Sửa Tài khoản với UI/UX Hiện Đại -->
+<!-- Modal Thêm/Sửa Tài khoản -->
 <div id="userModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3 id="modalTitle">✨ Tạo Tài Khoản Mới</h3>
+            <h3 id="modalTitle">Tạo Tài Khoản Mới</h3>
             <span class="close" onclick="closeModal()">&times;</span>
         </div>
         <form action="" method="POST">
@@ -301,22 +300,22 @@ foreach ($usersList as $u) {
             <div class="form-group">
                 <label>Phân quyền vai trò *</label>
                 <select name="role" id="role" class="form-control" required style="cursor: pointer; background: #fff;">
-                    <option value="admin">👑 Admin (Quản trị viên - Toàn quyền hệ thống)</option>
-                    <option value="letan">👤 Lễ tân (Xem check-in thực tế & Xếp bàn cho khách)</option>
-                    <option value="kinhdoanh">💼 Kinh doanh (Theo dõi danh sách khách thuộc bàn phụ trách)</option>
+                    <option value="admin">Admin (Quản trị viên - Toàn quyền hệ thống)</option>
+                    <option value="letan">Lễ tân (Xem check-in thực tế & Xếp bàn cho khách)</option>
+                    <option value="kinhdoanh">Kinh doanh (Theo dõi danh sách khách thuộc bàn phụ trách)</option>
                 </select>
             </div>
 
             <div class="form-group">
                 <label>Trạng thái tài khoản *</label>
                 <select name="status" id="status" class="form-control" required style="cursor: pointer; background: #fff;">
-                    <option value="active">● Đang hoạt động (Cho phép đăng nhập)</option>
-                    <option value="inactive">○ Đã khóa (Không cho đăng nhập)</option>
+                    <option value="active">Đang hoạt động (Cho phép đăng nhập)</option>
+                    <option value="inactive">Đã khóa (Không cho đăng nhập)</option>
                 </select>
             </div>
             
-            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 12px; padding: 12px; justify-content: center; font-size: 1rem;">
-                💾 Lưu Thông Tin Tài Khoản
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 12px; padding: 12px; justify-content: center; font-size: 1rem; border-radius: 8px;">
+                Lưu Thông Tin Tài Khoản
             </button>
         </form>
     </div>
@@ -324,9 +323,10 @@ foreach ($usersList as $u) {
 
 <script>
     const modal = document.getElementById('userModal');
+    let currentRoleFilter = 'all';
     
     function openAddModal() {
-        document.getElementById('modalTitle').innerText = '✨ Tạo Tài Khoản Mới';
+        document.getElementById('modalTitle').innerText = 'Tạo Tài Khoản Mới';
         document.getElementById('formAction').value = 'add';
         document.getElementById('userId').value = '';
         
@@ -347,7 +347,7 @@ foreach ($usersList as $u) {
     }
     
     function openEditModal(u) {
-        document.getElementById('modalTitle').innerText = '✏️ Sửa Tài Khoản: @' + u.username;
+        document.getElementById('modalTitle').innerText = 'Sửa Tài Khoản: @' + u.username;
         document.getElementById('formAction').value = 'edit';
         document.getElementById('userId').value = u.id;
         
@@ -371,22 +371,53 @@ foreach ($usersList as $u) {
         modal.style.display = 'none';
     }
 
-    // Live Typing Filter (0ms)
+    function filterUserRole(role, cardEl) {
+        currentRoleFilter = role;
+        
+        document.querySelectorAll('.user-stats-grid .stat-card').forEach(card => {
+            card.classList.remove('active');
+        });
+
+        if (cardEl) {
+            cardEl.classList.add('active');
+        }
+
+        applyUserFilters();
+    }
+
     function liveFilterUsers(query) {
-        const q = (query || '').toLowerCase().trim();
+        applyUserFilters();
+    }
+
+    function applyUserFilters() {
+        const searchInput = document.getElementById('user-search');
+        const query = searchInput ? (searchInput.value || '').toLowerCase().trim() : '';
         const rows = document.querySelectorAll('#users-table-body tr');
-        let count = 0;
+        let visibleCount = 0;
+
         rows.forEach(row => {
-            const text = row.innerText.toLowerCase();
-            if (q === '' || text.includes(q)) {
+            const rowRole = row.getAttribute('data-role') || '';
+            const rowText = row.innerText.toLowerCase();
+
+            const matchesRole = (currentRoleFilter === 'all') || 
+                (currentRoleFilter === 'admin' && (rowRole === 'admin' || rowRole === 'super_admin')) ||
+                (currentRoleFilter === 'letan' && (rowRole === 'letan' || rowRole === 'staff')) ||
+                (currentRoleFilter === 'kinhdoanh' && rowRole === 'kinhdoanh');
+
+            const matchesSearch = query === '' || rowText.includes(query);
+
+            if (matchesRole && matchesSearch) {
                 row.style.display = '';
-                count++;
+                visibleCount++;
             } else {
                 row.style.display = 'none';
             }
         });
+
         const statTotal = document.getElementById('stat-count-total');
-        if (statTotal) statTotal.textContent = count;
+        if (statTotal) {
+            statTotal.textContent = visibleCount;
+        }
     }
 </script>
 <script src="../assets/js/notifications.js?v=<?php echo time(); ?>"></script>

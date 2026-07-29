@@ -43,8 +43,11 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/includes/csrf.php';
 require_once ROOT_PATH . '/includes/auth.php';
 
-// Cấu hình Base URL
-$appUrl = env('APP_URL', 'http://localhost/CheckinQR');
+// Cấu hình Base URL tự động nhận diện IP/Domain truy cập
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$currentHost = $_SERVER['HTTP_HOST'] ?? 'localhost';
+$defaultAppUrl = $protocol . '://' . $currentHost . '/CheckinQR';
+$appUrl = env('APP_URL', $defaultAppUrl);
 define('BASE_URL', rtrim($appUrl, '/'));
 
 // Tự động bổ sung cột assigned_user_id, sort_order vào event_tables và checkin_method vào checkins nếu chưa có

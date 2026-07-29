@@ -133,21 +133,21 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
                             <td><?php echo esc($event['location'] ?? '-'); ?></td>
                             <td>
                                 <span class="badge <?php echo esc($event['status']); ?>">
-                                    <?php echo $event['status'] === 'active' ? '🟢 Đang diễn ra' : '🔴 Đã kết thúc'; ?>
+                                    <?php echo $event['status'] === 'active' ? 'Đang diễn ra' : 'Đã kết thúc'; ?>
                                 </span>
                             </td>
                             <td>
-                                <button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;" onclick='openEditModal(<?php echo json_encode($event); ?>)'>Sửa</button>
+                                <button type="button" class="btn btn-action-edit" onclick='openEditModal(<?php echo json_encode($event); ?>)'>Sửa</button>
                                 <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa sự kiện này? Toàn bộ khách và lịch sử check-in sẽ bị xóa theo!');">
                                     <?php echo csrfField(); ?>
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?php echo $event['id']; ?>">
-                                    <button type="submit" class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;">Xóa</button>
+                                    <button type="submit" class="btn btn-action-delete">Xóa</button>
                                 </form>
                             </td>
                             <td>
-                                <a href="<?php echo url('?event=' . esc($event['slug'])); ?>" target="_blank" class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;">Form</a>
-                                <a href="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=<?php echo urlencode(url('?event=' . esc($event['slug']))); ?>" target="_blank" class="btn btn-primary" style="padding:4px 8px; font-size:0.8rem;">QR Code</a>
+                                <a href="<?php echo url('?event=' . esc($event['slug'])); ?>" target="_blank" class="btn btn-action-assign">Form</a>
+                                <a href="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=<?php echo urlencode(url('?event=' . esc($event['slug']))); ?>" target="_blank" class="btn btn-action-primary">QR Code</a>
                             </td>
                         </tr>
                         <?php endforeach; ?>

@@ -109,7 +109,14 @@
         } catch (e) {}
     };
 
+    const shownToastIds = new Set();
+    let isCheckingNotifications = false;
+
     function showToastNotification(item) {
+        if (!item || !item.id) return;
+        if (shownToastIds.has(item.id)) return; // Khóa chống trùng Toast theo ID
+        shownToastIds.add(item.id);
+
         let container = document.getElementById('globalToastContainer');
         if (!container) {
             container = document.createElement('div');
@@ -118,9 +125,13 @@
             document.body.appendChild(container);
         }
 
+        // Kiểm tra xem đã có phần tử DOM Toast của ID này chưa
+        if (container.querySelector(`[data-toast-id="${item.id}"]`)) return;
+
         const isWalkIn = item.status === 'walk_in';
         const toast = document.createElement('div');
         toast.className = `toast-item ${isWalkIn ? 'walk_in' : ''}`;
+        toast.dataset.toastId = item.id;
 
         toast.innerHTML = `
             <div class="toast-icon">${isWalkIn ? '🔸' : '✅'}</div>
@@ -135,6 +146,12 @@
                 </div>
             </div>
         `;
+
+        toast.style.cursor = 'pointer';
+        toast.onclick = function(e) {
+            if (e.target.classList.contains('toast-close')) return;
+            window.location.href = `checkins.php?highlight=${item.id}`;
+        };
 
         container.appendChild(toast);
         setTimeout(() => toast.classList.add('show'), 50);
@@ -161,9 +178,9 @@
             </button>
             <div class="notif-dropdown" id="notifDropdown">
                 <div class="notif-dropdown-header">
-                    <span>🔔 Thông báo quét QR gần đây</span>
+                    <span>Thông báo quét QR mới nhất</span>
                     <div style="display:flex; gap:8px; align-items:center;">
-                        <button type="button" class="notif-test-sound-btn" onclick="playNotifChime(); event.stopPropagation();" title="Thử phát chuông thông báo">🔊 Thử loa</button>
+                        <button type="button" class="notif-test-sound-btn" onclick="playNotifChime(); event.stopPropagation();" title="Thử phát chuông thông báo">Thử loa</button>
                         <button type="button" class="notif-mark-read-btn" onclick="markAllNotifsRead(event)">Đã đọc</button>
                     </div>
                 </div>
@@ -173,8 +190,17 @@
             </div>
         `;
 
+        const mobileControls = document.querySelector('.mobile-brand-controls');
         const header = document.querySelector('.header');
-        if (header) {
+
+        if (mobileControls && window.innerWidth <= 768) {
+            const menuBtn = document.getElementById('mobileMenuBtn');
+            if (menuBtn) {
+                mobileControls.insertBefore(notifBox, menuBtn);
+            } else {
+                mobileControls.appendChild(notifBox);
+            }
+        } else if (header) {
             header.appendChild(notifBox);
         } else {
             notifBox.style.position = 'fixed';
@@ -208,9 +234,9 @@
         checkins.forEach(item => {
             const isWalkIn = item.status === 'walk_in';
             html += `
-                <div class="notif-item ${item.is_new ? 'unread' : ''}" onclick="window.location.href='checkins.php'">
+                <div class="notif-item ${item.is_new ? 'unread' : ''}" onclick="window.location.href='checkins.php?highlight=${item.id}'">
                     <div class="notif-item-title">
-                        <span>${isWalkIn ? '🔸 Khách phát sinh' : '✅ Khách hợp lệ'}</span>
+                        <span>${isWalkIn ? 'Khách phát sinh' : 'Khách hợp lệ'}</span>
                         <span class="notif-item-time">${item.time.split(' ')[0]}</span>
                     </div>
                     <div class="notif-item-desc">
@@ -240,6 +266,9 @@
     }
 
     async function checkNewNotifications() {
+        if (isCheckingNotifications) return;
+        isCheckingNotifications = true;
+
         try {
             const res = await fetch(`../api/notifications.php?action=check&_t=${Date.now()}`, { cache: 'no-store' });
             if (!res.ok) return;
@@ -250,12 +279,18 @@
 
                 if (clientLastCheckinId === 0) {
                     clientLastCheckinId = newMaxId;
+                    if (data.checkins) {
+                        data.checkins.forEach(item => shownToastIds.add(item.id));
+                    }
                     renderNotifDropdown(data.checkins, data.unread_count);
                     return;
                 }
 
                 if (newMaxId > clientLastCheckinId) {
-                    const newItems = data.checkins.filter(item => item.id > clientLastCheckinId);
+                    const oldLastId = clientLastCheckinId;
+                    clientLastCheckinId = newMaxId;
+
+                    const newItems = (data.checkins || []).filter(item => item.id > oldLastId && !shownToastIds.has(item.id));
 
                     if (newItems.length > 0) {
                         playNotifChime();
@@ -264,13 +299,14 @@
                             triggerNativeNotification(item);
                         });
                     }
-                    clientLastCheckinId = newMaxId;
                 }
 
                 renderNotifDropdown(data.checkins, data.unread_count);
             }
         } catch (err) {
             console.error('Notification check error:', err);
+        } finally {
+            isCheckingNotifications = false;
         }
     }
 
@@ -337,7 +373,7 @@
         overlay.className = 'confirm-modal-overlay';
         overlay.innerHTML = `
             <div class="confirm-modal-box">
-                <div class="confirm-modal-icon" id="confirmModalIcon">⚠️</div>
+                <div class="confirm-modal-icon" id="confirmModalIcon" style="display:none;"></div>
                 <div class="confirm-modal-title" id="confirmModalTitle">Xác nhận thao tác</div>
                 <div class="confirm-modal-message" id="confirmModalMessage">Bạn có chắc chắn muốn thực hiện thao tác này?</div>
                 <div class="confirm-modal-actions">
@@ -360,10 +396,22 @@
         const okBtn = document.getElementById('confirmModalOkBtn');
         const cancelBtn = document.getElementById('confirmModalCancelBtn');
 
-        iconEl.textContent = options.icon || '⚠️';
+        if (options.icon) {
+            iconEl.textContent = options.icon;
+            iconEl.style.display = 'block';
+        } else {
+            iconEl.style.display = 'none';
+        }
+        
         titleEl.textContent = options.title || 'Xác nhận thao tác';
         msgEl.innerHTML = options.message || 'Bạn có chắc chắn muốn thực hiện thao tác này?';
-        okBtn.textContent = options.okText || 'Xác nhận';
+        
+        const okLabel = options.okText || 'Xác nhận';
+        const cancelLabel = options.cancelText || 'Hủy bỏ';
+        
+        okBtn.textContent = okLabel;
+        cancelBtn.textContent = cancelLabel;
+        
         okBtn.style.background = options.danger === false ? '#2e7d32' : '#d32f2f';
 
         pendingConfirmAction = options.onConfirm || null;
@@ -391,6 +439,25 @@
             }
         };
     };
+
+    // Global Keyboard Listener for Y / N / Enter / Escape Hotkeys
+    document.addEventListener('keydown', function(e) {
+        const overlay = document.getElementById('globalConfirmModal');
+        if (overlay && (overlay.style.display === 'flex' || overlay.classList.contains('active'))) {
+            const key = e.key ? e.key.toLowerCase() : '';
+            if (key === 'y' || key === 'enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                const okBtn = document.getElementById('confirmModalOkBtn');
+                if (okBtn) okBtn.click();
+            } else if (key === 'n' || key === 'escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                const cancelBtn = document.getElementById('confirmModalCancelBtn');
+                if (cancelBtn) cancelBtn.click();
+            }
+        }
+    });
 
     window.confirmModal = function(evt, message, options = {}) {
         if (evt) evt.preventDefault();

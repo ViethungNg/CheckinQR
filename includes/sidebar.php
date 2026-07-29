@@ -13,8 +13,7 @@ $firstChar = mb_strtoupper(mb_substr($adminName, 0, 1, 'UTF-8'));
             <img src="<?php echo url('img/logo pmt.png'); ?>" alt="Logo PMT" class="sidebar-logo-img">
         </a>
         <div class="mobile-brand-controls">
-            <span class="mobile-user-greeting" title="<?php echo esc($adminName); ?>">👋 <?php echo esc(mb_substr($adminName, 0, 12, 'UTF-8')); ?></span>
-            <a href="logout.php" class="mobile-quick-logout" title="Đăng xuất" onclick="return confirmModal(event, 'Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?');">🚪</a>
+            <span class="mobile-user-greeting" title="<?php echo esc($adminName); ?>"><?php echo esc(mb_substr($adminName, 0, 12, 'UTF-8')); ?></span>
             <button type="button" class="mobile-menu-btn" id="mobileMenuBtn"><span>☰</span> Menu</button>
         </div>
     </div>
@@ -22,35 +21,35 @@ $firstChar = mb_strtoupper(mb_substr($adminName, 0, 1, 'UTF-8'));
     <ul class="sidebar-nav">
         <li>
             <a href="index.php" class="<?php echo $currentPage === 'index.php' ? 'active' : ''; ?>">
-                📊 Dashboard
+                Dashboard
             </a>
         </li>
         <?php if(isAdmin()): ?>
         <li>
             <a href="events.php" class="<?php echo $currentPage === 'events.php' ? 'active' : ''; ?>">
-                🎉 Quản lý sự kiện
+                Quản lý sự kiện
             </a>
         </li>
         <?php endif; ?>
         <li>
             <a href="guests.php" class="<?php echo $currentPage === 'guests.php' ? 'active' : ''; ?>">
-                📋 Danh sách khách hàng
+                Danh sách khách hàng
             </a>
         </li>
         <li>
             <a href="checkins.php" class="<?php echo $currentPage === 'checkins.php' ? 'active' : ''; ?>">
-                📥 Khách đã checkin
+                Khách đã checkin
             </a>
         </li>
         <li>
             <a href="tables.php" class="<?php echo $currentPage === 'tables.php' ? 'active' : ''; ?>">
-                🪑 Quản lý bàn
+                Quản lý bàn
             </a>
         </li>
         <?php if(isAdmin()): ?>
         <li>
             <a href="users.php" class="<?php echo $currentPage === 'users.php' ? 'active' : ''; ?>">
-                👤 Quản lý tài khoản
+                Quản lý tài khoản
             </a>
         </li>
         <?php endif; ?>
@@ -72,7 +71,7 @@ $firstChar = mb_strtoupper(mb_substr($adminName, 0, 1, 'UTF-8'));
             </div>
         </div>
         <a href="logout.php" class="sidebar-logout-btn" onclick="return confirmModal(event, 'Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?');">
-            🚪 Đăng xuất
+            Đăng xuất
         </a>
     </div>
 </div>

@@ -52,9 +52,29 @@ try {
         {$whereTableKD}
         ORDER BY t.sort_order ASC, t.id ASC
     ");
+
+    $stmtGuestsByTable = $db->prepare("
+        SELECT id, full_name, phone, status 
+        FROM guests 
+        WHERE table_id = ? 
+        ORDER BY status DESC, id DESC
+    ");
+
     while ($t = $stmtTables->fetch()) {
+        $tableIdInt = (int)$t['id'];
+        $stmtGuestsByTable->execute([$tableIdInt]);
+        $tableGuests = [];
+        while ($g = $stmtGuestsByTable->fetch()) {
+            $tableGuests[] = [
+                'id'        => (int)$g['id'],
+                'full_name' => esc($g['full_name']),
+                'phone'     => esc($g['phone']),
+                'status'    => esc($g['status']),
+            ];
+        }
+
         $tablesSummary[] = [
-            'id'                 => (int)$t['id'],
+            'id'                 => $tableIdInt,
             'table_name'         => esc($t['table_name']),
             'table_code'         => esc($t['table_code']),
             'capacity'           => (int)$t['capacity'],
@@ -62,6 +82,7 @@ try {
             'total_guests'       => (int)$t['total_guests'],
             'arrived_guests'     => (int)$t['arrived_guests'],
             'not_arrived_guests' => (int)$t['total_guests'] - (int)$t['arrived_guests'],
+            'guests'             => $tableGuests,
         ];
     }
 
@@ -142,21 +163,35 @@ try {
         }
 
         if ($searchKeyword !== '') {
-            $whereConditions[] = "(c.full_name_entered LIKE ? OR c.phone_entered LIKE ? OR t.table_name LIKE ?)";
+            $whereConditions[] = "(c.full_name_entered LIKE ? OR c.phone_entered LIKE ? OR t.table_name LIKE ? OR c.lucky_draw_code LIKE ?)";
             $likeStr = '%' . $searchKeyword . '%';
-            $params = [$likeStr, $likeStr, $likeStr];
+            $params = [$likeStr, $likeStr, $likeStr, $likeStr];
         }
 
         $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
 
-        $limitSql = "LIMIT 150";
+        $sortParam = trim($_GET['sort'] ?? 'time_desc');
+        $orderSql = "ORDER BY c.checkin_time DESC";
+        if ($sortParam === 'table_asc') {
+            $orderSql = "ORDER BY t.table_name ASC, c.id DESC";
+        } elseif ($sortParam === 'table_desc') {
+            $orderSql = "ORDER BY t.table_name DESC, c.id DESC";
+        } elseif ($sortParam === 'code_asc') {
+            $orderSql = "ORDER BY c.lucky_draw_code ASC, c.id DESC";
+        } elseif ($sortParam === 'code_desc') {
+            $orderSql = "ORDER BY c.lucky_draw_code DESC, c.id DESC";
+        }
+
+        $limitSql = "LIMIT 200";
         $recentStmt = $db->prepare("
-            SELECT c.*, t.table_name, g.normalized_phone as guest_normalized_phone 
+            SELECT c.*, t.table_name, 
+                   g.full_name as guest_full_name, g.phone as guest_phone, g.organization as guest_organization,
+                   g.lucky_draw_code as guest_lucky_code, g.notes as guest_notes, g.normalized_phone as guest_normalized_phone
             FROM checkins c 
             LEFT JOIN event_tables t ON c.table_id = t.id 
             LEFT JOIN guests g ON c.guest_id = g.id
             {$whereClause}
-            ORDER BY c.checkin_time DESC {$limitSql}
+            {$orderSql} {$limitSql}
         ");
         $recentStmt->execute($params);
 
@@ -177,12 +212,19 @@ try {
                 'lucky_draw_code'     => esc($row['lucky_draw_code'] ?? ''),
                 'full_name'           => esc($row['full_name_entered']),
                 'phone'               => esc($row['phone_entered']),
+                'address_entered'     => esc($row['address_entered'] ?? ''),
                 'table_name'          => esc($row['table_name'] ?? 'Chưa xếp bàn'),
                 'time'                => date('d/m/Y H:i:s', strtotime($row['checkin_time'])),
                 'status'              => esc($row['match_status']),
                 'status_text'         => $row['match_status'] === 'matched' ? 'Hợp lệ' : 'Phát sinh',
                 'checkin_method_text' => $methodText,
-                'is_by_code'          => $isByLuckyCode
+                'is_by_code'          => $isByLuckyCode,
+                // Thông tin gốc trên danh sách BTC
+                'guest_full_name'     => esc($row['guest_full_name'] ?? ''),
+                'guest_phone'         => esc($row['guest_phone'] ?? ''),
+                'guest_organization'  => esc($row['guest_organization'] ?? ''),
+                'guest_lucky_code'    => esc($row['guest_lucky_code'] ?? ''),
+                'guest_notes'         => esc($row['guest_notes'] ?? '')
             ];
         }
     }

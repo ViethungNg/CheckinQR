@@ -49,6 +49,42 @@ if (!$guest && !empty($luckyDrawCodeInput)) {
     }
 }
 
+$confirmCodeAction = trim($_POST['confirm_code_action'] ?? '');
+
+// Nếu khớp bằng Mã dự thưởng (nhưng SĐT khác với DB)
+if ($guestMatchedByCode && $guest) {
+    if ($confirmCodeAction === 'reject') {
+        // Khách chọn Bấm Sai / Không phải đại diện -> Chuyển thành Khách phát sinh (walk_in)
+        $guest = null;
+        $guestMatchedByCode = false;
+    } elseif ($confirmCodeAction === '') {
+        // Chưa có hành động xác nhận -> Trả về Popup yêu cầu khách hàng xác nhận
+        $tableName = 'Chưa xếp bàn';
+        if (!empty($guest['table_id'])) {
+            $stmtTable = $db->prepare("SELECT table_name FROM event_tables WHERE id = ?");
+            $stmtTable->execute([$guest['table_id']]);
+            $tInfo = $stmtTable->fetch();
+            if ($tInfo) $tableName = $tInfo['table_name'];
+        }
+
+        $origPhone = $guest['phone'] ?? '';
+        $maskedPhone = strlen($origPhone) > 6 ? substr($origPhone, 0, 4) . '***' . substr($origPhone, -3) : $origPhone;
+
+        jsonResponse([
+            'status' => 'require_confirmation',
+            'message' => 'Phát hiện Mã dự thưởng trùng khớp!',
+            'data' => [
+                'lucky_draw_code'        => esc($guest['lucky_draw_code'] ?? $luckyDrawCodeInput),
+                'original_name'          => esc($guest['full_name'] ?? 'Khách BTC'),
+                'original_phone_masked'  => esc($maskedPhone),
+                'entered_name'           => esc($fullName),
+                'entered_phone'          => esc($phone),
+                'table_name'             => esc($tableName)
+            ]
+        ]);
+    }
+}
+
 // 3. Kiểm tra xem khách / SĐT / Mã trúng giải này ĐÃ CHECK-IN TRƯỚC ĐÓ CHƯA?
 $existingCheckin = null;
 
@@ -99,7 +135,7 @@ if ($existingCheckin || ($guest && $guest['status'] === 'checked_in')) {
         $luckyCode = $luckyDrawCodeInput;
     }
     if (empty($luckyCode)) {
-        $luckyCode = '#CKI-' . substr($normalizedPhone, -4);
+        $luckyCode = null;
     }
 
     jsonResponse([
@@ -177,9 +213,13 @@ $success = $stmtInsert->execute([
 ]);
 
 if ($success) {
+    $resMsg = ($matchStatus === 'walk_in') 
+        ? 'Thông tin chưa có trong danh sách chuẩn bị trước. Vui lòng liên hệ lễ tân!' 
+        : 'Check-in thành công!';
+
     jsonResponse([
         'status' => 'success',
-        'message' => 'Check-in thành công!',
+        'message' => $resMsg,
         'data' => [
             'match_status'    => $matchStatus,
             'full_name'       => esc($fullName),

@@ -6,67 +6,135 @@ $db = Database::getConnection();
 
 $message = '';
 $error = '';
-if (isPost() && isAdmin()) {
+if (isPost()) {
     requireCsrfToken();
     $action = $_POST['action'] ?? '';
     
-    if ($action === 'add') {
-        $eventId = (int)$_POST['event_id'];
-        $fullName = trim($_POST['full_name'] ?? '');
-        $phone = trim($_POST['phone'] ?? '');
-        $tableId = !empty($_POST['table_id']) ? (int)$_POST['table_id'] : null;
-        $luckyDrawCode = trim($_POST['lucky_draw_code'] ?? '');
-        $organization = trim($_POST['organization'] ?? '');
-        $status = $_POST['status'] ?? 'invited';
-        
-        $normalizedPhone = normalizePhone($phone);
-        
-        if (empty($fullName) || empty($eventId)) {
-            $error = 'Vui lòng chọn sự kiện và nhập họ tên';
+    if ($action === 'checkin_ho') {
+        if (!isAdmin() && !isLeTan()) {
+            if (isset($_POST['ajax']) || isset($_GET['ajax'])) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['status' => 'error', 'message' => 'Bạn không có quyền thực hiện thao tác này.']);
+                exit;
+            }
+            $error = 'Bạn không có quyền thực hiện thao tác này.';
         } else {
-            try {
-                $stmt = $db->prepare("INSERT INTO guests (event_id, full_name, phone, normalized_phone, table_id, lucky_draw_code, organization, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$eventId, $fullName, $phone, $normalizedPhone, $tableId, $luckyDrawCode, $organization, $status]);
-                $message = 'Thêm khách thành công!';
-            } catch(PDOException $e) {
-                $error = 'Lỗi thêm khách (Có thể trùng số điện thoại trong cùng sự kiện).';
-            }
-        }
-    } elseif ($action === 'edit') {
-        $id = (int)$_POST['id'];
-        $eventId = (int)$_POST['event_id'];
-        $fullName = trim($_POST['full_name'] ?? '');
-        $phone = trim($_POST['phone'] ?? '');
-        $tableId = !empty($_POST['table_id']) ? (int)$_POST['table_id'] : null;
-        $luckyDrawCode = trim($_POST['lucky_draw_code'] ?? '');
-        $organization = trim($_POST['organization'] ?? '');
-        $status = $_POST['status'] ?? 'invited';
-        
-        $normalizedPhone = normalizePhone($phone);
-        
-        try {
-            if (empty($tableId)) {
-                // Nếu đổi Vị trí bàn thành Chưa xếp / rỗng: Chuyển các lượt check-in liên quan thành Khách phát sinh & xóa khỏi Danh sách khách hàng
-                $db->prepare("UPDATE checkins SET table_id = NULL, guest_id = NULL, match_status = 'walk_in' WHERE guest_id = ?")->execute([$id]);
-                $db->prepare("DELETE FROM guests WHERE id = ?")->execute([$id]);
-                $message = 'Đã chuyển khách thành Khách phát sinh và xóa khỏi Danh sách khách hàng!';
+            $id = (int)$_POST['id'];
+            $stmtG = $db->prepare("SELECT g.*, t.table_name FROM guests g LEFT JOIN event_tables t ON g.table_id = t.id WHERE g.id = ?");
+            $stmtG->execute([$id]);
+            $guestToCheckin = $stmtG->fetch();
+            
+            if (!$guestToCheckin) {
+                $errMsg = 'Khách hàng không tồn tại.';
+                if (isset($_POST['ajax']) || isset($_GET['ajax'])) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo json_encode(['status' => 'error', 'message' => $errMsg]);
+                    exit;
+                }
+                $error = $errMsg;
+            } elseif ($guestToCheckin['status'] === 'checked_in') {
+                $errMsg = 'Khách "' . esc($guestToCheckin['full_name']) . '" đã được check-in trước đó rồi.';
+                if (isset($_POST['ajax']) || isset($_GET['ajax'])) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo json_encode(['status' => 'error', 'message' => $errMsg]);
+                    exit;
+                }
+                $error = $errMsg;
             } else {
-                $stmt = $db->prepare("UPDATE guests SET event_id=?, full_name=?, phone=?, normalized_phone=?, table_id=?, lucky_draw_code=?, organization=?, status=? WHERE id=?");
-                $stmt->execute([$eventId, $fullName, $phone, $normalizedPhone, $tableId, $luckyDrawCode, $organization, $status, $id]);
-                $message = 'Cập nhật thông tin khách thành công!';
+                $luckyCode = !empty($guestToCheckin['lucky_draw_code']) ? $guestToCheckin['lucky_draw_code'] : null;
+
+                $db->prepare("UPDATE guests SET status = 'checked_in' WHERE id = ?")->execute([$id]);
+
+                $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+                $stmtIns = $db->prepare("
+                    INSERT INTO checkins (event_id, guest_id, table_id, lucky_draw_code, full_name_entered, phone_entered, normalized_phone, match_status, checkin_method, ip_address, user_agent)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'matched', 'manual_letan', ?, ?)
+                ");
+                $stmtIns->execute([
+                    $guestToCheckin['event_id'],
+                    $id,
+                    $guestToCheckin['table_id'],
+                    $luckyCode,
+                    $guestToCheckin['full_name'],
+                    $guestToCheckin['phone'],
+                    $guestToCheckin['normalized_phone'],
+                    $ip,
+                    $userAgent
+                ]);
+
+                $succMsg = 'Check-in hộ khách "' . esc($guestToCheckin['full_name']) . '" thành công!';
+                if (isset($_POST['ajax']) || isset($_GET['ajax'])) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo json_encode([
+                        'status'          => 'success',
+                        'message'         => $succMsg,
+                        'guest_id'        => $id,
+                        'table_name'      => esc($guestToCheckin['table_name'] ?? 'Chưa xếp bàn'),
+                        'lucky_draw_code' => esc($luckyCode)
+                    ], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+                $message = $succMsg;
             }
-        } catch(PDOException $e) {
-            $error = 'Lỗi cập nhật khách.';
         }
-    } elseif ($action === 'delete') {
-        $id = (int)$_POST['id'];
-        $stmt = $db->prepare("DELETE FROM guests WHERE id=?");
-        $stmt->execute([$id]);
-        $message = 'Xóa khách thành công!';
+    } elseif (isAdmin()) {
+        if ($action === 'add') {
+            $eventId = (int)$_POST['event_id'];
+            $fullName = trim($_POST['full_name'] ?? '');
+            $phone = trim($_POST['phone'] ?? '');
+            $tableId = !empty($_POST['table_id']) ? (int)$_POST['table_id'] : null;
+            $luckyDrawCode = trim($_POST['lucky_draw_code'] ?? '');
+            $organization = trim($_POST['organization'] ?? '');
+            $status = $_POST['status'] ?? 'invited';
+            
+            $normalizedPhone = normalizePhone($phone);
+            
+            if (empty($fullName) || empty($eventId)) {
+                $error = 'Vui lòng chọn sự kiện và nhập họ tên';
+            } else {
+                try {
+                    $stmt = $db->prepare("INSERT INTO guests (event_id, full_name, phone, normalized_phone, table_id, lucky_draw_code, organization, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$eventId, $fullName, $phone, $normalizedPhone, $tableId, $luckyDrawCode, $organization, $status]);
+                    $message = 'Thêm khách thành công!';
+                } catch(PDOException $e) {
+                    $error = 'Lỗi thêm khách (Có thể trùng số điện thoại trong cùng sự kiện).';
+                }
+            }
+        } elseif ($action === 'edit') {
+            $id = (int)$_POST['id'];
+            $eventId = (int)$_POST['event_id'];
+            $fullName = trim($_POST['full_name'] ?? '');
+            $phone = trim($_POST['phone'] ?? '');
+            $tableId = !empty($_POST['table_id']) ? (int)$_POST['table_id'] : null;
+            $luckyDrawCode = trim($_POST['lucky_draw_code'] ?? '');
+            $organization = trim($_POST['organization'] ?? '');
+            $status = $_POST['status'] ?? 'invited';
+            
+            $normalizedPhone = normalizePhone($phone);
+            
+            try {
+                if (empty($tableId)) {
+                    $db->prepare("UPDATE checkins SET table_id = NULL, guest_id = NULL, match_status = 'walk_in' WHERE guest_id = ?")->execute([$id]);
+                    $db->prepare("DELETE FROM guests WHERE id = ?")->execute([$id]);
+                    $message = 'Đã chuyển khách thành Khách phát sinh và xóa khỏi Danh sách khách hàng!';
+                } else {
+                    $stmt = $db->prepare("UPDATE guests SET event_id=?, full_name=?, phone=?, normalized_phone=?, table_id=?, lucky_draw_code=?, organization=?, status=? WHERE id=?");
+                    $stmt->execute([$eventId, $fullName, $phone, $normalizedPhone, $tableId, $luckyDrawCode, $organization, $status, $id]);
+                    $message = 'Cập nhật thông tin khách thành công!';
+                }
+            } catch(PDOException $e) {
+                $error = 'Lỗi cập nhật khách.';
+            }
+        } elseif ($action === 'delete') {
+            $id = (int)$_POST['id'];
+            $stmt = $db->prepare("DELETE FROM guests WHERE id=?");
+            $stmt->execute([$id]);
+            $message = 'Xóa khách thành công!';
+        }
+    } else {
+        $error = 'Bạn không có quyền thực hiện thao tác này.';
     }
-}
-elseif (isPost() && !isAdmin()) {
-    $error = 'Bạn không có quyền thực hiện thao tác này.';
 }
 
 // Lấy danh sách sự kiện và bàn để đưa vào form
@@ -206,8 +274,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
                 <?php if(isAdmin()): ?>
                 <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-primary" onclick="openAddModal()">+ Thêm khách thủ công</button>
-                    <a href="import.php" class="btn btn-success">📥 Import từ Excel (.xlsx)</a>
+                    <button class="btn btn-primary" onclick="openAddModal()">Thêm khách thủ công</button>
+                    <a href="import.php" class="btn btn-success">Import từ Excel (.xlsx)</a>
                 </div>
                 <?php endif; ?>
             </div>
@@ -215,16 +283,16 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             <!-- Thanh Lọc & Sắp Xếp Thông Minh (Live Typing Search) -->
             <form method="GET" action="" id="search-form" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; background: #f8f9fa; padding: 12px 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
                 <div style="flex: 1; min-width: 240px; position: relative;">
-                    <input type="text" id="search-input" name="search" value="<?php echo esc($search); ?>" placeholder="⚡ Gõ tới đâu tìm tới đó: SĐT, Bàn, Mã dự thưởng, Họ tên..." class="form-control" oninput="liveSearchGuests(this.value)" autocomplete="off">
+                    <input type="text" id="search-input" name="search" value="<?php echo esc($search); ?>" placeholder="Tìm theo SĐT, Bàn, Mã dự thưởng, Họ tên..." class="form-control" oninput="liveSearchGuests(this.value)" autocomplete="off">
                 </div>
                 
                 <div style="min-width: 220px;">
                     <select name="sort" class="form-control" onchange="this.form.submit()" style="cursor: pointer; background: #fff; font-weight: 500;">
-                        <option value="id_desc" <?php echo $sort === 'id_desc' ? 'selected' : ''; ?>>🕒 Mới nhất trước</option>
-                        <option value="table_asc" <?php echo $sort === 'table_asc' ? 'selected' : ''; ?>>🪑 Thứ tự Bàn: Tăng dần (1 ➔ N)</option>
-                        <option value="table_desc" <?php echo $sort === 'table_desc' ? 'selected' : ''; ?>>🪑 Thứ tự Bàn: Giảm dần (N ➔ 1)</option>
-                        <option value="code_asc" <?php echo $sort === 'code_asc' ? 'selected' : ''; ?>>🎁 Mã dự thưởng: Tăng dần (0 ➔ 9)</option>
-                        <option value="code_desc" <?php echo $sort === 'code_desc' ? 'selected' : ''; ?>>🎁 Mã dự thưởng: Giảm dần (9 ➔ 0)</option>
+                        <option value="id_desc" <?php echo $sort === 'id_desc' ? 'selected' : ''; ?>>Mới nhất trước</option>
+                        <option value="table_asc" <?php echo $sort === 'table_asc' ? 'selected' : ''; ?>>Thứ tự Bàn: Tăng dần (1 ➔ N)</option>
+                        <option value="table_desc" <?php echo $sort === 'table_desc' ? 'selected' : ''; ?>>Thứ tự Bàn: Giảm dần (N ➔ 1)</option>
+                        <option value="code_asc" <?php echo $sort === 'code_asc' ? 'selected' : ''; ?>>Mã dự thưởng: Tăng dần (0 ➔ 9)</option>
+                        <option value="code_desc" <?php echo $sort === 'code_desc' ? 'selected' : ''; ?>>Mã dự thưởng: Giảm dần (9 ➔ 0)</option>
                     </select>
                 </div>
                 
@@ -252,7 +320,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                                 </a>
                             </th>
                             <th>Trạng thái</th>
-                            <?php if(isAdmin()): ?><th>Thao tác</th><?php endif; ?>
+                            <?php if(isAdmin() || isLeTan()): ?><th>Thao tác</th><?php endif; ?>
                         </tr>
                     </thead>
                     <tbody id="guests-table-body">
@@ -263,8 +331,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                             <td><?php echo esc($guest['organization'] ?? '-'); ?></td>
                             <td>
                                 <?php if (!empty($guest['table_name'])): ?>
-                                    <span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;">
-                                        🪑 <?php echo esc($guest['table_name'] . ($guest['table_code'] ? ' (' . $guest['table_code'] . ')' : '')); ?>
+                                    <span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">
+                                        <?php echo esc($guest['table_name'] . ($guest['table_code'] ? ' (' . $guest['table_code'] . ')' : '')); ?>
                                     </span>
                                 <?php else: ?>
                                     <span style="color: #888; font-style: italic;">Chưa xếp</span>
@@ -272,8 +340,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                             </td>
                             <td>
                                 <?php if (!empty($guest['lucky_draw_code'])): ?>
-                                    <span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;">
-                                        🎟️ <?php echo esc($guest['lucky_draw_code']); ?>
+                                    <span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">
+                                        <?php echo esc($guest['lucky_draw_code']); ?>
                                     </span>
                                 <?php else: ?>
                                     <span style="color: #aaa;">-</span>
@@ -281,18 +349,30 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                             </td>
                             <td>
                                 <span class="badge <?php echo esc($guest['status']); ?>">
-                                    <?php echo $guest['status'] === 'checked_in' ? '✅ Đã checkin' : '⏳ Chưa tới'; ?>
+                                    <?php echo $guest['status'] === 'checked_in' ? 'Đã checkin' : 'Chưa tới'; ?>
                                 </span>
                             </td>
-                            <?php if(isAdmin()): ?>
+                            <?php if(isAdmin() || isLeTan()): ?>
                             <td>
-                                <button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;" onclick='openEditModal(<?php echo json_encode($guest); ?>)'>Sửa</button>
-                                <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa khách này?');">
-                                    <?php echo csrfField(); ?>
-                                    <input type="hidden" name="action" value="delete">
-                                    <input type="hidden" name="id" value="<?php echo $guest['id']; ?>">
-                                    <button type="submit" class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;">Xóa</button>
-                                </form>
+                                <div style="display: inline-flex; align-items: center; gap: 6px;">
+                                    <div style="width: 105px; display: inline-flex; align-items: center;">
+                                        <?php if ($guest['status'] === 'invited'): ?>
+                                            <button type="button" class="btn btn-action-checkin" onclick='checkinHoGuest(<?php echo (int)$guest["id"]; ?>, <?php echo json_encode($guest["full_name"]); ?>)'>Check-in hộ</button>
+                                        <?php else: ?>
+                                            <span class="badge checked_in" style="margin:0; font-size: 0.78rem;">Đã checkin</span>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <?php if(isAdmin()): ?>
+                                        <button type="button" class="btn btn-action-edit" onclick='openEditModal(<?php echo json_encode($guest); ?>)'>Sửa</button>
+                                        <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa khách này?');">
+                                            <?php echo csrfField(); ?>
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="id" value="<?php echo $guest['id']; ?>">
+                                            <button type="submit" class="btn btn-action-delete">Xóa</button>
+                                        </form>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                             <?php endif; ?>
                         </tr>
@@ -369,11 +449,50 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     </div>
 </div>
 
+<!-- Modal Thông Báo Kết Quả Check-in Hộ -->
+<div id="checkinResultModal" class="modal" style="z-index: 100000; display: none; justify-content: center; align-items: center;">
+    <div class="modal-content" style="max-width: 460px; text-align: center; border-radius: 16px; padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.25);">
+        <h2 id="resModalTitle" style="font-size: 1.3rem; font-weight: 800; color: #0f172a; margin-bottom: 4px;">Check-in Hộ Thành Công</h2>
+        <div id="resModalSubtitle" style="font-size: 0.88rem; color: #64748b; margin-bottom: 16px;">Đã ghi nhận thông tin tham dự của khách hàng</div>
+
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px 14px; text-align: left; margin-bottom: 16px;">
+            <div style="font-size: 0.92rem; color: #0f172a; margin-bottom: 6px;">
+                <strong style="color: #475569;">Họ tên:</strong> <span id="resModalGuestName" style="font-weight: 800; color: #0f172a;"></span>
+            </div>
+            <div style="font-size: 0.92rem; color: #0f172a;">
+                <strong style="color: #475569;">Số điện thoại:</strong> <span id="resModalGuestPhone" style="font-weight: 700;"></span>
+            </div>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px;">
+            <div style="flex: 1; min-width: 140px; background: #e8f5e9; border: 2px solid #66bb6a; border-radius: 12px; padding: 12px 14px; text-align: center; box-shadow: 0 3px 8px rgba(46,125,50,0.12);">
+                <div style="font-size: 0.75rem; color: #2e7d32; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Vị trí ngồi</div>
+                <div id="resModalTableName" style="font-size: 1.25rem; font-weight: 800; color: #1b5e20;">Chưa xếp</div>
+            </div>
+            
+            <div style="flex: 1; min-width: 140px; background: #f3e5f5; border: 2px solid #ab47bc; border-radius: 12px; padding: 12px 14px; text-align: center; box-shadow: 0 3px 8px rgba(123,31,162,0.12);">
+                <div style="font-size: 0.75rem; color: #7b1fa2; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Mã bốc thăm</div>
+                <div id="resModalLuckyCode" style="font-size: 1.25rem; font-weight: 800; color: #4a148c;">-</div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: 12px; justify-content: center; width: 100%; margin-top: 16px;">
+            <button type="button" class="btn btn-primary" onclick="closeCheckinResultModal()" style="flex: 1; padding: 12px; font-size: 0.95rem; font-weight: 700; border-radius: 8px; background: #2e7d32; border: none; cursor: pointer; color: white;">
+                Hoàn Tất
+            </button>
+            <button type="button" class="btn" onclick="closeCheckinResultModal()" style="flex: 1; padding: 12px; font-size: 0.95rem; font-weight: 700; border-radius: 8px; background: #64748b; border: none; cursor: pointer; color: white;">
+                Đóng
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     const modal = document.getElementById('guestModal');
     const allTables = <?php echo json_encode($tablesList); ?>;
     const tableSelect = document.getElementById('tableId');
     const isAdminUser = <?php echo isAdmin() ? 'true' : 'false'; ?>;
+    const canCheckinHo = <?php echo (isAdmin() || isLeTan()) ? 'true' : 'false'; ?>;
     let csrfTokenValue = '<?php echo generateCsrfToken(); ?>';
     
     window.allGuestsMap = {};
@@ -389,6 +508,102 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         'status'          => $g['status'],
     ]); ?>;
     <?php endforeach; ?>
+
+    function showCheckinResultPopup(data) {
+        document.getElementById('resModalTitle').textContent = data.title || 'Thông báo';
+        document.getElementById('resModalSubtitle').textContent = data.subtitle || '';
+        document.getElementById('resModalGuestName').textContent = data.fullName || '';
+        document.getElementById('resModalGuestPhone').textContent = data.phone || '';
+        document.getElementById('resModalTableName').textContent = data.tableName || 'Chưa xếp';
+        document.getElementById('resModalLuckyCode').textContent = data.luckyCode || '-';
+        
+        const modal = document.getElementById('checkinResultModal');
+        if (modal) {
+            modal.style.display = 'flex';
+        }
+    }
+
+    function closeCheckinResultModal() {
+        const modal = document.getElementById('checkinResultModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    document.addEventListener('keydown', function(e) {
+        const resultModal = document.getElementById('checkinResultModal');
+        if (resultModal && getComputedStyle(resultModal).display !== 'none') {
+            const key = e.key ? e.key.toLowerCase() : '';
+            if (key === 'y' || key === 'n' || key === 'enter' || key === 'escape' || key === ' ') {
+                e.preventDefault();
+                closeCheckinResultModal();
+            }
+        }
+    });
+
+    function checkinHoGuest(guestId, guestName) {
+        const guestObj = window.allGuestsMap[guestId] || {};
+        const guestPhone = guestObj.phone || '';
+
+        const executeCheckin = async () => {
+            try {
+                const formData = new FormData();
+                formData.append('action', 'checkin_ho');
+                formData.append('id', guestId);
+                formData.append('csrf_token', csrfTokenValue);
+                formData.append('ajax', '1');
+
+                const response = await fetch('guests.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showCheckinResultPopup({
+                        title: 'Check-in Hộ Thành Công',
+                        subtitle: 'Đã hoàn tất thủ tục tiếp đón cho khách hàng',
+                        fullName: guestName,
+                        phone: guestPhone,
+                        tableName: result.table_name || 'Chưa xếp bàn',
+                        luckyCode: result.lucky_draw_code || '-'
+                    });
+                    fetchRealtimeGuests();
+                } else {
+                    showCheckinResultPopup({
+                        title: 'Không thể Check-in',
+                        subtitle: result.message || 'Khách hàng không hợp lệ hoặc có lỗi xảy ra.',
+                        fullName: guestName,
+                        phone: guestPhone,
+                        tableName: 'Lỗi',
+                        luckyCode: '-'
+                    });
+                }
+            } catch (e) {
+                console.error('Checkin ho error:', e);
+                showCheckinResultPopup({
+                    title: 'Lỗi kết nối',
+                    subtitle: 'Không thể kết nối đến máy chủ. Vui lòng thử lại!',
+                    fullName: guestName,
+                    phone: guestPhone,
+                    tableName: 'Lỗi',
+                    luckyCode: '-'
+                });
+            }
+        };
+
+        if (typeof window.showConfirmPopup === 'function') {
+            window.showConfirmPopup({
+                title: 'Check-in hộ khách hàng',
+                message: `Bạn có chắc chắn muốn thực hiện **Check-in hộ** cho khách <strong>${guestName}</strong>?`,
+                okText: 'Xác nhận Check-in',
+                danger: false,
+                onConfirm: executeCheckin
+            });
+        } else {
+            executeCheckin();
+        }
+    }
 
     function filterTables(eventId, selectedTableId = null) {
         tableSelect.innerHTML = '<option value="">-- Chưa xếp bàn --</option>';
@@ -411,7 +626,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         
         const eventSelect = document.getElementById('eventId');
         if (eventSelect.options.length > 1) {
-            eventSelect.selectedIndex = 1; // Tự động chọn sự kiện sẵn có
+            eventSelect.selectedIndex = 1;
         } else {
             eventSelect.value = '';
         }
@@ -447,7 +662,6 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         modal.style.display = 'none';
     }
     
-    // Hàm Lọc Siêu Tốc 0ms: Gõ tới đâu lọc tới đó ngay trên màn hình!
     function liveSearchGuests(val) {
         const query = (val || '').toLowerCase().trim();
         const tbody = document.getElementById('guests-table-body');
@@ -467,9 +681,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         });
 
         const counter = document.getElementById('guest-count-title');
-        if (counter) {
-            counter.textContent = count;
-        }
+counter.textContent = count;
     }
 
     let lastGuestsHash = '';
@@ -500,8 +712,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 const tbody = document.getElementById('guests-table-body');
                 if (!tbody) return;
 
+                const hasActions = canCheckinHo || isAdminUser;
+
                 if (result.guests.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="${isAdminUser ? 7 : 6}" style="text-align:center; color:#777; padding:20px;">Không có dữ liệu khách hàng</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="${hasActions ? 7 : 6}" style="text-align:center; color:#777; padding:20px;">Không có dữ liệu khách hàng</td></tr>`;
                     return;
                 }
 
@@ -523,28 +737,46 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 
                     const tableNameStr = item.table_name ? (item.table_name + (item.table_code ? ` (${item.table_code})` : '')) : '';
                     const tableHtml = tableNameStr 
-                        ? `<span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;">🪑 ${tableNameStr}</span>`
+                        ? `<span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">${tableNameStr}</span>`
                         : `<span style="color: #888; font-style: italic;">Chưa xếp</span>`;
 
                     const luckyHtml = item.lucky_draw_code
-                        ? `<span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 4px;">🎟️ ${item.lucky_draw_code}</span>`
+                        ? `<span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">${item.lucky_draw_code}</span>`
                         : `<span style="color: #aaa;">-</span>`;
 
                     const statusHtml = isCheckedIn 
-                        ? `<span class="badge checked_in">✅ Đã checkin</span>`
-                        : `<span class="badge invited">⏳ Chưa tới</span>`;
+                        ? `<span class="badge checked_in">Đã checkin</span>`
+                        : `<span class="badge invited">Chưa tới</span>`;
 
                     let actionsHtml = '';
-                    if (isAdminUser) {
-                        actionsHtml = `
-                            <td>
-                                <button class="btn btn-success" style="padding:4px 8px; font-size:0.8rem;" onclick="openEditModal(window.allGuestsMap[${item.id}])">Sửa</button>
+                    if (hasActions) {
+                        let checkinSlot = '';
+                        if (isCheckedIn) {
+                            checkinSlot = `<span class="badge checked_in" style="margin:0; font-size:0.78rem;">Đã checkin</span>`;
+                        } else {
+                            const escapedName = (item.full_name || '').replace(/'/g, "\\'");
+                            checkinSlot = `<button type="button" class="btn btn-action-checkin" onclick="checkinHoGuest(${item.id}, '${escapedName}')">Check-in hộ</button>`;
+                        }
+
+                        let adminBtns = '';
+                        if (isAdminUser) {
+                            adminBtns = `
+                                <button type="button" class="btn btn-action-edit" onclick="openEditModal(window.allGuestsMap[${item.id}])">Sửa</button>
                                 <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa khách này?');">
                                     <input type="hidden" name="csrf_token" value="${csrfTokenValue}">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="${item.id}">
-                                    <button type="submit" class="btn btn-danger" style="padding:4px 8px; font-size:0.8rem;">Xóa</button>
+                                    <button type="submit" class="btn btn-action-delete">Xóa</button>
                                 </form>
+                            `;
+                        }
+
+                        actionsHtml = `
+                            <td>
+                                <div style="display: inline-flex; align-items: center; gap: 6px;">
+                                    <div style="width: 105px; display: inline-flex; align-items: center;">${checkinSlot}</div>
+                                    ${adminBtns}
+                                </div>
                             </td>
                         `;
                     }
