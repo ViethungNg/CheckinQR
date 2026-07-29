@@ -68,7 +68,7 @@ if (isPost()) {
             margin-bottom: 0.5rem;
         }
         .login-logo-img {
-            max-height: 105px;
+            max-height: 180px;
             max-width: 280px;
             width: auto;
             height: auto;
