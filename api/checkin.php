@@ -51,10 +51,80 @@ if (!$guest && !empty($luckyDrawCodeInput)) {
 
 $confirmCodeAction = trim($_POST['confirm_code_action'] ?? '');
 
-// Nếu khớp bằng Mã dự thưởng (nhưng SĐT khác với DB)
+// 3. KIỂM TRA XEM KHÁCH / SĐT / MÃ DỰ THƯỞNG NÀY ĐÃ CHECK-IN TRƯỚC ĐÓ CHƯA?
+$existingCheckin = null;
+
+// Lấy danh sách mã dự thưởng cần kiểm tra đối chiếu (từ input người dùng & từ hồ sơ guest)
+$codesToCheck = [];
+if (!empty($luckyDrawCodeInput)) {
+    $codesToCheck[] = strtolower(trim($luckyDrawCodeInput));
+}
+if ($guest && !empty($guest['lucky_draw_code'])) {
+    $codesToCheck[] = strtolower(trim($guest['lucky_draw_code']));
+}
+$codesToCheck = array_unique(array_filter($codesToCheck));
+
+// Xây dựng câu lệnh kiểm tra đối chiếu bảng checkins
+$checkConditions = ["normalized_phone = ?"];
+$paramsCheck = [$normalizedPhone];
+
+if ($guest && !empty($guest['id'])) {
+    $checkConditions[] = "guest_id = ?";
+    $paramsCheck[] = (int)$guest['id'];
+}
+
+if (!empty($codesToCheck)) {
+    $codePlaceholders = implode(',', array_fill(0, count($codesToCheck), '?'));
+    $checkConditions[] = "(lucky_draw_code IS NOT NULL AND lucky_draw_code != '' AND LOWER(TRIM(lucky_draw_code)) IN ($codePlaceholders))";
+    foreach ($codesToCheck as $cCode) {
+        $paramsCheck[] = $cCode;
+    }
+}
+
+$checkSql = "SELECT * FROM checkins WHERE event_id = ? AND (" . implode(" OR ", $checkConditions) . ") ORDER BY checkin_time DESC LIMIT 1";
+$stmtCheck = $db->prepare($checkSql);
+$stmtCheck->execute(array_merge([$eventId], $paramsCheck));
+$existingCheckin = $stmtCheck->fetch();
+
+$isGuestAlreadyCheckedIn = ($guest && $guest['status'] === 'checked_in');
+
+// NẾU ĐÃ CHECK-IN TRƯỚC ĐÓ (Dù khớp theo SĐT, Hồ sơ Guest hay Mã dự thưởng) -> Trả về 'already_checked_in' NGAY!
+if ($existingCheckin || $isGuestAlreadyCheckedIn) {
+    $time = $existingCheckin ? date('H:i d/m/Y', strtotime($existingCheckin['checkin_time'])) : date('H:i d/m/Y');
+
+    // Lấy thông tin bàn
+    $tableIdForCheckin = $existingCheckin['table_id'] ?? ($guest['table_id'] ?? null);
+    $tableName = null;
+    if ($tableIdForCheckin) {
+        $stmtT = $db->prepare("SELECT table_name FROM event_tables WHERE id = ?");
+        $stmtT->execute([$tableIdForCheckin]);
+        $tRow = $stmtT->fetch();
+        if ($tRow) {
+            $tableName = $tRow['table_name'];
+        }
+    }
+
+    // Lấy mã dự thưởng hiển thị
+    $finalLuckyCode = $existingCheckin['lucky_draw_code'] ?? ($guest['lucky_draw_code'] ?? $luckyDrawCodeInput);
+
+    jsonResponse([
+        'status' => 'already_checked_in', 
+        'message' => 'Quý khách / Mã dự thưởng này đã check-in thành công trước đó!',
+        'data' => [
+            'full_name'       => esc($guest['full_name'] ?? ($existingCheckin['full_name_entered'] ?? $fullName)),
+            'phone'           => esc($guest['phone'] ?? ($existingCheckin['phone_entered'] ?? $phone)),
+            'table_name'      => esc($tableName ?? 'Chưa xếp bàn'),
+            'lucky_draw_code' => esc($finalLuckyCode),
+            'checkin_time'    => $time,
+            'match_status'    => $guest ? 'matched' : ($existingCheckin['match_status'] ?? 'walk_in')
+        ]
+    ]);
+}
+
+// 4. Nếu chưa check-in & khớp bằng Mã dự thưởng (SĐT nhập khác CSDL) -> Hỏi xác nhận đại diện
 if ($guestMatchedByCode && $guest) {
     if ($confirmCodeAction === 'reject') {
-        // Khách chọn Bấm Sai / Không phải đại diện -> Chuyển thành Khách phát sinh (walk_in)
+        // Khách chọn Không phải đại diện / Nhập sai -> Chuyển thành Khách phát sinh (walk_in)
         $guest = null;
         $guestMatchedByCode = false;
     } elseif ($confirmCodeAction === '') {
@@ -83,73 +153,6 @@ if ($guestMatchedByCode && $guest) {
             ]
         ]);
     }
-}
-
-// 3. Kiểm tra xem khách / SĐT / Mã trúng giải này ĐÃ CHECK-IN TRƯỚC ĐÓ CHƯA?
-$existingCheckin = null;
-
-// 3a. Nếu đã tìm thấy guest dự kiến
-if ($guest) {
-    if ($guest['status'] === 'checked_in') {
-        // Tìm lượt checkin đã lưu gần nhất cho guest này
-        $stmtPrev = $db->prepare("SELECT * FROM checkins WHERE event_id = ? AND (guest_id = ? OR normalized_phone = ?) ORDER BY checkin_time DESC LIMIT 1");
-        $stmtPrev->execute([$eventId, $guest['id'], $normalizedPhone]);
-        $existingCheckin = $stmtPrev->fetch();
-    }
-}
-
-// 3b. Kiểm tra trực tiếp trong bảng checkins qua SĐT hoặc Mã bốc thăm
-if (!$existingCheckin) {
-    $checkSql = "SELECT * FROM checkins WHERE event_id = ? AND (normalized_phone = ?";
-    $paramsCheck = [$eventId, $normalizedPhone];
-    if (!empty($luckyDrawCodeInput)) {
-        $checkSql .= " OR (lucky_draw_code IS NOT NULL AND lucky_draw_code != '' AND LOWER(TRIM(lucky_draw_code)) = LOWER(TRIM(?)))";
-        $paramsCheck[] = $luckyDrawCodeInput;
-    }
-    $checkSql .= ") ORDER BY checkin_time DESC LIMIT 1";
-
-    $stmtCheck = $db->prepare($checkSql);
-    $stmtCheck->execute($paramsCheck);
-    $existingCheckin = $stmtCheck->fetch();
-}
-
-// Nếu ĐÃ CHECK-IN RỒI -> Trả về kết quả ngay, KHÔNG tạo lượt check-in mới & KHÔNG tạo thông báo hệ thống!
-if ($existingCheckin || ($guest && $guest['status'] === 'checked_in')) {
-    $time = $existingCheckin ? date('H:i d/m/Y', strtotime($existingCheckin['checkin_time'])) : date('H:i d/m/Y');
-
-    // Lấy thông tin bàn
-    $tableIdForCheckin = $existingCheckin['table_id'] ?? ($guest['table_id'] ?? null);
-    $tableName = null;
-    if ($tableIdForCheckin) {
-        $stmtT = $db->prepare("SELECT table_name FROM event_tables WHERE id = ?");
-        $stmtT->execute([$tableIdForCheckin]);
-        $tRow = $stmtT->fetch();
-        if ($tRow) {
-            $tableName = $tRow['table_name'];
-        }
-    }
-
-    // Lấy mã quay thưởng
-    $luckyCode = $existingCheckin['lucky_draw_code'] ?? ($guest['lucky_draw_code'] ?? null);
-    if (empty($luckyCode) && !empty($luckyDrawCodeInput)) {
-        $luckyCode = $luckyDrawCodeInput;
-    }
-    if (empty($luckyCode)) {
-        $luckyCode = null;
-    }
-
-    jsonResponse([
-        'status' => 'already_checked_in', 
-        'message' => 'Bạn đã check-in thành công trước đó!',
-        'data' => [
-            'full_name'       => esc($guest['full_name'] ?? ($existingCheckin['full_name_entered'] ?? $fullName)),
-            'phone'           => esc($guest['phone'] ?? ($existingCheckin['phone_entered'] ?? $phone)),
-            'table_name'      => esc($tableName ?? 'Chưa xếp bàn'),
-            'lucky_draw_code' => esc($luckyCode),
-            'checkin_time'    => $time,
-            'match_status'    => $guest ? 'matched' : ($existingCheckin['match_status'] ?? 'walk_in')
-        ]
-    ]);
 }
 
 $matchStatus = 'walk_in';
