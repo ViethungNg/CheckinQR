@@ -67,6 +67,17 @@ if (isPost()) {
             font-size: 1.8rem;
             margin-bottom: 0.5rem;
         }
+        .login-logo-img {
+            max-height: 105px;
+            max-width: 280px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            margin-bottom: 12px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
         .form-group {
             margin-bottom: 1.5rem;
         }
@@ -117,7 +128,7 @@ if (isPost()) {
 
 <div class="login-container">
     <div class="login-header">
-        <img src="<?php echo url('img/logo pmt.png'); ?>" alt="Logo PMT" style="max-height: 65px; max-width: 220px; width: auto; height: auto; object-fit: contain; margin-bottom: 10px;">
+        <img src="<?php echo url('img/logo pmt.png'); ?>" alt="Logo PMT" class="login-logo-img">
         <h2 style="font-size: 1.5rem; color: #111; font-weight: 800;">PMT - Checkin</h2>
         <p style="color: #666; font-size: 0.9rem;">Hệ thống Quản lý & Điểm danh Sự kiện</p>
     </div>
