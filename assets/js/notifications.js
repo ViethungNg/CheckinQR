@@ -295,6 +295,8 @@
                     if (newItems.length > 0) {
                         playNotifChime();
                         newItems.forEach(item => {
+                            showToastNotification(item);
+                            triggerNativeNotification(item);
                             shownToastIds.add(item.id);
                         });
                     }
@@ -488,6 +490,17 @@
         
         if (lastKnownCheckinId > 0 && latestId > lastKnownCheckinId) {
             playNotifChime();
+            const newCheckins = checkins.filter(c => parseInt(c.id) > lastKnownCheckinId);
+            newCheckins.forEach(c => {
+                showToastNotification({
+                    id: c.id,
+                    full_name: c.full_name || 'Khách mời',
+                    phone: c.phone || '',
+                    table_name: c.table_name || 'Chưa xếp bàn',
+                    status: c.match_status || 'matched',
+                    time: c.checkin_time || ''
+                });
+            });
         }
         lastKnownCheckinId = latestId;
 
