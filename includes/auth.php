@@ -97,7 +97,7 @@ function getRoleLabel(string $role): string {
     switch ($role) {
         case 'admin':
         case 'super_admin':
-            return 'Quản trị viên (Admin)';
+            return 'Quản trị viên';
         case 'letan':
         case 'staff':
             return 'Nhân viên Lễ tân';

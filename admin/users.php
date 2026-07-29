@@ -251,13 +251,14 @@ foreach ($usersList as $u) {
                                 </span>
                             </td>
                             <td>
-                                <button class="btn btn-action-edit" style="padding: 5px 12px; font-size: 0.82rem;" onclick='openEditModal(<?php echo json_encode($u); ?>)'>Sửa</button>
+                                <button class="btn btn-action-edit" style="padding: 5px 10px; font-size: 0.82rem;" onclick='openEditModal(<?php echo json_encode($u); ?>)'>Sửa</button>
+                                <button class="btn" style="padding: 5px 10px; font-size: 0.82rem; background: #0284c7; color: #fff; border: none; border-radius: 6px; cursor: pointer;" onclick="openVerifyAdminPassModal(<?php echo $u['id']; ?>, '<?php echo esc($u['username']); ?>')">Xem MK</button>
                                 <?php if ($u['id'] !== (int)$_SESSION['admin_id']): ?>
                                 <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa tài khoản này?');">
                                     <?php echo csrfField(); ?>
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?php echo $u['id']; ?>">
-                                    <button type="submit" class="btn btn-action-danger" style="padding: 5px 12px; font-size: 0.82rem;">Xóa</button>
+                                    <button type="submit" class="btn btn-action-danger" style="padding: 5px 10px; font-size: 0.82rem;">Xóa</button>
                                 </form>
                                 <?php endif; ?>
                             </td>
@@ -418,6 +419,96 @@ foreach ($usersList as $u) {
         const statTotal = document.getElementById('stat-count-total');
         if (statTotal) {
             statTotal.textContent = visibleCount;
+        }
+    }
+</script>
+
+<!-- Modal Xác Nhận Mật Khẩu Admin Để Xem Mật Khẩu User -->
+<div id="verifyAdminPassModal" class="modal" style="display:none; z-index:12000;">
+    <div class="modal-content" style="max-width: 420px; border-radius: 12px; padding: 22px;">
+        <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:12px; margin-bottom:16px;">
+            <h3 style="font-size:1.15rem; font-weight:700; color:#222; margin:0;">Xác Nhận Quyền Admin</h3>
+            <span class="close" onclick="closeVerifyAdminPassModal()" style="font-size:24px; cursor:pointer; color:#888;">&times;</span>
+        </div>
+
+        <div id="verifyPassAlert" style="display:none; padding:10px 14px; border-radius:8px; font-size:0.9rem; margin-bottom:14px;"></div>
+
+        <form id="verifyAdminPassForm" onsubmit="submitVerifyAdminPass(event)">
+            <?php echo csrfField(); ?>
+            <input type="hidden" id="target_user_id" name="target_user_id" value="">
+            
+            <p style="font-size:0.92rem; color:#444; margin-bottom:14px; line-height:1.4;">
+                Vui lòng nhập chính xác <strong>Mật khẩu Admin của bạn</strong> để xem mật khẩu tài khoản <strong id="target_username_display" style="color:#d32f2f;"></strong>:
+            </p>
+
+            <div class="form-group" style="margin-bottom:18px;">
+                <input type="password" id="admin_verify_password" name="admin_password" class="form-control" placeholder="Nhập mật khẩu Admin..." required style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px;">
+            </div>
+
+            <div style="display:flex; gap:10px; justify-content:flex-end;">
+                <button type="button" class="btn" onclick="closeVerifyAdminPassModal()" style="background:#e2e8f0; color:#475569; padding:9px 16px; border:none; border-radius:6px; font-weight:600; cursor:pointer;">Hủy</button>
+                <button type="submit" id="btnSubmitVerifyPass" class="btn btn-primary" style="background:#0284c7; color:#fff; padding:9px 20px; border:none; border-radius:6px; font-weight:600; cursor:pointer;">Xem Mật Khẩu</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openVerifyAdminPassModal(targetUserId, targetUsername) {
+        document.getElementById('target_user_id').value = targetUserId;
+        document.getElementById('target_username_display').textContent = '@' + targetUsername;
+        document.getElementById('admin_verify_password').value = '';
+        const alertBox = document.getElementById('verifyPassAlert');
+        if (alertBox) alertBox.style.display = 'none';
+        document.getElementById('verifyAdminPassModal').style.display = 'block';
+    }
+
+    function closeVerifyAdminPassModal() {
+        document.getElementById('verifyAdminPassModal').style.display = 'none';
+    }
+
+    async function submitVerifyAdminPass(e) {
+        e.preventDefault();
+        const form = e.target;
+        const alertBox = document.getElementById('verifyPassAlert');
+        const submitBtn = document.getElementById('btnSubmitVerifyPass');
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Đang kiểm tra...';
+
+        try {
+            const formData = new FormData(form);
+            const response = await fetch('../api/view_user_password.php', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+
+            alertBox.style.display = 'block';
+            if (result.status === 'success') {
+                alertBox.style.background = '#e8f5e9';
+                alertBox.style.color = '#1b5e20';
+                alertBox.style.border = '1.5px solid #81c784';
+                alertBox.innerHTML = `
+                    <div style="font-weight:bold; margin-bottom:4px;">Xác nhận Admin thành công!</div>
+                    <div>Tài khoản: <strong>@${result.username}</strong> (${result.full_name})</div>
+                    <div style="margin-top:6px; font-size:1.05rem;">Mật khẩu: <strong style="color:#d32f2f; background:#fff; padding:2px 8px; border-radius:4px; border:1px solid #ffcdd2;">${result.password}</strong></div>
+                `;
+            } else {
+                alertBox.style.background = '#ffebee';
+                alertBox.style.color = '#c62828';
+                alertBox.style.border = '1px solid #ffcdd2';
+                alertBox.innerHTML = result.message || 'Mật khẩu Admin không chính xác!';
+            }
+        } catch (err) {
+            alertBox.style.display = 'block';
+            alertBox.style.background = '#ffebee';
+            alertBox.style.color = '#c62828';
+            alertBox.style.border = '1px solid #ffcdd2';
+            alertBox.innerHTML = 'Đã xảy ra lỗi khi xác thực máy chủ.';
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Xem Mật Khẩu';
         }
     }
 </script>

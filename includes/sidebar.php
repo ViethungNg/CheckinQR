@@ -54,11 +54,6 @@ $firstChar = mb_strtoupper(mb_substr($adminName, 0, 1, 'UTF-8'));
             </a>
         </li>
         <?php endif; ?>
-        <li>
-            <a href="javascript:void(0)" onclick="openChangePasswordModal()">
-                Đổi mật khẩu
-            </a>
-        </li>
     </ul>
 
     <!-- User Profile & Logout Box inside Left Sidebar -->
@@ -68,22 +63,26 @@ $firstChar = mb_strtoupper(mb_substr($adminName, 0, 1, 'UTF-8'));
                 <?php echo esc($firstChar); ?>
             </div>
             <div class="user-profile-meta">
-                <div class="user-profile-name" title="<?php echo esc($adminName); ?>">
-                    <?php echo esc($adminName); ?>
-                </div>
-                <div class="user-profile-role">
-                    <?php echo getRoleLabel($adminRole); ?>
+                <?php 
+                    $roleLabelText = getRoleLabel($adminRole); 
+                    $showName = ($adminName !== $roleLabelText && $adminName !== 'Admin') ? $adminName : '';
+                ?>
+                <?php if (!empty($showName)): ?>
+                    <div class="user-profile-name" title="<?php echo esc($showName); ?>">
+                        <?php echo esc($showName); ?>
+                    </div>
+                <?php endif; ?>
+                <div class="user-profile-role" style="display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
+                    <span style="font-weight:600; color:#333;"><?php echo esc($roleLabelText); ?></span>
+                    <a href="javascript:void(0)" onclick="openChangePasswordModal()" style="color:#d32f2f; font-weight:700; text-decoration:underline; font-size:0.76rem; cursor:pointer;" title="Bấm để đổi mật khẩu tài khoản">
+                        (Đổi mật khẩu)
+                    </a>
                 </div>
             </div>
         </div>
-        <div style="display: flex; gap: 6px; width: 100%; margin-top: 8px;">
-            <button type="button" class="sidebar-logout-btn" style="flex: 1; background: #555; text-align: center; cursor: pointer; border: none;" onclick="openChangePasswordModal()">
-                Đổi mật khẩu
-            </button>
-            <a href="logout.php" class="sidebar-logout-btn" style="flex: 1; text-align: center;" onclick="return confirmModal(event, 'Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?');">
-                Đăng xuất
-            </a>
-        </div>
+        <a href="logout.php" class="sidebar-logout-btn" onclick="return confirmModal(event, 'Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?');">
+            Đăng xuất
+        </a>
     </div>
 </div>
 
