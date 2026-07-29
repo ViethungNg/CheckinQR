@@ -387,6 +387,7 @@ button, input, select, textarea {
         display: flex !important;
         align-items: center !important;
         gap: 6px !important;
+        max-width: calc(100% - 90px) !important;
     }
 
     .mobile-user-greeting {
@@ -394,10 +395,28 @@ button, input, select, textarea {
         font-weight: 700 !important;
         color: #1565c0 !important;
         background: #e3f2fd !important;
-        padding: 5px 10px !important;
+        padding: 5px 12px !important;
         border-radius: 20px !important;
         white-space: nowrap !important;
         border: 1px solid #bbdefb !important;
+        display: inline-block !important;
+        vertical-align: middle !important;
+        max-width: 140px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        flex-shrink: 1 !important;
+    }
+
+    @media (min-width: 380px) {
+        .mobile-user-greeting {
+            max-width: 190px !important;
+        }
+    }
+
+    @media (min-width: 480px) {
+        .mobile-user-greeting {
+            max-width: 280px !important;
+        }
     }
 
     .mobile-quick-logout {
