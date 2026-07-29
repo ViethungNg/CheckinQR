@@ -2395,22 +2395,27 @@ body {
     transition: opacity 0.3s ease, transform 0.3s ease !important;
 }
 
-.app-toast-item.toast-success {
+.app-toast-item.toast-success,
+.app-toast-item.toast-edit {
     border-left-color: #10b981 !important;
     background: #f0fdf4 !important;
     color: #065f46 !important;
 }
 
-.app-toast-item.toast-edit {
-    border-left-color: #3b82f6 !important;
-    background: #eff6ff !important;
-    color: #1e40af !important;
+.app-toast-item.toast-success .app-toast-title,
+.app-toast-item.toast-edit .app-toast-title {
+    color: #047857 !important;
 }
 
-.app-toast-item.toast-delete {
+.app-toast-item.toast-error,
+.app-toast-item.toast-delete-error {
     border-left-color: #ef4444 !important;
     background: #fef2f2 !important;
     color: #991b1b !important;
+}
+
+.app-toast-item.toast-error .app-toast-title {
+    color: #dc2626 !important;
 }
 
 .app-toast-icon {

@@ -538,9 +538,16 @@
         }
     }
 
-    // Global Toast Notification Manager
+    // Global Toast Notification Manager (Không dùng icon, chống trùng lặp thông báo)
+    const shownToastHashes = new Set();
+
     window.showAppToast = function(message, type = 'success', title = '') {
         if (!message) return;
+        const msgHash = `${type}_${message.trim()}`;
+        if (shownToastHashes.has(msgHash)) return;
+        shownToastHashes.add(msgHash);
+        setTimeout(() => shownToastHashes.delete(msgHash), 3000);
+
         let container = document.getElementById('appToastContainer');
         if (!container) {
             container = document.createElement('div');
@@ -549,25 +556,24 @@
             document.body.appendChild(container);
         }
 
-        let icon = '✅';
         let defaultTitle = 'Thao tác thành công';
         let toastClass = 'toast-success';
 
         const lower = message.toLowerCase();
-        if (type === 'edit' || lower.includes('sửa') || lower.includes('cập nhật')) {
-            icon = '✏️';
+
+        // 1. UƯ TIÊN KIỂM TRA LỖI TRƯỚC TIÊN -> POPUP ĐỎ
+        if (type === 'error' || lower.includes('lỗi') || lower.includes('thất bại') || lower.includes('không thể')) {
+            defaultTitle = 'Thông báo lỗi';
+            toastClass = 'toast-error';
+        } 
+        // 2. CÁC THAO TÁC THÀNH CÔNG -> POPUP XANH LÁ
+        else if (type === 'edit' || lower.includes('sửa') || lower.includes('cập nhật')) {
             defaultTitle = 'Cập nhật thành công';
-            toastClass = 'toast-edit';
+            toastClass = 'toast-success';
         } else if (type === 'delete' || lower.includes('xóa')) {
-            icon = '🗑️';
             defaultTitle = 'Đã xóa thành công';
-            toastClass = 'toast-delete';
-        } else if (type === 'error' || lower.includes('lỗi')) {
-            icon = '⚠️';
-            defaultTitle = 'Thông báo hệ thống';
-            toastClass = 'toast-delete';
+            toastClass = 'toast-success';
         } else if (type === 'add' || lower.includes('thêm')) {
-            icon = '🎉';
             defaultTitle = 'Thêm mới thành công';
             toastClass = 'toast-success';
         }
@@ -577,7 +583,6 @@
         const item = document.createElement('div');
         item.className = `app-toast-item ${toastClass}`;
         item.innerHTML = `
-            <div class="app-toast-icon">${icon}</div>
             <div class="app-toast-content">
                 <div class="app-toast-title">${title}</div>
                 <div class="app-toast-message">${message}</div>
@@ -596,7 +601,7 @@
 
     // Auto Intercept PHP Alert Boxes & Scroll to Bottom on Add
     function initAlertAndAutoScrollInterceptor() {
-        const alerts = document.querySelectorAll('.alert.success, .alert.error, .alert.info');
+        const alerts = document.querySelectorAll('.alert.success, .alert.error, .alert.info, .alert.danger');
         let isAddAction = false;
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -610,9 +615,11 @@
 
             const lower = text.toLowerCase();
             let type = 'success';
-            if (alert.classList.contains('error')) type = 'error';
 
-            if (lower.includes('thêm')) {
+            // Kiểm tra lỗi trước tiên để tránh bị đè thành thông báo sửa/cập nhật
+            if (alert.classList.contains('error') || alert.classList.contains('danger') || lower.includes('lỗi')) {
+                type = 'error';
+            } else if (lower.includes('thêm')) {
                 isAddAction = true;
                 type = 'add';
             } else if (lower.includes('sửa') || lower.includes('cập nhật')) {

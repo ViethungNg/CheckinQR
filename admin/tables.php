@@ -23,6 +23,12 @@ if (isPost() && isAdmin()) {
             $error = 'Vui lòng chọn sự kiện và nhập tên bàn';
         } else {
             try {
+                if ($sortOrder <= 0) {
+                    $stmtMax = $db->prepare("SELECT COALESCE(MAX(sort_order), 0) + 1 FROM event_tables WHERE event_id = ?");
+                    $stmtMax->execute([$eventId]);
+                    $sortOrder = (int)$stmtMax->fetchColumn();
+                }
+
                 $stmt = $db->prepare("INSERT INTO event_tables (event_id, table_name, table_code, capacity, location, assigned_user_id, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)");
                 $stmt->execute([$eventId, $tableName, $tableCode, $capacity, $location, $assignedUserId, $sortOrder]);
                 $message = 'Thêm bàn thành công!';
@@ -278,12 +284,29 @@ if (isset($_GET['ajax'])) {
 
 <script>
     const modal = document.getElementById('tableModal');
-    
+    let latestTablesData = <?php echo json_encode($tables); ?>;
+
+    function getSuggestedSortOrder(eventId) {
+        let maxOrder = 0;
+        if (Array.isArray(latestTablesData)) {
+            latestTablesData.forEach(t => {
+                if (!eventId || parseInt(t.event_id) === parseInt(eventId)) {
+                    const val = parseInt(t.sort_order) || 0;
+                    if (val > maxOrder) maxOrder = val;
+                }
+            });
+        }
+        return maxOrder + 1;
+    }
+
     function openAddModal() {
         document.getElementById('modalTitle').innerText = 'Thêm Bàn Mới';
         document.getElementById('formAction').value = 'add';
         document.getElementById('tableId').value = '';
-        document.getElementById('tableSortOrder').value = '0';
+        
+        const selectedEventId = document.getElementById('eventId')?.value;
+        document.getElementById('tableSortOrder').value = getSuggestedSortOrder(selectedEventId);
+
         document.getElementById('assignedUserId').value = '';
         document.getElementById('tableName').value = '';
         document.getElementById('tableCode').value = '';
@@ -291,6 +314,17 @@ if (isset($_GET['ajax'])) {
         document.getElementById('tableLocation').value = '';
         modal.style.display = 'block';
     }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const eventSelect = document.getElementById('eventId');
+        if (eventSelect) {
+            eventSelect.addEventListener('change', function() {
+                if (document.getElementById('formAction')?.value === 'add') {
+                    document.getElementById('tableSortOrder').value = getSuggestedSortOrder(this.value);
+                }
+            });
+        }
+    });
     
     function openEditModal(data) {
         document.getElementById('modalTitle').innerText = 'Sửa Bàn: ' + data.table_name;
@@ -344,6 +378,7 @@ if (isset($_GET['ajax'])) {
     }
 
     function renderTablesRows(tables) {
+        latestTablesData = tables;
         const tbody = document.getElementById('tablesTableBody');
         if (!tbody) return;
 
