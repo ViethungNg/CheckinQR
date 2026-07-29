@@ -61,19 +61,17 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
- * Tự động cuộn xuống khu vực bảng dữ liệu trên Mobile & Tablet khi chọn bộ lọc
+ * Tự động cuộn xuống khu vực bảng dữ liệu trên tất cả thiết bị (Desktop, Tablet, Mobile) khi chọn bộ lọc
  */
 window.scrollToTableSectionOnMobile = function() {
-    if (window.innerWidth <= 1024) {
-        setTimeout(function() {
-            const target = document.querySelector('.dashboard-table-card') || 
-                           document.querySelector('.content-box') || 
-                           document.querySelector('.table-responsive') || 
-                           document.querySelector('table');
-            if (target) {
-                const targetPosition = target.getBoundingClientRect().top + window.pageYOffset - 70;
-                window.scrollTo({ top: Math.max(0, targetPosition), behavior: 'smooth' });
-            }
-        }, 80);
-    }
+    setTimeout(function() {
+        const target = document.querySelector('.dashboard-table-card') || 
+                       document.querySelector('.content-box') || 
+                       document.querySelector('.table-responsive') || 
+                       document.querySelector('table');
+        if (target) {
+            const targetPosition = target.getBoundingClientRect().top + window.pageYOffset - 70;
+            window.scrollTo({ top: Math.max(0, targetPosition), behavior: 'smooth' });
+        }
+    }, 80);
 };
