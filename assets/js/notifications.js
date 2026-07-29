@@ -642,7 +642,8 @@
             }
 
             window.showAppToast(text, type);
-            // Giữ lại thẻ thông báo inline (.alert) trên trang hiển thị bình thường
+            // Ẩn thẻ thông báo inline trên trang theo đúng yêu cầu người dùng (chỉ hiển thị Popup Toast)
+            alert.style.display = 'none';
         });
 
         if (isAddAction) {

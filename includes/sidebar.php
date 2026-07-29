@@ -87,35 +87,35 @@ $firstChar = mb_strtoupper(mb_substr($adminName, 0, 1, 'UTF-8'));
 </div>
 
 <!-- Modal Đổi Mật Khẩu Chung Cho Tất Cả Role -->
-<div id="changePasswordModal" class="modal" style="display:none; z-index: 11000;">
-    <div class="modal-content" style="max-width: 420px; border-radius: 12px; padding: 24px;">
-        <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:12px; margin-bottom:16px;">
-            <h3 style="font-size:1.15rem; font-weight:700; color:#222; margin:0;">Đổi Mật Khẩu Tài Khoản</h3>
-            <span class="close" onclick="closeChangePasswordModal()" style="font-size:24px; cursor:pointer; color:#888;">&times;</span>
+<div id="changePasswordModal" class="modal change-pass-modal" style="display:none; z-index: 11000;">
+    <div class="modal-content change-pass-content">
+        <div class="modal-header change-pass-header">
+            <h3 class="change-pass-title">🔑 Đổi Mật Khẩu Tài Khoản</h3>
+            <span class="close-modal-btn" onclick="closeChangePasswordModal()">&times;</span>
         </div>
 
-        <div id="changePassAlert" style="display:none; padding:10px 14px; border-radius:8px; font-size:0.9rem; margin-bottom:14px;"></div>
+        <div id="changePassAlert" style="display:none;" class="change-pass-alert"></div>
 
         <form id="changePasswordForm" onsubmit="submitChangePassword(event)">
             <?php echo csrfField(); ?>
-            <div class="form-group" style="margin-bottom:14px;">
-                <label style="display:block; font-weight:600; font-size:0.88rem; margin-bottom:6px; color: #333;">Mật khẩu hiện tại *</label>
-                <input type="password" name="current_password" id="pass_current" class="form-control" placeholder="Nhập mật khẩu đang dùng..." required style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px;">
+            <div class="form-group change-pass-group">
+                <label class="change-pass-label">Mật khẩu hiện tại *</label>
+                <input type="password" name="current_password" id="pass_current" class="form-control change-pass-input" placeholder="Nhập mật khẩu đang dùng..." required>
             </div>
 
-            <div class="form-group" style="margin-bottom:14px;">
-                <label style="display:block; font-weight:600; font-size:0.88rem; margin-bottom:6px; color: #333;">Mật khẩu mới *</label>
-                <input type="password" name="new_password" id="pass_new" class="form-control" placeholder="Nhập mật khẩu mới..." required style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px;">
+            <div class="form-group change-pass-group">
+                <label class="change-pass-label">Mật khẩu mới *</label>
+                <input type="password" name="new_password" id="pass_new" class="form-control change-pass-input" placeholder="Nhập mật khẩu mới..." required>
             </div>
 
-            <div class="form-group" style="margin-bottom:18px;">
-                <label style="display:block; font-weight:600; font-size:0.88rem; margin-bottom:6px; color: #333;">Xác nhận mật khẩu mới *</label>
-                <input type="password" name="confirm_password" id="pass_confirm" class="form-control" placeholder="Nhập lại mật khẩu mới..." required style="width:100%; padding:10px; border:1px solid #ccc; border-radius:6px;">
+            <div class="form-group change-pass-group">
+                <label class="change-pass-label">Xác nhận mật khẩu mới *</label>
+                <input type="password" name="confirm_password" id="pass_confirm" class="form-control change-pass-input" placeholder="Nhập lại mật khẩu mới..." required>
             </div>
 
-            <div style="display:flex; gap:10px; justify-content:flex-end;">
-                <button type="button" class="btn" onclick="closeChangePasswordModal()" style="background:#e2e8f0; color:#475569; padding:9px 16px; border:none; border-radius:6px; font-weight:600; cursor:pointer;">Hủy Bỏ</button>
-                <button type="submit" id="btnSubmitChangePass" class="btn btn-primary" style="background:#d32f2f; color:#fff; padding:9px 20px; border:none; border-radius:6px; font-weight:600; cursor:pointer;">Lưu Mật Khẩu</button>
+            <div class="change-pass-actions">
+                <button type="button" class="btn btn-cancel-pass" onclick="closeChangePasswordModal()">Hủy Bỏ</button>
+                <button type="submit" id="btnSubmitChangePass" class="btn btn-save-pass">Lưu Mật Khẩu</button>
             </div>
         </form>
     </div>
