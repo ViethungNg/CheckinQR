@@ -51,20 +51,27 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         
                         <div style="background: #ffffff; border: 1px solid #bbdefb; border-radius: 12px; padding: 15px; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-                            <div style="margin-bottom: 10px; font-size: 0.95rem; color: #333;">
+                            <div style="margin-bottom: 8px; font-size: 0.95rem; color: #333;">
                                 👤 <strong>Họ tên:</strong> ${data.data.full_name}
                             </div>
-                            <div style="margin-bottom: 10px; font-size: 0.95rem; color: #333;">
+                            <div style="margin-bottom: 14px; font-size: 0.95rem; color: #333;">
                                 📞 <strong>Số điện thoại:</strong> ${data.data.phone}
                             </div>
-                            <div style="margin-bottom: 10px; font-size: 0.95rem; color: #d32f2f;">
-                                🪑 <strong>Vị trí ngồi:</strong> <span style="background: #fce4e4; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 1rem;">${data.data.table_name}</span>
-                            </div>
-                            <div style="margin-top: 15px; padding-top: 12px; border-top: 1px dashed #bbdefb; text-align: center;">
-                                <div style="font-size: 0.8rem; color: #666; margin-bottom: 4px; text-transform: uppercase; font-weight: 600;">🎁 MÃ THAM GIA QUAY THƯỞNG / BỐC THĂM</div>
-                                <div style="font-size: 1.5rem; font-weight: 800; color: #d32f2f; letter-spacing: 1px; background: #fff5f5; display: inline-block; padding: 6px 20px; border-radius: 20px; border: 1px solid #ffcdd2;">
-                                    ${data.data.lucky_draw_code}
-                                </div>
+                            
+                            <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px;">
+                                ${data.data.table_name ? `
+                                    <div style="flex: 1; min-width: 140px; background: #e8f5e9; border: 2px solid #66bb6a; border-radius: 12px; padding: 10px 14px; text-align: center; box-shadow: 0 3px 8px rgba(46,125,50,0.12);">
+                                        <div style="font-size: 0.75rem; color: #2e7d32; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">🪑 Vị trí ngồi</div>
+                                        <div style="font-size: 1.25rem; font-weight: 800; color: #1b5e20;">${data.data.table_name}</div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${data.data.lucky_draw_code ? `
+                                    <div style="flex: 1; min-width: 140px; background: #f3e5f5; border: 2px solid #ab47bc; border-radius: 12px; padding: 10px 14px; text-align: center; box-shadow: 0 3px 8px rgba(123,31,162,0.12);">
+                                        <div style="font-size: 0.75rem; color: #7b1fa2; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">🎟️ Mã bốc thăm</div>
+                                        <div style="font-size: 1.25rem; font-weight: 800; color: #4a148c;">${data.data.lucky_draw_code}</div>
+                                    </div>
+                                ` : ''}
                             </div>
                         </div>
                     </div>

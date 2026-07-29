@@ -6,9 +6,11 @@ $db = Database::getConnection();
 
 // Xử lý thống kê cho dashboard theo vai trò
 $userId = $_SESSION['admin_id'] ?? 0;
+$adminRole = $_SESSION['admin_role'] ?? 'staff';
+
 if (isKinhDoanh()) {
     $stats = [
-        'events'      => 0,
+        'events'      => (int)$db->query("SELECT COUNT(*) FROM events")->fetchColumn(),
         'guests'      => (int)$db->query("SELECT COUNT(*) FROM guests g JOIN event_tables t ON g.table_id = t.id WHERE t.assigned_user_id = {$userId}")->fetchColumn(),
         'checked_in'  => (int)$db->query("SELECT COUNT(*) FROM checkins c JOIN event_tables t ON c.table_id = t.id WHERE c.match_status = 'matched' AND t.assigned_user_id = {$userId}")->fetchColumn(),
         'walk_in'     => 0,
@@ -25,6 +27,17 @@ if (isKinhDoanh()) {
         'not_arrived' => (int)$db->query("SELECT COUNT(*) FROM guests WHERE status = 'invited'")->fetchColumn(),
     ];
 }
+
+// Tỉ lệ % checkin toàn bộ
+$checkinRate = $stats['guests'] > 0 ? round(($stats['checked_in'] / $stats['guests']) * 100) : 0;
+
+// Lấy link Màn Hình Quét QR theo sự kiện đang Active
+$activeEventStmt = $db->query("SELECT slug FROM events WHERE status = 'active' ORDER BY id DESC");
+$activeEvents = $activeEventStmt->fetchAll();
+$qrCheckinUrl = '../index.php';
+if (count($activeEvents) === 1) {
+    $qrCheckinUrl = '../index.php?event=' . urlencode($activeEvents[0]['slug']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -33,54 +46,6 @@ if (isKinhDoanh()) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - CheckinQR</title>
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
-    <style>
-        :root {
-            --primary-color: #d32f2f;
-            --sidebar-width: 250px;
-            --bg-color: #f4f6f8;
-            --text-color: #333;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); }
-        .user-info { display: flex; align-items: center; gap: 15px; }
-        .btn-logout { background: #f44336; color: white; border: none; padding: 8px 15px; border-radius: 4px; text-decoration: none; font-size: 0.9rem; }
-        .dashboard-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
-        .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: center; border-top: 4px solid var(--primary-color); cursor: pointer; transition: all 0.2s ease; user-select: none; }
-        .card:hover { transform: translateY(-4px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
-        .card.active-card { background: #fff5f5; box-shadow: 0 0 0 2px var(--primary-color); }
-        .card h3 { color: #777; font-size: 1rem; margin-bottom: 10px; font-weight: 500; }
-        .card .value { font-size: 2.2rem; font-weight: bold; color: #333; }
-        
-        .table-overview-card {
-            background: #fff;
-            border: 1px solid #e0e0e0;
-            border-radius: 10px;
-            padding: 12px 14px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            position: relative;
-        }
-        .table-overview-card:hover {
-            border-color: #d32f2f;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(211,47,47,0.12);
-        }
-        .table-overview-card.active-table {
-            border: 2px solid #d32f2f;
-            background: #fff8f8;
-            box-shadow: 0 4px 14px rgba(211,47,47,0.18);
-        }
-
-        .recent-section { margin-top: 25px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .recent-section h3 { margin-bottom: 15px; color: var(--primary-color); }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #f8f9fa; font-weight: 600; }
-        .badge { padding: 5px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
-        .badge.matched { background: #e8f5e9; color: #2e7d32; }
-        .badge.walk_in { background: #fff3e0; color: #ef6c00; }
-        .badge.invited { background: #e3f2fd; color: #1565c0; }
-    </style>
 </head>
 <body>
 
@@ -88,78 +53,152 @@ if (isKinhDoanh()) {
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
     
     <div class="main-content">
-        <div class="header">
-            <h1>Dashboard <?php echo isKinhDoanh() ? 'Kinh Doanh (Bàn Phụ Trách)' : 'Tổng quan'; ?></h1>
-        </div>
-        
-        <!-- Stats Cards Grid -->
-        <div class="dashboard-cards">
-            <?php if(!isKinhDoanh()): ?>
-            <div class="card active-card" id="card-all" onclick="setFilter('all')" title="Bấm để lọc tất cả lượt check-in">
-                <h3>Tổng Sự kiện</h3>
-                <div class="value" id="val-events"><?php echo $stats['events']; ?></div>
-            </div>
-            <?php endif; ?>
-            <div class="card <?php echo isKinhDoanh() ? 'active-card' : ''; ?>" id="card-guests" onclick="setFilter('guests')" title="Bấm để lọc tất cả khách dự kiến">
-                <h3>Khách dự kiến <?php echo isKinhDoanh() ? '(Phụ trách)' : ''; ?></h3>
-                <div class="value" id="val-guests"><?php echo $stats['guests']; ?></div>
-            </div>
-            <div class="card" id="card-matched" onclick="setFilter('matched')" title="Bấm để lọc khách đã Check-in hợp lệ">
-                <h3>Đã Check-in (Khớp)</h3>
-                <div class="value" id="val-checked-in" style="color: #2e7d32;"><?php echo $stats['checked_in']; ?></div>
-            </div>
-            <?php if(!isKinhDoanh()): ?>
-            <div class="card" id="card-walk_in" onclick="setFilter('walk_in')" title="Bấm để lọc khách phát sinh">
-                <h3>Khách phát sinh (Walk-in)</h3>
-                <div class="value" id="val-walk-in" style="color: #ef6c00;"><?php echo $stats['walk_in']; ?></div>
-            </div>
-            <div class="card" id="card-unassigned" style="border-top-color: #c62828;" onclick="setFilter('unassigned')" title="Bấm để lọc khách chưa xếp bàn">
-                <h3>Chưa xếp bàn</h3>
-                <div class="value" id="val-unassigned" style="color: #c62828;"><?php echo $stats['unassigned']; ?></div>
-            </div>
-            <?php endif; ?>
-            <div class="card" id="card-not_arrived" style="border-top-color: #1976d2;" onclick="setFilter('not_arrived')" title="Bấm để lọc khách dự kiến chưa tới">
-                <h3>Khách chưa tới</h3>
-                <div class="value" id="val-not-arrived" style="color: #1976d2;"><?php echo $stats['not_arrived']; ?></div>
-            </div>
-        </div>
-
-        <!-- Sơ đồ trạng thái Khách theo Bàn (Real-time) - Hiển thị cho Admin, Lễ Tân và Kinh Doanh (bàn phụ trách) -->
-        <div class="content-box" style="margin-top: 25px; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                <h3 style="margin: 0; color: #d32f2f; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
-                    <span>🪑</span> Sơ đồ trạng thái Khách theo Bàn (Real-time) <?php echo isKinhDoanh() ? '(Bàn Phụ Trách)' : ''; ?>
-                </h3>
-                <span style="font-size: 0.85rem; color: #666;">Bấm vào thẻ Bàn bên dưới để lọc xem danh sách khách của bàn đó</span>
-            </div>
-            <div id="tables-cards-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px;">
-                <!-- Rendered dynamically by JavaScript -->
-            </div>
-        </div>
-
-        <!-- Table & Guest Details Section -->
-        <div class="recent-section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 12px;">
-                <h3 style="margin-bottom: 0;">Khách hàng & Lượt check-in bàn phụ trách</h3>
-                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <select id="table-select-filter" onchange="setTableFilter(this.value)" style="padding: 7px 12px; border-radius: 6px; font-size: 0.88rem; border: 1.5px solid #d32f2f; background: #fff; color: #333; font-weight: bold; cursor: pointer; outline: none;">
-                        <option value="all">🔍 Tất cả các Bàn</option>
-                    </select>
-                    <span id="realtime-status" style="font-size: 0.85rem; color: #2e7d32; font-weight: 500;">
-                        🟢 Real-time (Mỗi 3s)
-                    </span>
+        <!-- Role-Specific Hero Banner -->
+        <?php if (isAdmin()): ?>
+            <div class="dashboard-hero-banner hero-role-admin">
+                <div class="hero-text-content">
+                    <div class="hero-role-badge">👑 Admin / Quản trị viên</div>
+                    <h2>👋 Xin chào, <?php echo esc($_SESSION['admin_name'] ?? 'Admin'); ?>!</h2>
+                    <p>Tổng quan hệ thống điều hành check-in sự kiện real-time & quản lý bàn tiệc.</p>
+                </div>
+                <div class="hero-quick-actions">
+                    <a href="events.php" class="btn-hero-action btn-hero-primary">🎉 Quản lý Sự kiện</a>
+                    <a href="guests.php" class="btn-hero-action btn-hero-outline">📋 Danh sách Khách</a>
+                    <a href="<?php echo $qrCheckinUrl; ?>" target="_blank" class="btn-hero-action btn-hero-outline">📱 Màn Hình Quét QR</a>
                 </div>
             </div>
+        <?php elseif (isLeTan()): ?>
+            <div class="dashboard-hero-banner hero-role-letan">
+                <div class="hero-text-content">
+                    <div class="hero-role-badge">👤 Nhân viên Lễ Tân</div>
+                    <h2>👋 Chào mừng Lễ Tân, <?php echo esc($_SESSION['admin_name'] ?? 'Lễ Tân'); ?>!</h2>
+                    <p>Trung tâm tiếp đón khách hàng & vận hành check-in tốc độ cao tại sảnh.</p>
+                </div>
+                <div class="hero-quick-actions">
+                    <a href="<?php echo $qrCheckinUrl; ?>" target="_blank" class="btn-hero-action btn-hero-primary">📱 Quét QR Khách</a>
+                    <a href="guests.php" class="btn-hero-action btn-hero-outline">📋 Tìm Khách Hàng</a>
+                    <a href="checkins.php" class="btn-hero-action btn-hero-outline">📥 Lịch sử Check-in</a>
+                </div>
+            </div>
+        <?php else: ?>
+            <div class="dashboard-hero-banner hero-role-kinhdoanh">
+                <div class="hero-text-content">
+                    <div class="hero-role-badge">💼 Nhân viên Kinh Doanh</div>
+                    <h2>💼 Bàn Phụ Trách - <?php echo esc($_SESSION['admin_name'] ?? 'Kinh Doanh'); ?></h2>
+                    <p>Theo dõi tiến độ khách dự tiệc & thông tin các bàn bạn trực tiếp phụ trách.</p>
+                </div>
+                <div class="hero-quick-actions">
+                    <a href="guests.php" class="btn-hero-action btn-hero-primary">📋 Khách Mời Của Tôi</a>
+                    <a href="tables.php" class="btn-hero-action btn-hero-outline">🪑 Danh Sách Bàn Phụ Trách</a>
+                </div>
+            </div>
+        <?php endif; ?>
+        
+        <!-- Modern Stats Cards Grid -->
+        <div class="dashboard-cards-grid">
+            <?php if (!isKinhDoanh()): ?>
+            <div class="stat-card-modern card-accent-events active-card" id="card-all" onclick="setFilter('all')" title="Bấm để xem tất cả">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">Tổng Sự Kiện</span>
+                    <div class="stat-card-icon-wrapper">🎉</div>
+                </div>
+                <div class="stat-card-value" id="val-events"><?php echo $stats['events']; ?></div>
+                <div class="stat-card-subtitle"><span>📊</span> Đang diễn ra</div>
+            </div>
+            <?php endif; ?>
+
+            <div class="stat-card-modern card-accent-guests <?php echo isKinhDoanh() ? 'active-card' : ''; ?>" id="card-guests" onclick="setFilter('guests')" title="Bấm để lọc tất cả khách dự kiến">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">Khách Dự Kiến <?php echo isKinhDoanh() ? '(Phụ trách)' : ''; ?></span>
+                    <div class="stat-card-icon-wrapper">👥</div>
+                </div>
+                <div class="stat-card-value" id="val-guests"><?php echo $stats['guests']; ?></div>
+                <div class="stat-card-subtitle"><span>📋</span> Danh sách mới nhất</div>
+            </div>
+
+            <div class="stat-card-modern card-accent-matched" id="card-matched" onclick="setFilter('matched')" title="Bấm để lọc khách đã Check-in hợp lệ">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">Đã Check-in (Khớp)</span>
+                    <div class="stat-card-icon-wrapper">✅</div>
+                </div>
+                <div class="stat-card-value" style="color: #10b981;" id="val-checked-in"><?php echo $stats['checked_in']; ?></div>
+                <div class="stat-card-subtitle"><span style="color:#10b981;">🟢</span> Hợp lệ thành công</div>
+            </div>
+
+            <?php if (!isKinhDoanh()): ?>
+            <div class="stat-card-modern card-accent-walkin" id="card-walk_in" onclick="setFilter('walk_in')" title="Bấm để lọc khách phát sinh">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">Khách Phát Sinh</span>
+                    <div class="stat-card-icon-wrapper">🔸</div>
+                </div>
+                <div class="stat-card-value" style="color: #f59e0b;" id="val-walk-in"><?php echo $stats['walk_in']; ?></div>
+                <div class="stat-card-subtitle"><span>⚠️</span> Walk-in tại sảnh</div>
+            </div>
+
+            <div class="stat-card-modern card-accent-unassigned" id="card-unassigned" onclick="setFilter('unassigned')" title="Bấm để lọc khách chưa xếp bàn">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">Chưa Xếp Bàn</span>
+                    <div class="stat-card-icon-wrapper">🪑</div>
+                </div>
+                <div class="stat-card-value" style="color: #ef4444;" id="val-unassigned"><?php echo $stats['unassigned']; ?></div>
+                <div class="stat-card-subtitle"><span>📌</span> Cần phân chỗ</div>
+            </div>
+            <?php endif; ?>
+
+            <div class="stat-card-modern card-accent-notarrived" id="card-not_arrived" onclick="setFilter('not_arrived')" title="Bấm để lọc khách dự kiến chưa tới">
+                <div class="stat-card-header">
+                    <span class="stat-card-title">Khách Chưa Tới</span>
+                    <div class="stat-card-icon-wrapper">⏳</div>
+                </div>
+                <div class="stat-card-value" style="color: #6366f1;" id="val-not-arrived"><?php echo $stats['not_arrived']; ?></div>
+                <div class="stat-card-subtitle"><span>🕒</span> Đang chờ tiếp đón</div>
+            </div>
+        </div>
+
+        <!-- Real-Time Floorplan Table Cards Grid -->
+        <div class="table-floorplan-section">
+            <div class="floorplan-header">
+                <div class="floorplan-title">
+                    <span>🪑</span> Sơ Đồ Trạng Thái Bàn (Real-time) <?php echo isKinhDoanh() ? '(Bàn Phụ Trách)' : ''; ?>
+                </div>
+                <div class="floorplan-hint">
+                    💡 Bấm vào thẻ Bàn để lọc danh sách khách của bàn đó
+                </div>
+            </div>
+            <div id="tables-cards-container" class="tables-grid-cards">
+                <!-- Dynamically rendered via Javascript -->
+            </div>
+        </div>
+
+        <!-- Smart Filter Toolbar & Guest Checkin Table Section -->
+        <div class="dashboard-table-card">
+            <div class="table-filter-toolbar">
+                <div class="table-toolbar-left">
+                    <div class="dashboard-search-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="dashboard-search-input" placeholder="Tìm nhanh theo tên, SĐT hoặc tên bàn..." oninput="handleSearchInput(this.value)">
+                    </div>
+                </div>
+                <div class="table-toolbar-right">
+                    <select id="table-select-filter" class="table-select-custom" onchange="setTableFilter(this.value)">
+                        <option value="all">🔍 Tất cả các Bàn</option>
+                    </select>
+                    <div class="realtime-pill-badge">
+                        <div class="pulse-dot"></div> Real-time (3s)
+                    </div>
+                </div>
+            </div>
+
             <div class="table-responsive">
-                <table>
+                <table class="modern-data-table">
                     <thead>
                         <tr>
-                            <th>Khách nhập</th>
-                            <th>SĐT</th>
-                            <th>Bàn</th>
-                            <th>Hình thức Check-in</th>
-                            <th>Thời gian</th>
-                            <th>Trạng thái</th>
+                            <th>Khách Nhập</th>
+                            <th>Số Điện Thoại</th>
+                            <th>Bàn Tiệc</th>
+                            <th>Hình Thức Check-in</th>
+                            <th>Thời Gian</th>
+                            <th>Trạng Thái</th>
                         </tr>
                     </thead>
                     <tbody id="recent-checkins-body">
@@ -174,12 +213,15 @@ if (isKinhDoanh()) {
 <script>
 let currentFilter = '<?php echo isKinhDoanh() ? "guests" : "all"; ?>';
 let selectedTableId = 'all';
+let currentSearch = '';
+let searchDebounceTimer = null;
+let lastIndexDataHash = '';
 
 function setFilter(val) {
     currentFilter = val;
     
-    // Highlight Card active
-    document.querySelectorAll('.dashboard-cards .card').forEach(card => card.classList.remove('active-card'));
+    // Highlight active card
+    document.querySelectorAll('.dashboard-cards-grid .stat-card-modern').forEach(card => card.classList.remove('active-card'));
     const activeCard = document.getElementById('card-' + val);
     if (activeCard) activeCard.classList.add('active-card');
     
@@ -189,14 +231,14 @@ function setFilter(val) {
 function setTableFilter(tableId) {
     selectedTableId = tableId;
     
-    // Update select dropdown
+    // Update select element
     const select = document.getElementById('table-select-filter');
     if (select && select.value !== tableId) {
         select.value = tableId;
     }
     
     // Highlight table card
-    document.querySelectorAll('.table-overview-card').forEach(card => card.classList.remove('active-table'));
+    document.querySelectorAll('.table-card-v2').forEach(card => card.classList.remove('active-table'));
     const activeTableCard = document.getElementById('table-card-' + tableId);
     if (activeTableCard) {
         activeTableCard.classList.add('active-table');
@@ -205,15 +247,22 @@ function setTableFilter(tableId) {
     updateRealtimeStats();
 }
 
-let lastIndexDataHash = '';
+function handleSearchInput(val) {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+        currentSearch = val.trim();
+        updateRealtimeStats(true);
+    }, 300);
+}
 
-async function updateRealtimeStats() {
+async function updateRealtimeStats(forceRefresh = false) {
     try {
-        const response = await fetch(`../api/stats.php?filter=${encodeURIComponent(currentFilter)}&table_id=${encodeURIComponent(selectedTableId)}&_t=${Date.now()}`, { cache: 'no-store' });
+        const queryUrl = `../api/stats.php?filter=${encodeURIComponent(currentFilter)}&table_id=${encodeURIComponent(selectedTableId)}&search=${encodeURIComponent(currentSearch)}&_t=${Date.now()}`;
+        const response = await fetch(queryUrl, { cache: 'no-store' });
         if (!response.ok) return;
         const textData = await response.text();
 
-        if (textData === lastIndexDataHash) return;
+        if (!forceRefresh && textData === lastIndexDataHash) return;
         lastIndexDataHash = textData;
 
         const result = JSON.parse(textData);
@@ -239,39 +288,49 @@ async function updateRealtimeStats() {
             const tbody = document.getElementById('recent-checkins-body');
             if (result.data.recent_checkins) {
                 if (result.data.recent_checkins.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#777; padding:20px;">Không tìm thấy dữ liệu phù hợp với bộ lọc bàn hiện tại</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:32px; font-size:0.95rem;">Không tìm thấy dữ liệu phù hợp với bộ lọc hiện tại</td></tr>`;
                 } else {
                     let html = '';
                     result.data.recent_checkins.slice(0, 150).forEach(item => {
                         const isCheckedIn = item.status === 'checked_in' || item.status === 'matched';
                         const rowClass = isCheckedIn ? 'row-checked-in' : '';
+                        
                         let badgeText = item.status_text;
-                        if (isCheckedIn) badgeText = '✅ Đã checkin';
-                        else if (item.status === 'walk_in') badgeText = '🔸 Phát sinh';
-                        else if (item.status === 'invited') badgeText = '⏳ Chưa tới';
-
-                        let methodBadge = `<span style="font-size:0.78rem; font-weight:bold; padding:3px 8px; border-radius:12px; background:#e8f5e9; color:#1b5e20; border:1px solid #c8e6c9;">📱 Khớp SĐT</span>`;
-                        if (item.status === 'walk_in') {
-                            methodBadge = `<span style="font-size:0.78rem; font-weight:bold; padding:3px 8px; border-radius:12px; background:#fff3e0; color:#ef6c00; border:1px solid #ffcc80;">🔸 Khách phát sinh</span>`;
-                        } else if (item.is_by_code) {
-                            methodBadge = `<span style="font-size:0.78rem; font-weight:bold; padding:3px 8px; border-radius:12px; background:#f3e5f5; color:#7b1fa2; border:1px solid #ab47bc;">🎟️ Khớp Mã dự thưởng</span>`;
+                        let badgeStyle = 'background:#f1f5f9; color:#475569; border:1px solid #e2e8f0;';
+                        
+                        if (isCheckedIn) {
+                            badgeText = '✅ Đã checkin';
+                            badgeStyle = 'background:#dcfce7; color:#15803d; border:1px solid #bbf7d0;';
+                        } else if (item.status === 'walk_in') {
+                            badgeText = '🔸 Khách phát sinh';
+                            badgeStyle = 'background:#fef3c7; color:#b45309; border:1px solid #fde68a;';
                         } else if (item.status === 'invited') {
-                            methodBadge = `<span style="font-size:0.78rem; color:#888;">-</span>`;
+                            badgeText = '⏳ Chưa tới';
+                            badgeStyle = 'background:#eef2ff; color:#4338ca; border:1px solid #c7d2fe;';
+                        }
+
+                        let methodBadge = `<span style="font-size:0.78rem; font-weight:700; padding:3px 10px; border-radius:12px; background:#ecfdf5; color:#047857; border:1px solid #a7f3d0;">📱 Khớp SĐT</span>`;
+                        if (item.status === 'walk_in') {
+                            methodBadge = `<span style="font-size:0.78rem; font-weight:700; padding:3px 10px; border-radius:12px; background:#fffbeb; color:#b45309; border:1px solid #fde68a;">🔸 Khách phát sinh</span>`;
+                        } else if (item.is_by_code) {
+                            methodBadge = `<span style="font-size:0.78rem; font-weight:700; padding:3px 10px; border-radius:12px; background:#f3e8ff; color:#6b21a8; border:1px solid #e9d5ff;">🎟️ Khớp Mã dự thưởng</span>`;
+                        } else if (item.status === 'invited') {
+                            methodBadge = `<span style="font-size:0.78rem; color:#94a3b8;">-</span>`;
                         }
 
                         const tableNameHtml = item.table_name && item.table_name !== 'Chưa xếp bàn'
-                            ? `<span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">🪑 ${item.table_name}</span>`
-                            : `<span style="color: #888; font-style: italic;">Chưa xếp</span>`;
+                            ? `<span style="font-weight:700; color:#047857; background:#ecfdf5; border:1px solid #a7f3d0; padding:4px 10px; border-radius:8px; font-size:0.82rem; display:inline-flex; align-items:center; gap:4px;">🪑 ${item.table_name}</span>`
+                            : `<span style="color:#94a3b8; font-style:italic; font-size:0.85rem;">Chưa xếp</span>`;
 
                         html += `
                             <tr class="${rowClass}">
-                                <td>${item.full_name}</td>
-                                <td>${item.phone}</td>
+                                <td style="font-weight:700; color:#0f172a;">${item.full_name}</td>
+                                <td style="font-weight:600; color:#475569;">${item.phone}</td>
                                 <td>${tableNameHtml}</td>
                                 <td>${methodBadge}</td>
-                                <td>${item.time}</td>
+                                <td style="font-size:0.85rem; color:#64748b;">${item.time}</td>
                                 <td>
-                                    <span class="badge ${item.status}">${badgeText}</span>
+                                    <span style="display:inline-block; padding:4px 10px; border-radius:20px; font-size:0.78rem; font-weight:700; ${badgeStyle}">${badgeText}</span>
                                 </td>
                             </tr>
                         `;
@@ -294,17 +353,17 @@ function renderTableCards(tables) {
     // Thẻ Tất cả bàn
     const isAllActive = selectedTableId === 'all' ? 'active-table' : '';
     html += `
-        <div class="table-overview-card ${isAllActive}" id="table-card-all" onclick="setTableFilter('all')">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                <strong style="font-size:0.95rem; color:#333;">🔍 Tất cả các Bàn</strong>
+        <div class="table-card-v2 ${isAllActive}" id="table-card-all" onclick="setTableFilter('all')">
+            <div class="table-card-top">
+                <span class="table-name-badge">🔍 Tất cả các Bàn</span>
             </div>
-            <div style="font-size:0.8rem; color:#666;">Bấm để xem danh sách tổng hợp</div>
+            <div style="font-size:0.78rem; color:#64748b;">Bấm để xem tổng hợp tất cả vị trí</div>
         </div>
     `;
     
     if (!tables || tables.length === 0) {
         html += `
-            <div style="grid-column: 1 / -1; padding: 12px 15px; background: #fff3e0; color: #e65100; border-radius: 8px; font-size: 0.85rem; border: 1px dashed #ffb74d;">
+            <div style="grid-column: 1 / -1; padding: 14px; background: #fffbeb; color: #b45309; border-radius: 10px; font-size: 0.88rem; border: 1px dashed #fde68a; font-weight: 600;">
                 ⚠️ Hiện chưa có bàn nào được phân công phụ trách.
             </div>
         `;
@@ -314,20 +373,20 @@ function renderTableCards(tables) {
             const pct = t.total_guests > 0 ? Math.round((t.arrived_guests / t.total_guests) * 100) : 0;
             
             html += `
-                <div class="table-overview-card ${isActive}" id="table-card-${t.id}" onclick="setTableFilter('${t.id}')">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                        <strong style="font-size:0.95rem; color:#d32f2f;">🪑 ${t.table_name}</strong>
-                        <span style="font-size:0.78rem; background:#ffebee; color:#d32f2f; padding:2px 6px; border-radius:4px; font-weight:bold;">${t.arrived_guests}/${t.total_guests}</span>
+                <div class="table-card-v2 ${isActive}" id="table-card-${t.id}" onclick="setTableFilter('${t.id}')">
+                    <div class="table-card-top">
+                        <span class="table-name-badge">🪑 ${t.table_name}</span>
+                        <span class="table-ratio-badge">${t.arrived_guests}/${t.total_guests}</span>
                     </div>
-                    <div style="font-size:0.78rem; color:#666; margin-bottom:6px;">
+                    <div class="table-staff-info">
                         💼 ${t.assigned_user_name}
                     </div>
-                    <div style="display:flex; gap:6px; font-size:0.75rem; font-weight:600; margin-bottom:6px;">
-                        <span style="color:#2e7d32;">✅ ${t.arrived_guests} Đã tới</span>
-                        <span style="color:#1565c0;">⏳ ${t.not_arrived_guests} Chưa tới</span>
+                    <div class="table-stats-row">
+                        <span style="color:#10b981;">✅ ${t.arrived_guests} Đã tới</span>
+                        <span style="color:#6366f1;">⏳ ${t.not_arrived_guests} Chưa tới</span>
                     </div>
-                    <div style="background:#e0e0e0; height:6px; border-radius:3px; overflow:hidden;">
-                        <div style="background:#2e7d32; width:${pct}%; height:100%; transition:width 0.3s ease;"></div>
+                    <div class="table-progress-bg">
+                        <div class="table-progress-fill" style="width:${pct}%;"></div>
                     </div>
                 </div>
             `;

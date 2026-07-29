@@ -1,20 +1,42 @@
 <?php
 require_once __DIR__ . '/config/bootstrap.php';
 
-$slug = $_GET['event'] ?? '';
-
+$slug = trim($_GET['event'] ?? '');
 $db = Database::getConnection();
 
-// Lấy thông tin sự kiện
-$stmt = $db->prepare("SELECT * FROM events WHERE slug = ? AND status = 'active' LIMIT 1");
-$stmt->execute([$slug]);
-$event = $stmt->fetch();
-
+$event = null;
 $errorMsg = '';
-if (!$event) {
-    $errorMsg = 'Sự kiện không tồn tại hoặc đã bị khóa.';
-} elseif ($event['checkin_enabled'] == 0) {
-    $errorMsg = 'Check-in cho sự kiện này đang tạm đóng.';
+$showEventPicker = false;
+$activeEvents = [];
+
+if ($slug !== '') {
+    // Tìm sự kiện theo Slug
+    $stmt = $db->prepare("SELECT * FROM events WHERE slug = ? AND status = 'active' LIMIT 1");
+    $stmt->execute([$slug]);
+    $event = $stmt->fetch();
+
+    if (!$event) {
+        $errorMsg = 'Sự kiện không tồn tại hoặc đã bị khóa.';
+    } elseif ($event['checkin_enabled'] == 0) {
+        $errorMsg = 'Check-in cho sự kiện này đang tạm đóng.';
+    }
+} else {
+    // Không truyền slug: Tự động tìm danh sách các sự kiện đang active
+    $stmt = $db->query("SELECT * FROM events WHERE status = 'active' ORDER BY id DESC");
+    $activeEvents = $stmt->fetchAll();
+
+    if (count($activeEvents) === 1) {
+        // Đúng 1 sự kiện active -> Tự chọn luôn
+        $event = $activeEvents[0];
+        if ($event['checkin_enabled'] == 0) {
+            $errorMsg = 'Check-in cho sự kiện "' . esc($event['event_name']) . '" đang tạm đóng.';
+        }
+    } elseif (count($activeEvents) > 1) {
+        // Nhiều hơn 1 sự kiện active -> Hiển thị màn hình chọn sự kiện
+        $showEventPicker = true;
+    } else {
+        $errorMsg = 'Hiện chưa có sự kiện nào đang diễn ra. Vui lòng liên hệ Quản trị viên.';
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -22,13 +44,76 @@ if (!$event) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title><?php echo $event ? esc($event['event_name']) : 'Sự kiện'; ?> - Check-in</title>
+    <title><?php echo $event ? esc($event['event_name']) : ($showEventPicker ? 'Chọn Sự Kiện' : 'Check-in Sự kiện'); ?></title>
     <link rel="stylesheet" href="<?php echo url('assets/css/frontend.css'); ?>">
+    <style>
+        .event-picker-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 15px;
+        }
+        .event-picker-card {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px 20px;
+            text-decoration: none;
+            color: #1e293b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+        .event-picker-card:hover {
+            border-color: #d32f2f;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(211, 47, 47, 0.12);
+        }
+        .event-picker-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+        .event-picker-meta {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+        .event-picker-arrow {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #d32f2f;
+        }
+    </style>
 </head>
 <body>
 
 <div class="container">
-    <?php if ($errorMsg): ?>
+    <?php if ($showEventPicker): ?>
+        <div class="event-header">
+            <h1>🎉 Danh Sách Sự Kiện Đang Diễn Ra</h1>
+            <div class="event-meta">Vui lòng chọn sự kiện bạn muốn mở màn hình Check-in:</div>
+        </div>
+        <div class="form-body">
+            <div class="event-picker-list">
+                <?php foreach ($activeEvents as $actEv): ?>
+                    <a href="index.php?event=<?php echo urlencode($actEv['slug']); ?>" class="event-picker-card">
+                        <div>
+                            <div class="event-picker-title"><?php echo esc($actEv['event_name']); ?></div>
+                            <div class="event-picker-meta">
+                                📅 <?php echo date('d/m/Y', strtotime($actEv['event_date'])); ?> 
+                                <?php if (!empty($actEv['location'])): ?>
+                                    | 📍 <?php echo esc($actEv['location']); ?>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                        <div class="event-picker-arrow">Quét QR ➔</div>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    <?php elseif ($errorMsg): ?>
         <div class="form-body">
             <div class="alert error" style="display:block;">
                 <?php echo esc($errorMsg); ?>

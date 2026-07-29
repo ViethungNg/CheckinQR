@@ -15,6 +15,7 @@ try {
 
     $filter = $_GET['filter'] ?? 'all';
     $tableId = $_GET['table_id'] ?? 'all';
+    $searchKeyword = trim($_GET['search'] ?? '');
     $recentCheckins = [];
 
     $userId = $_SESSION['admin_id'] ?? 0;
@@ -77,6 +78,8 @@ try {
 
     if ($filter === 'not_arrived' || $filter === 'guests' || ($tableId !== 'all' && $tableId !== '')) {
         $whereConditions = [];
+        $params = [];
+
         if ($filter === 'not_arrived') {
             $whereConditions[] = "g.status = 'invited'";
         } elseif ($filter === 'matched') {
@@ -91,16 +94,24 @@ try {
             $whereConditions[] = $tableFilterCondition;
         }
 
+        if ($searchKeyword !== '') {
+            $whereConditions[] = "(g.full_name LIKE ? OR g.phone LIKE ? OR t.table_name LIKE ?)";
+            $likeStr = '%' . $searchKeyword . '%';
+            $params = [$likeStr, $likeStr, $likeStr];
+        }
+
         $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
 
         $limitSql = "LIMIT 150";
-        $stmtGuests = $db->query("
+        $stmtGuests = $db->prepare("
             SELECT g.*, t.table_name 
             FROM guests g 
             LEFT JOIN event_tables t ON g.table_id = t.id 
             {$whereClause}
             ORDER BY g.id DESC {$limitSql}
         ");
+        $stmtGuests->execute($params);
+
         while ($row = $stmtGuests->fetch()) {
             $recentCheckins[] = [
                 'id'          => $row['id'],
@@ -114,6 +125,8 @@ try {
         }
     } else {
         $whereConditions = [];
+        $params = [];
+
         if ($filter === 'unassigned') {
             $whereConditions[] = "(c.table_id IS NULL OR c.table_id = 0)";
         } elseif ($filter === 'assigned') {
@@ -128,10 +141,16 @@ try {
             $whereConditions[] = "t.assigned_user_id = {$userId}";
         }
 
+        if ($searchKeyword !== '') {
+            $whereConditions[] = "(c.full_name_entered LIKE ? OR c.phone_entered LIKE ? OR t.table_name LIKE ?)";
+            $likeStr = '%' . $searchKeyword . '%';
+            $params = [$likeStr, $likeStr, $likeStr];
+        }
+
         $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
 
         $limitSql = "LIMIT 150";
-        $recentStmt = $db->query("
+        $recentStmt = $db->prepare("
             SELECT c.*, t.table_name, g.normalized_phone as guest_normalized_phone 
             FROM checkins c 
             LEFT JOIN event_tables t ON c.table_id = t.id 
@@ -139,6 +158,7 @@ try {
             {$whereClause}
             ORDER BY c.checkin_time DESC {$limitSql}
         ");
+        $recentStmt->execute($params);
 
         while ($row = $recentStmt->fetch()) {
             $isByLuckyCode = ($row['checkin_method'] ?? '') === 'lucky_code' || (!empty($row['guest_normalized_phone']) && $row['normalized_phone'] !== $row['guest_normalized_phone']);
