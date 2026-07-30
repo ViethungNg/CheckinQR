@@ -268,8 +268,12 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             <h1>Danh sách khách hàng (<span id="guest-count-title"><?php echo count($guests); ?></span>)</h1>
         </div>
         
-        <?php if($message): ?><div class="alert success"><?php echo esc($message); ?></div><?php endif; ?>
-        <?php if($error): ?><div class="alert error"><?php echo esc($error); ?></div><?php endif; ?>
+        <?php if ($message): ?>
+            <script>document.addEventListener('DOMContentLoaded', function() { window.showAppToast && window.showAppToast(<?php echo json_encode($message, JSON_UNESCAPED_UNICODE); ?>, 'success'); });</script>
+        <?php endif; ?>
+        <?php if ($error): ?>
+            <script>document.addEventListener('DOMContentLoaded', function() { window.showAppToast && window.showAppToast(<?php echo json_encode($error, JSON_UNESCAPED_UNICODE); ?>, 'error'); });</script>
+        <?php endif; ?>
 
         <div class="content-box">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">

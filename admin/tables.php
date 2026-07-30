@@ -144,8 +144,12 @@ if (isset($_GET['ajax'])) {
             </span>
         </div>
         
-        <?php if($message): ?><div class="alert success"><?php echo esc($message); ?></div><?php endif; ?>
-        <?php if($error): ?><div class="alert error"><?php echo esc($error); ?></div><?php endif; ?>
+        <?php if ($message): ?>
+            <script>document.addEventListener('DOMContentLoaded', function() { window.showAppToast && window.showAppToast(<?php echo json_encode($message, JSON_UNESCAPED_UNICODE); ?>, 'success'); });</script>
+        <?php endif; ?>
+        <?php if ($error): ?>
+            <script>document.addEventListener('DOMContentLoaded', function() { window.showAppToast && window.showAppToast(<?php echo json_encode($error, JSON_UNESCAPED_UNICODE); ?>, 'error'); });</script>
+        <?php endif; ?>
 
         <div class="content-box">
             <?php if(isAdmin()): ?>

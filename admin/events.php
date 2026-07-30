@@ -105,8 +105,12 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
             <h1>Danh sách Sự kiện</h1>
         </div>
         
-        <?php if($message): ?><div class="alert success"><?php echo esc($message); ?></div><?php endif; ?>
-        <?php if($error): ?><div class="alert error"><?php echo esc($error); ?></div><?php endif; ?>
+        <?php if ($message): ?>
+            <script>document.addEventListener('DOMContentLoaded', function() { window.showAppToast && window.showAppToast(<?php echo json_encode($message, JSON_UNESCAPED_UNICODE); ?>, 'success'); });</script>
+        <?php endif; ?>
+        <?php if ($error): ?>
+            <script>document.addEventListener('DOMContentLoaded', function() { window.showAppToast && window.showAppToast(<?php echo json_encode($error, JSON_UNESCAPED_UNICODE); ?>, 'error'); });</script>
+        <?php endif; ?>
 
         <div class="content-box">
             <div style="margin-bottom: 15px;">

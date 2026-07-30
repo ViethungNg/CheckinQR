@@ -132,8 +132,12 @@ $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetc
             <h1>Import Khách bằng File Excel (.xlsx)</h1>
         </div>
         
-        <?php if($message): ?><div class="alert success"><?php echo esc($message); ?></div><?php endif; ?>
-        <?php if($error): ?><div class="alert error"><?php echo esc($error); ?></div><?php endif; ?>
+        <?php if ($message): ?>
+            <script>document.addEventListener('DOMContentLoaded', function() { window.showAppToast && window.showAppToast(<?php echo json_encode($message, JSON_UNESCAPED_UNICODE); ?>, 'success'); });</script>
+        <?php endif; ?>
+        <?php if ($error): ?>
+            <script>document.addEventListener('DOMContentLoaded', function() { window.showAppToast && window.showAppToast(<?php echo json_encode($error, JSON_UNESCAPED_UNICODE); ?>, 'error'); });</script>
+        <?php endif; ?>
 
         <div class="content-box">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">

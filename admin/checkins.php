@@ -219,8 +219,12 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
             </span>
         </div>
         
-        <?php if($message): ?><div class="alert success"><?php echo esc($message); ?></div><?php endif; ?>
-        <?php if($error): ?><div class="alert error"><?php echo esc($error); ?></div><?php endif; ?>
+        <?php if ($message): ?>
+            <script>document.addEventListener('DOMContentLoaded', function() { window.showAppToast && window.showAppToast(<?php echo json_encode($message, JSON_UNESCAPED_UNICODE); ?>, 'success'); });</script>
+        <?php endif; ?>
+        <?php if ($error): ?>
+            <script>document.addEventListener('DOMContentLoaded', function() { window.showAppToast && window.showAppToast(<?php echo json_encode($error, JSON_UNESCAPED_UNICODE); ?>, 'error'); });</script>
+        <?php endif; ?>
 
         <div class="content-box">
             <p style="margin-bottom: 15px; color: #666;">Danh sách hiển thị realtime khách quét QR. Bạn có thể tìm kiếm theo SĐT, Mã dự thưởng, Họ tên hoặc Bàn tiệc.</p>
