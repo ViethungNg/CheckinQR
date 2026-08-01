@@ -286,6 +286,7 @@
                     <div style="display:flex; gap:8px; align-items:center;">
                         <button type="button" class="notif-test-sound-btn" onclick="playNotifChime(); event.stopPropagation();" title="Thử phát chuông thông báo">Thử loa</button>
                         <button type="button" class="notif-mark-read-btn" onclick="markAllNotifsRead(event)">Đã đọc</button>
+                        <button type="button" class="notif-close-btn" onclick="toggleNotifDropdown(event)" style="background:none; border:none; font-size:1.6rem; color:#64748b; cursor:pointer; padding:0 4px; line-height:1;" title="Đóng">&times;</button>
                     </div>
                 </div>
                 <div class="notif-dropdown-list" id="notifDropdownList">
