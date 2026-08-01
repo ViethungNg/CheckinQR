@@ -19,14 +19,46 @@ if (isPost()) {
         $checkin = $stmtC->fetch();
         
         if ($checkin) {
-            // Nếu lượt checkin này khớp với khách dự kiến, cập nhật lại trạng thái khách đó về 'invited'
-            if (!empty($checkin['guest_id'])) {
-                $db->prepare("UPDATE guests SET status = 'invited' WHERE id = ?")->execute([$checkin['guest_id']]);
-            }
-            
+            $guestIdToReset = (int)($checkin['guest_id'] ?? 0);
+            $normPhone = trim($checkin['normalized_phone'] ?? '');
+            $custCode = trim($checkin['customer_code'] ?? '');
+            $fullName = trim($checkin['full_name_entered'] ?? '');
+
+            // Xóa lượt check-in khỏi CSDL
             $stmt = $db->prepare("DELETE FROM checkins WHERE id = ?");
             $stmt->execute([$id]);
-            $message = 'Đã xóa lượt check-in thành công!';
+
+            // Tìm guest_id tương ứng nếu chưa có guest_id trực tiếp
+            if ($guestIdToReset <= 0) {
+                if (!empty($custCode)) {
+                    $stmtG = $db->prepare("SELECT id FROM guests WHERE customer_code = ? LIMIT 1");
+                    $stmtG->execute([$custCode]);
+                    $guestIdToReset = (int)$stmtG->fetchColumn();
+                }
+                if ($guestIdToReset <= 0 && !empty($normPhone)) {
+                    $stmtG = $db->prepare("SELECT id FROM guests WHERE normalized_phone = ? OR phone = ? LIMIT 1");
+                    $stmtG->execute([$normPhone, $normPhone]);
+                    $guestIdToReset = (int)$stmtG->fetchColumn();
+                }
+                if ($guestIdToReset <= 0 && !empty($fullName)) {
+                    $stmtG = $db->prepare("SELECT id FROM guests WHERE full_name = ? LIMIT 1");
+                    $stmtG->execute([$fullName]);
+                    $guestIdToReset = (int)$stmtG->fetchColumn();
+                }
+            }
+
+            // Nếu tìm thấy khách hàng tương ứng, cập nhật lại trạng thái về 'invited' (chưa check-in) nếu không còn lượt checkin nào khác
+            if ($guestIdToReset > 0) {
+                $stmtRem = $db->prepare("SELECT COUNT(*) FROM checkins WHERE guest_id = ? OR (normalized_phone != '' AND normalized_phone = (SELECT COALESCE(NULLIF(normalized_phone, ''), phone) FROM guests WHERE id = ?)) OR (customer_code != '' AND customer_code = (SELECT customer_code FROM guests WHERE id = ?))");
+                $stmtRem->execute([$guestIdToReset, $guestIdToReset, $guestIdToReset]);
+                $remainingCount = (int)$stmtRem->fetchColumn();
+
+                if ($remainingCount === 0) {
+                    $db->prepare("UPDATE guests SET status = 'invited' WHERE id = ?")->execute([$guestIdToReset]);
+                }
+            }
+
+            $message = 'Đã xóa lượt check-in và cập nhật trạng thái khách hàng thành Chưa check-in thành công!';
         }
     } elseif ($action === 'assign_table' && !isKinhDoanh()) {
         $checkinId = (int)$_POST['checkin_id'];

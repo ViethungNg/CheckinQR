@@ -23,6 +23,7 @@
     let clientLastCheckinId = 0;
     let audioCtx = null;
     let cachedWavUri = null;
+    let isCheckingNotifications = false;
 
     // 1. Tạo âm thanh WAV "Ding-Dong" chuẩn trong bộ nhớ JS
     function getChimeWavUri() {
@@ -171,18 +172,24 @@
     const shownToastIds = new Set();
     function formatNotifText(item) {
         if (!item) return '';
+        const name = item.full_name || item.name || '';
         const custCode = item.customer_code || '';
         const org = item.organization || item.agency || '';
         const table = (item.table_name && item.table_name !== 'Chưa xếp bàn') ? item.table_name : (item.table || 'Chưa xếp bàn');
         const lucky = item.lucky_draw_code || '';
 
-        const parts = [];
-        if (custCode) parts.push(custCode);
-        if (org) parts.push(org);
-        if (table) parts.push(table);
-        if (lucky) parts.push(lucky);
+        const details = [];
+        if (custCode) details.push(`Mã: ${custCode}`);
+        if (org) details.push(org);
+        if (table) details.push(`Bàn: ${table}`);
+        if (lucky) details.push(`Mã trúng thưởng: ${lucky}`);
 
-        return parts.join(' - ') || 'Mã KH - Đại lý - Số bàn';
+        const detailsStr = details.length > 0 ? ` (${details.join(' - ')})` : '';
+
+        if (name) {
+            return `Khách hàng <strong>${name}</strong> vừa check-in thành công!${detailsStr}`;
+        }
+        return `Khách hàng vừa check-in thành công!${detailsStr}`;
     }
 
     function showToastNotification(item) {
@@ -260,49 +267,53 @@
     }
 
     function injectHeaderNotifBell() {
-        if (document.getElementById('headerNotifBox')) return;
-
-        const notifBox = document.createElement('div');
-        notifBox.id = 'headerNotifBox';
-        notifBox.className = 'notif-bell-container';
+        let notifBox = document.getElementById('headerNotifBox');
+        const isNew = !notifBox;
+        if (isNew) {
+            notifBox = document.createElement('div');
+            notifBox.id = 'headerNotifBox';
+            notifBox.className = 'notif-bell-container';
+        }
 
         notifBox.innerHTML = `
-            <button type="button" class="notif-bell-btn-icon" id="notifBellBtn" onclick="toggleNotifDropdown(event)" title="Thông báo quét QR">
+            <button type="button" class="notif-bell-btn-icon" id="notifBellBtn" onclick="toggleNotifDropdown(event)" title="Thông báo check-in">
                 🔔
                 <span class="notif-badge-count" id="notifBadgeCount" style="display:none;">0</span>
             </button>
             <div class="notif-dropdown" id="notifDropdown">
                 <div class="notif-dropdown-header">
-                    <span>Thông báo quét QR mới nhất</span>
+                    <span>Thông báo check-in mới nhất</span>
                     <div style="display:flex; gap:8px; align-items:center;">
                         <button type="button" class="notif-test-sound-btn" onclick="playNotifChime(); event.stopPropagation();" title="Thử phát chuông thông báo">Thử loa</button>
                         <button type="button" class="notif-mark-read-btn" onclick="markAllNotifsRead(event)">Đã đọc</button>
                     </div>
                 </div>
                 <div class="notif-dropdown-list" id="notifDropdownList">
-                    <div class="notif-empty-state">Đang tải thông báo...</div>
+                    <div class="notif-empty-state">Chưa có lượt check-in nào</div>
                 </div>
             </div>
         `;
 
-        const mobileControls = document.querySelector('.mobile-brand-controls');
-        const header = document.querySelector('.header');
+        if (isNew) {
+            const mobileControls = document.querySelector('.mobile-brand-controls');
+            const header = document.querySelector('.header');
 
-        if (mobileControls && window.innerWidth <= 768) {
-            const menuBtn = document.getElementById('mobileMenuBtn');
-            if (menuBtn) {
-                mobileControls.insertBefore(notifBox, menuBtn);
+            if (mobileControls && window.innerWidth <= 768) {
+                const menuBtn = document.getElementById('mobileMenuBtn');
+                if (menuBtn) {
+                    mobileControls.insertBefore(notifBox, menuBtn);
+                } else {
+                    mobileControls.appendChild(notifBox);
+                }
+            } else if (header) {
+                header.appendChild(notifBox);
             } else {
-                mobileControls.appendChild(notifBox);
+                notifBox.style.position = 'fixed';
+                notifBox.style.top = '15px';
+                notifBox.style.right = '20px';
+                notifBox.style.zIndex = '9999';
+                document.body.appendChild(notifBox);
             }
-        } else if (header) {
-            header.appendChild(notifBox);
-        } else {
-            notifBox.style.position = 'fixed';
-            notifBox.style.top = '15px';
-            notifBox.style.right = '20px';
-            notifBox.style.zIndex = '9999';
-            document.body.appendChild(notifBox);
         }
     }
 
@@ -321,7 +332,7 @@
         if (!listContainer) return;
 
         if (!checkins || checkins.length === 0) {
-            listContainer.innerHTML = `<div class="notif-empty-state">Chưa có lượt quét QR nào</div>`;
+            listContainer.innerHTML = `<div class="notif-empty-state">Chưa có lượt check-in nào</div>`;
             return;
         }
 
@@ -332,16 +343,27 @@
             const badgeClass = isWalkIn ? 'badge-walkin' : 'badge-matched';
             const statusLabel = isWalkIn ? 'Khách phát sinh' : 'Khách hợp lệ';
             const timeDisplay = item.time ? item.time.split(' ')[0] : '';
-            const notifTextStr = formatNotifText(item);
+
+            const name = item.full_name || item.name || 'Khách mời';
+            const custCode = item.customer_code || '';
+            const org = item.organization || item.agency || '';
+            const table = (item.table_name && item.table_name !== 'Chưa xếp bàn') ? item.table_name : (item.table || 'Chưa xếp bàn');
+            const lucky = item.lucky_draw_code || '';
 
             html += `
-                <div class="notif-item ${statusClass} ${item.is_new ? 'unread' : ''}" onclick="window.location.href='checkins.php?highlight=${item.id}'">
-                    <div class="notif-item-title">
+                <div class="notif-item ${statusClass} ${item.is_new ? 'unread' : ''}" onclick="window.location.href='checkins.php?highlight=${item.id}'" style="padding: 12px 14px; border-bottom: 1px solid #e2e8f0; cursor: pointer; transition: background 0.15s ease;">
+                    <div class="notif-item-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                         <span class="notif-status-badge ${badgeClass}">${statusLabel}</span>
-                        <span class="notif-item-time">${timeDisplay}</span>
+                        <span class="notif-item-time" style="font-size: 0.78rem; color: #64748b; font-weight: 600;">${timeDisplay}</span>
                     </div>
-                    <div class="notif-item-desc" style="font-weight:700; color:#0f172a; margin-top:4px;">
-                        ${notifTextStr}
+                    <div style="font-size: 0.96rem; font-weight: 800; color: #0f172a; margin-bottom: 4px;">
+                        Khách hàng: <span style="color: #1e293b;">${name}</span>
+                    </div>
+                    <div style="font-size: 0.84rem; color: #475569; display: flex; flex-direction: column; gap: 3px; border-left: 3px solid ${isWalkIn ? '#f59e0b' : '#22c55e'}; padding-left: 8px; margin-top: 4px;">
+                        ${custCode ? `<div><span style="color:#64748b; font-weight:600;">Mã KH:</span> <strong style="color:#0284c7;">${custCode}</strong></div>` : ''}
+                        ${org ? `<div><span style="color:#64748b; font-weight:600;">Đơn vị / Đại lý:</span> <strong>${org}</strong></div>` : ''}
+                        <div><span style="color:#64748b; font-weight:600;">Bàn ngồi:</span> <strong>${table}</strong></div>
+                        ${lucky ? `<div><span style="color:#64748b; font-weight:600;">Mã trúng thưởng:</span> <strong style="color:#7b1fa2;">${lucky}</strong></div>` : ''}
                     </div>
                 </div>
             `;
@@ -365,14 +387,12 @@
     }
 
     function getNotificationApiUrl(action = 'check', extraParams = '') {
-        const loc = window.location.pathname;
-        let apiPath = '../api/notifications.php';
-        if (!loc.includes('/admin/')) {
-            if (loc.includes('/CheckinQR/')) {
-                apiPath = '/CheckinQR/api/notifications.php';
-            } else {
-                apiPath = '/api/notifications.php';
-            }
+        const path = window.location.pathname;
+        let apiPath = '/api/notifications.php';
+        if (path.includes('/CheckinQR/')) {
+            apiPath = '/CheckinQR/api/notifications.php';
+        } else if (path.includes('/admin/')) {
+            apiPath = path.substring(0, path.indexOf('/admin/')) + '/api/notifications.php';
         }
         return `${apiPath}?action=${action}${extraParams}&_t=${Date.now()}`;
     }
@@ -398,67 +418,85 @@
         isCheckingNotifications = true;
 
         try {
-            const sinceParam = clientLastCheckinId > 0 ? `&since_id=${clientLastCheckinId}` : '';
-            const res = await fetch(getNotificationApiUrl('check', sinceParam), { cache: 'no-store' });
-            if (!res.ok) return;
+            const res = await fetch(getNotificationApiUrl('check'), { cache: 'no-store' });
+            if (!res.ok) throw new Error('HTTP error ' + res.status);
             const data = await res.json();
 
             if (data.status === 'success') {
                 const newMaxId = data.max_id;
+                const nowTs = Math.floor(Date.now() / 1000);
 
-                // Lần quét đầu tiên khi mở/tải lại trang
+                // 1. Lần đầu tải trang (clientLastCheckinId === 0): Khởi tạo mốc ID, cập nhật danh sách âm thầm, KHÔNG mở dropdown
                 if (clientLastCheckinId === 0) {
+                    (data.checkins || []).forEach(item => {
+                        shownToastIds.add(item.id);
+                    });
                     clientLastCheckinId = newMaxId;
-                    if (data.checkins) {
-                        const nowTs = Math.floor(Date.now() / 1000);
-                        const recentCheckins = data.checkins.filter(item => {
-                            const secAgo = item.created_at_ts ? (nowTs - item.created_at_ts) : 999;
-                            return secAgo <= 120;
-                        });
-
-                        if (recentCheckins.length > 0) {
-                            playNotifChime();
-                            openNotifDropdown();
-                            recentCheckins.reverse().forEach(item => {
-                                showToastNotification(item);
-                            });
-                        }
-
-                        data.checkins.forEach(item => {
-                            const secAgo = item.created_at_ts ? (nowTs - item.created_at_ts) : 999;
-                            if (secAgo > 120) {
-                                shownToastIds.add(item.id);
-                            }
-                        });
-                    }
                     renderNotifDropdown(data.checkins, data.unread_count);
                     return;
                 }
 
-                // Nếu phát hiện lượt check-in mới
-                if (newMaxId > clientLastCheckinId) {
-                    const itemsToNotify = (data.new_items && data.new_items.length > 0) 
-                        ? data.new_items 
-                        : (data.checkins || []).filter(item => item.id > clientLastCheckinId);
+                // 2. Lọc các lượt check-in MỚI PHÁT SINH trong phiên hoạt động
+                const itemsToNotify = (data.checkins || []).filter(item => {
+                    if (shownToastIds.has(item.id)) return false;
+                    return item.id > clientLastCheckinId;
+                });
 
-                    if (itemsToNotify.length > 0) {
-                        playNotifChime();
-                        openNotifDropdown();
-                        itemsToNotify.forEach(item => {
-                            if (!shownToastIds.has(item.id)) {
-                                shownToastIds.add(item.id);
-                                showToastNotification(item);
-                                triggerNativeNotification(item);
-                            }
-                        });
-                    }
-                    clientLastCheckinId = newMaxId;
+                if (itemsToNotify.length > 0) {
+                    try { playNotifChime(); } catch(e) {}
+                    try { openNotifDropdown(); } catch(e) {}
+
+                    itemsToNotify.reverse().forEach(item => {
+                        if (!shownToastIds.has(item.id)) {
+                            shownToastIds.add(item.id);
+                            try { showToastNotification(item); } catch(e) {}
+                            try { triggerNativeNotification(item); } catch(e) {}
+                        }
+                    });
+
+                    // Cập nhật ngay bảng Danh sách khách hàng & Khách đã check-in trên màn hình Admin
+                    if (typeof window.fetchRealtimeGuests === 'function') window.fetchRealtimeGuests(true);
+                    if (typeof window.updateRealtimeCheckinsList === 'function') window.updateRealtimeCheckinsList(true);
+                    if (typeof window.updateRealtimeTables === 'function') window.updateRealtimeTables(true);
                 }
 
+                clientLastCheckinId = newMaxId;
                 renderNotifDropdown(data.checkins, data.unread_count);
             }
         } catch (err) {
-            console.error('Notification check error:', err);
+            console.error('Primary notification check error, attempting fallback:', err);
+            try {
+                const path = window.location.pathname;
+                let statsPath = '/api/stats.php';
+                if (path.includes('/CheckinQR/')) {
+                    statsPath = '/CheckinQR/api/stats.php';
+                } else if (path.includes('/admin/')) {
+                    statsPath = path.substring(0, path.indexOf('/admin/')) + '/api/stats.php';
+                }
+                const resFallback = await fetch(`${statsPath}?_t=${Date.now()}`, { cache: 'no-store' });
+                if (resFallback.ok) {
+                    const fallbackData = await resFallback.json();
+                    if (fallbackData && fallbackData.recent_checkins) {
+                        const formatted = fallbackData.recent_checkins.map(c => ({
+                            id: c.id,
+                            customer_code: c.customer_code || '',
+                            organization: c.organization || 'Đại lý / Khách mời',
+                            full_name: c.full_name || 'Khách mời',
+                            phone: c.phone || '',
+                            table_name: c.table_name || 'Chưa xếp bàn',
+                            lucky_draw_code: c.lucky_draw_code || '',
+                            time: c.checkin_time || '',
+                            status: c.match_status || 'matched'
+                        }));
+                        renderNotifDropdown(formatted, 0);
+                    }
+                }
+            } catch(fbErr) {
+                const listContainer = document.getElementById('notifDropdownList');
+                if (listContainer) {
+                    listContainer.innerHTML = `<div class="notif-empty-state">Chưa có lượt check-in nào</div>`;
+                }
+            }
         } finally {
             isCheckingNotifications = false;
         }
@@ -645,13 +683,16 @@
 
     let lastKnownCheckinId = 0;
 
+    function getReadCheckinIds() {
+        return Array.from(shownToastIds);
+    }
+
     function processSSERecentCheckins(checkins) {
         if (!checkins || checkins.length === 0) return;
         const latestId = parseInt(checkins[0].id) || 0;
         
         if (lastKnownCheckinId > 0 && latestId > lastKnownCheckinId) {
             playNotifChime();
-            openNotifDropdown();
         }
         lastKnownCheckinId = latestId;
 
@@ -827,6 +868,8 @@
     }
 
     window.scrollToTableBottom = scrollToTableBottom;
+
+    window.checkNewNotifications = checkNewNotifications;
 
     document.addEventListener('DOMContentLoaded', () => {
         injectHeaderNotifBell();

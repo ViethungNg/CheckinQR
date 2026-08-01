@@ -309,25 +309,6 @@ $configCheckins   = getTableColumnsConfig('checkins');
         <div id="settingsAlert" style="display:none; margin-bottom: 20px;" class="alert"></div>
 
         <div class="settings-container">
-            
-            <!-- 1. Cấu hình Cá nhân (Tất cả Role) -->
-            <div class="settings-card">
-                <div class="settings-card-header">
-                    <h3 class="settings-card-title">Cấu hình Thông báo Cá nhân</h3>
-                    <p class="settings-card-subtitle">Áp dụng riêng cho tài khoản của bạn (Không bị ảnh hưởng khi Reset cấu hình chung).</p>
-                </div>
-
-                <div class="toggle-row">
-                    <div class="toggle-info">
-                        <h4>Bật Thông báo Hệ thống & Mobile Push</h4>
-                        <p>Nhận tiếng chuông Marimba và thông báo đẩy từ đỉnh màn hình điện thoại/desktop khi có khách check-in mới.</p>
-                    </div>
-                    <label class="switch">
-                        <input type="checkbox" id="userNotifToggle" <?php echo $userNotifEnabled ? 'checked' : ''; ?> onchange="toggleUserNotification(this)">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-            </div>
 
             <!-- 2. Cấu hình Hiển thị Cột của Bảng (Chỉ dành riêng cho ADMIN) -->
             <?php if ($isUserAdmin): ?>

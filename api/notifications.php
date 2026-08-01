@@ -2,7 +2,11 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/bootstrap.php';
-requireLogin();
+if (!isLoggedIn()) {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+    exit;
+}
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -19,8 +23,7 @@ try {
     if ($action === 'mark_read') {
         $lastId = (int)($_POST['last_id'] ?? $_GET['last_id'] ?? 0);
         if ($lastId <= 0) {
-            $whereKD = isKinhDoanh() ? "WHERE t.assigned_user_id = {$userId}" : "";
-            $lastId = (int)$db->query("SELECT COALESCE(MAX(c.id), 0) FROM checkins c LEFT JOIN event_tables t ON c.table_id = t.id {$whereKD}")->fetchColumn();
+            $lastId = (int)$db->query("SELECT COALESCE(MAX(c.id), 0) FROM checkins c")->fetchColumn();
         }
         $_SESSION['last_seen_checkin_id'] = $lastId;
         echo json_encode(['status' => 'success', 'last_seen_id' => $lastId]);
@@ -30,19 +33,12 @@ try {
     $clientSinceId = isset($_GET['since_id']) ? (int)$_GET['since_id'] : null;
     $lastSeenId = (int)($_SESSION['last_seen_checkin_id'] ?? 0);
 
-    $whereConditions = [];
-    if (isKinhDoanh()) {
-        $whereConditions[] = "(t.assigned_user_id = {$userId} OR c.table_id IS NULL OR c.match_status = 'walk_in')";
-    }
-
-    $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
+    $whereClause = "";
     
     // Max ID hiện tại trong hệ thống
     $stmtMax = $db->query("
         SELECT COALESCE(MAX(c.id), 0) 
         FROM checkins c 
-        LEFT JOIN event_tables t ON c.table_id = t.id 
-        {$whereClause}
     ");
     $maxId = (int)$stmtMax->fetchColumn();
 
@@ -88,7 +84,7 @@ try {
     // 2. Danh sách các lượt checkin thực sự MỚI kể từ clientSinceId
     $newItems = [];
     if ($clientSinceId !== null && $clientSinceId > 0 && $maxId > $clientSinceId) {
-        $whereNew = $whereConditions;
+        $whereNew = [];
         $whereNew[] = "c.id > {$clientSinceId}";
         $clauseNew = "WHERE " . implode(" AND ", $whereNew);
         $stmtNew = $db->query("
@@ -122,15 +118,7 @@ try {
     // 3. Số lượng lượt checkin chưa đọc
     $unreadCount = 0;
     if ($lastSeenId > 0) {
-        $unreadWhere = $whereConditions;
-        $unreadWhere[] = "c.id > {$lastSeenId}";
-        $unreadClause = "WHERE " . implode(" AND ", $unreadWhere);
-        $stmtUnread = $db->query("
-            SELECT COUNT(*) 
-            FROM checkins c 
-            LEFT JOIN event_tables t ON c.table_id = t.id 
-            {$unreadClause}
-        ");
+        $stmtUnread = $db->query("SELECT COUNT(*) FROM checkins WHERE id > {$lastSeenId}");
         $unreadCount = (int)$stmtUnread->fetchColumn();
     }
 
@@ -138,8 +126,7 @@ try {
         'status'       => 'success',
         'max_id'       => $maxId,
         'unread_count' => $unreadCount,
-        'checkins'     => $checkinsList,
-        'new_items'    => $newItems
+        'checkins'     => $checkinsList
     ], JSON_UNESCAPED_UNICODE);
 
 } catch (Exception $e) {

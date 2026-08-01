@@ -780,6 +780,8 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                         luckyCode: result.lucky_draw_code || '-'
                     });
                     fetchRealtimeGuests(true);
+                    if (typeof window.broadcastCheckinSignal === 'function') window.broadcastCheckinSignal();
+                    if (typeof window.checkNewNotifications === 'function') window.checkNewNotifications();
                 } else if (result.status === 'already_checked_in') {
                     showCheckinResultPopup({
                         title: 'Khách Đã Check-in Trước Đó',

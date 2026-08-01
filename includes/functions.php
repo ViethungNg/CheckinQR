@@ -164,17 +164,6 @@ function getTableColumnsConfig(string $tableName): array {
  * Lấy cài đặt bật/tắt thông báo cá nhân của User
  */
 function getUserNotificationSetting(int $userId): bool {
-    if ($userId <= 0) return true;
-    try {
-        $db = Database::getConnection();
-        $stmt = $db->prepare("SELECT setting_value FROM user_settings WHERE user_id = ? AND setting_key = 'notifications_enabled'");
-        $stmt->execute([$userId]);
-        $val = $stmt->fetchColumn();
-        if ($val !== false) {
-            return $val === '1' || $val === 1 || $val === 'true';
-        }
-    } catch (\Throwable $e) {}
-
-    return true; // Mặc định bật
+    return true; // Luôn luôn bật thông báo cho tất cả người dùng
 }
 
