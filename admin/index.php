@@ -183,17 +183,16 @@ if (count($activeEvents) === 1) {
                 </div>
             </div>
 
+            <?php $dashCols = getTableColumnsConfig('dashboard'); ?>
             <div class="table-responsive">
                 <table class="modern-data-table">
                     <thead>
                         <tr>
-                            <th>Mã KH</th>
-                            <th>Họ và tên</th>
-                            <th>Số Điện Thoại</th>
-                            <th>Bàn Tiệc</th>
-                            <th>Hình Thức Check-in</th>
-                            <th>Thời Gian</th>
-                            <th>Trạng Thái</th>
+                            <?php foreach ($dashCols as $c): ?>
+                                <?php if (!empty($c['visible'])): ?>
+                                    <th><?php echo esc($c['label']); ?></th>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
                         </tr>
                     </thead>
                     <tbody id="recent-checkins-body">
@@ -211,6 +210,7 @@ let selectedTableId = 'all';
 let currentSearch = '';
 let searchDebounceTimer = null;
 let lastIndexDataHash = '';
+const dashColsConfig = <?php echo json_encode($dashCols); ?>;
 
 function setFilter(val) {
     currentFilter = val;
@@ -284,8 +284,9 @@ async function updateRealtimeStats(forceRefresh = false) {
             // Cập nhật danh sách khách hàng / check-in
             const tbody = document.getElementById('recent-checkins-body');
             if (result.data.recent_checkins) {
+                const visibleCount = dashColsConfig.filter(c => c.visible).length || 1;
                 if (result.data.recent_checkins.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#94a3b8; padding:32px; font-size:0.95rem;">Không tìm thấy dữ liệu phù hợp với bộ lọc hiện tại</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="${visibleCount}" style="text-align:center; color:#94a3b8; padding:32px; font-size:0.95rem;">Không tìm thấy dữ liệu phù hợp với bộ lọc hiện tại</td></tr>`;
                 } else {
                     let html = '';
                     result.data.recent_checkins.slice(0, 150).forEach(item => {
@@ -293,7 +294,7 @@ async function updateRealtimeStats(forceRefresh = false) {
                         const rowClass = isCheckedIn ? 'row-checked-in' : '';
                         
                         const customerCodeHtml = item.customer_code 
-                            ? `<strong style="color: #0284c7; font-family: monospace; font-size: 0.88rem;">${item.customer_code}</strong>`
+                            ? `<strong style="color: #0284c7; font-weight:700; font-size: 0.88rem;">${item.customer_code}</strong>`
                             : `<span style="color: #cbd5e1;">-</span>`;
 
                         let badgeText = item.status_text;
@@ -310,32 +311,41 @@ async function updateRealtimeStats(forceRefresh = false) {
                             badgeStyle = 'background:#eef2ff; color:#4338ca; border:1px solid #c7d2fe;';
                         }
 
-                        let methodBadge = `<span style="font-size:0.78rem; font-weight:700; padding:3px 10px; border-radius:12px; background:#ecfdf5; color:#047857; border:1px solid #a7f3d0;">Khớp SĐT</span>`;
-                        if (item.status === 'walk_in') {
-                            methodBadge = `<span style="font-size:0.78rem; font-weight:700; padding:3px 10px; border-radius:12px; background:#fffbeb; color:#b45309; border:1px solid #fde68a;">Khách phát sinh</span>`;
-                        } else if (item.is_by_code) {
-                            methodBadge = `<span style="font-size:0.78rem; font-weight:700; padding:3px 10px; border-radius:12px; background:#f3e8ff; color:#6b21a8; border:1px solid #e9d5ff;">Khớp Mã dự thưởng</span>`;
-                        } else if (item.status === 'invited') {
-                            methodBadge = `<span style="font-size:0.78rem; color:#94a3b8;">-</span>`;
-                        }
-
                         const tableNameHtml = item.table_name && item.table_name !== 'Chưa xếp bàn'
                             ? `<span style="font-weight:700; color:#047857; background:#ecfdf5; border:1px solid #a7f3d0; padding:4px 10px; border-radius:8px; font-size:0.82rem;">${item.table_name}</span>`
                             : `<span style="color:#94a3b8; font-style:italic; font-size:0.85rem;">Chưa xếp</span>`;
 
-                        html += `
-                            <tr class="${rowClass}">
-                                <td>${customerCodeHtml}</td>
-                                <td style="font-weight:700; color:#0f172a;">${item.full_name}</td>
-                                <td style="font-weight:600; color:#475569;">${item.phone}</td>
-                                <td>${tableNameHtml}</td>
-                                <td>${methodBadge}</td>
-                                <td style="font-size:0.85rem; color:#64748b;">${item.time}</td>
-                                <td>
-                                    <span style="display:inline-block; padding:4px 10px; border-radius:20px; font-size:0.78rem; font-weight:700; ${badgeStyle}">${badgeText}</span>
-                                </td>
-                            </tr>
-                        `;
+                        html += `<tr class="${rowClass}">`;
+                        dashColsConfig.forEach(col => {
+                            if (!col.visible) return;
+                            switch(col.key) {
+                                case 'customer_code':
+                                    html += `<td>${customerCodeHtml}</td>`;
+                                    break;
+                                case 'full_name':
+                                    html += `<td style="font-weight:700; color:#0f172a;">${item.full_name}</td>`;
+                                    break;
+                                case 'phone':
+                                    html += `<td style="font-weight:600; color:#475569;">${item.phone}</td>`;
+                                    break;
+                                case 'organization':
+                                    html += `<td>${item.organization || '-'}</td>`;
+                                    break;
+                                case 'table_name':
+                                    html += `<td>${tableNameHtml}</td>`;
+                                    break;
+                                case 'lucky_draw_code':
+                                    html += `<td>${item.lucky_draw_code || '-'}</td>`;
+                                    break;
+                                case 'checkin_time':
+                                    html += `<td style="font-size:0.85rem; color:#64748b;">${item.time}</td>`;
+                                    break;
+                                case 'status':
+                                    html += `<td><span style="display:inline-block; padding:4px 10px; border-radius:20px; font-size:0.78rem; font-weight:700; ${badgeStyle}">${badgeText}</span></td>`;
+                                    break;
+                            }
+                        });
+                        html += `</tr>`;
                     });
                     tbody.innerHTML = html;
                 }

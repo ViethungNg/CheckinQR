@@ -380,87 +380,100 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 <?php endif; ?>
             </form>
 
+            <?php $guestCols = getTableColumnsConfig('guests'); ?>
             <div class="table-responsive">
                 <table>
                     <thead>
                         <tr>
-                            <th>Mã KH</th>
-                            <th>Họ Tên</th>
-                            <th>SĐT</th>
-                            <th>Đơn vị</th>
-                            <th>
-                                <a href="?search=<?php echo urlencode($search); ?>&sort=<?php echo $sort === 'table_asc' ? 'table_desc' : 'table_asc'; ?>" class="sort-header" title="Bấm để đổi chiều sắp xếp bàn">
-                                    Bàn <?php echo $sort === 'table_asc' ? '▲' : ($sort === 'table_desc' ? '▼' : '↕'); ?>
-                                </a>
-                            </th>
-                            <th>
-                                <a href="?search=<?php echo urlencode($search); ?>&sort=<?php echo $sort === 'code_asc' ? 'code_desc' : 'code_asc'; ?>" class="sort-header" title="Bấm để đổi chiều sắp xếp Mã dự thưởng">
-                                    Mã dự thưởng <?php echo $sort === 'code_asc' ? '▲' : ($sort === 'code_desc' ? '▼' : '↕'); ?>
-                                </a>
-                            </th>
-                            <th>Trạng thái</th>
-                            <?php if(isAdmin() || isLeTan()): ?><th>Thao tác</th><?php endif; ?>
+                            <?php foreach ($guestCols as $c): ?>
+                                <?php if (!empty($c['visible'])): ?>
+                                    <?php if ($c['key'] === 'actions' && !isAdmin() && !isLeTan()) continue; ?>
+                                    <th><?php echo esc($c['label']); ?></th>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
                         </tr>
                     </thead>
                     <tbody id="guests-table-body">
                         <?php foreach($guests as $guest): ?>
                         <tr class="<?php echo $guest['status'] === 'checked_in' ? 'row-checked-in' : ''; ?>">
-                            <td>
-                                <?php if (!empty($guest['customer_code'])): ?>
-                                    <strong style="color: #0284c7; font-family: monospace; font-size: 0.88rem;"><?php echo esc($guest['customer_code']); ?></strong>
-                                <?php else: ?>
-                                    <span style="color: #aaa;">-</span>
-                                <?php endif; ?>
-                            </td>
-                            <td><strong><?php echo esc($guest['full_name']); ?></strong></td>
-                            <td><?php echo esc($guest['phone']); ?></td>
-                            <td><?php echo esc($guest['organization'] ?? '-'); ?></td>
-                            <td>
-                                <?php if (!empty($guest['table_name'])): ?>
-                                    <span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">
-                                        <?php echo esc($guest['table_name']); ?>
-                                    </span>
-                                <?php else: ?>
-                                    <span style="color: #888; font-style: italic;">Chưa xếp</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <?php if (!empty($guest['lucky_draw_code'])): ?>
-                                    <span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">
-                                        <?php echo esc($guest['lucky_draw_code']); ?>
-                                    </span>
-                                <?php else: ?>
-                                    <span style="color: #aaa;">-</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <span class="badge <?php echo esc($guest['status']); ?>">
-                                    <?php echo $guest['status'] === 'checked_in' ? 'Đã checkin' : 'Chưa tới'; ?>
-                                </span>
-                            </td>
-                            <?php if(isAdmin() || isLeTan()): ?>
-                            <td style="text-align: center;">
-                                <div class="action-btns-wrapper" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-                                    <div style="width: 105px; display: inline-flex; align-items: center;">
-                                        <?php if ($guest['status'] === 'invited'): ?>
-                                            <button type="button" class="btn btn-action-checkin" onclick='checkinHoGuest(<?php echo (int)$guest["id"]; ?>, <?php echo json_encode($guest["full_name"]); ?>)'>Check-in hộ</button>
-                                        <?php else: ?>
-                                            <span class="badge checked_in" style="margin:0; font-size: 0.78rem;">Đã checkin</span>
-                                        <?php endif; ?>
-                                    </div>
+                            <?php foreach ($guestCols as $c): ?>
+                                <?php if (!empty($c['visible'])): ?>
+                                    <?php switch($c['key']):
+                                        case 'customer_code': ?>
+                                            <td>
+                                                <?php if (!empty($guest['customer_code'])): ?>
+                                                    <strong style="color: #0284c7; font-weight:700; font-size: 0.88rem;"><?php echo esc($guest['customer_code']); ?></strong>
+                                                <?php else: ?>
+                                                    <span style="color: #aaa;">-</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <?php break;
+                                        case 'full_name': ?>
+                                            <td><strong><?php echo esc($guest['full_name']); ?></strong></td>
+                                            <?php break;
+                                        case 'phone': ?>
+                                            <td><?php echo esc($guest['phone']); ?></td>
+                                            <?php break;
+                                        case 'organization': ?>
+                                            <td><?php echo esc($guest['organization'] ?? '-'); ?></td>
+                                            <?php break;
+                                        case 'table_name': ?>
+                                            <td>
+                                                <?php if (!empty($guest['table_name'])): ?>
+                                                    <span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">
+                                                        <?php echo esc($guest['table_name']); ?>
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span style="color: #888; font-style: italic;">Chưa xếp</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <?php break;
+                                        case 'lucky_draw_code': ?>
+                                            <td>
+                                                <?php if (!empty($guest['lucky_draw_code'])): ?>
+                                                    <span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">
+                                                        <?php echo esc($guest['lucky_draw_code']); ?>
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span style="color: #aaa;">-</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <?php break;
+                                        case 'status': ?>
+                                            <td>
+                                                <span class="badge <?php echo esc($guest['status']); ?>">
+                                                    <?php echo $guest['status'] === 'checked_in' ? 'Đã checkin' : 'Chưa tới'; ?>
+                                                </span>
+                                            </td>
+                                            <?php break;
+                                        case 'actions': ?>
+                                            <?php if (isAdmin() || isLeTan()): ?>
+                                                <td style="text-align: center;">
+                                                    <div class="action-btns-wrapper" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
+                                                        <div style="width: 105px; display: inline-flex; align-items: center;">
+                                                            <?php if ($guest['status'] === 'invited'): ?>
+                                                                <button type="button" class="btn btn-action-checkin" onclick='checkinHoGuest(<?php echo (int)$guest["id"]; ?>, <?php echo json_encode($guest["full_name"]); ?>)'>Check-in hộ</button>
+                                                            <?php else: ?>
+                                                                <span class="badge checked_in" style="margin:0; font-size: 0.78rem;">Đã checkin</span>
+                                                            <?php endif; ?>
+                                                        </div>
 
-                                    <?php if(isAdmin()): ?>
-                                        <button type="button" class="btn btn-action-edit" onclick='openEditModal(<?php echo json_encode($guest); ?>)'>Sửa</button>
-                                        <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa khách này?');">
-                                            <?php echo csrfField(); ?>
-                                            <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="id" value="<?php echo $guest['id']; ?>">
-                                            <button type="submit" class="btn btn-action-delete">Xóa</button>
-                                        </form>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
-                            <?php endif; ?>
+                                                        <?php if(isAdmin()): ?>
+                                                            <button type="button" class="btn btn-action-edit" onclick='openEditModal(<?php echo json_encode($guest); ?>)'>Sửa</button>
+                                                            <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa khách này?');">
+                                                                <?php echo csrfField(); ?>
+                                                                <input type="hidden" name="action" value="delete">
+                                                                <input type="hidden" name="id" value="<?php echo $guest['id']; ?>">
+                                                                <button type="submit" class="btn btn-action-delete">Xóa</button>
+                                                            </form>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </td>
+                                            <?php endif; ?>
+                                            <?php break;
+                                    endswitch; ?>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -584,6 +597,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     const tableSelect = document.getElementById('tableId');
     const isAdminUser = <?php echo isAdmin() ? 'true' : 'false'; ?>;
     const canCheckinHo = <?php echo (isAdmin() || isLeTan()) ? 'true' : 'false'; ?>;
+    const guestColsConfig = <?php echo json_encode($guestCols); ?>;
     let csrfTokenValue = '<?php echo generateCsrfToken(); ?>';
     
     window.allGuestsMap = {};
@@ -893,8 +907,8 @@ counter.textContent = count;
                         }
 
                         actionsHtml = `
-                            <td>
-                                <div style="display: inline-flex; align-items: center; gap: 6px;">
+                            <td style="text-align: center;">
+                                <div style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
                                     <div style="width: 105px; display: inline-flex; align-items: center;">${checkinSlot}</div>
                                     ${adminBtns}
                                 </div>
@@ -902,18 +916,37 @@ counter.textContent = count;
                         `;
                     }
 
-                    html += `
-                        <tr class="${rowClass}">
-                            <td>${customerCodeHtml}</td>
-                            <td><strong>${item.full_name}</strong></td>
-                            <td>${item.phone}</td>
-                            <td>${item.organization || '-'}</td>
-                            <td>${tableHtml}</td>
-                            <td>${luckyHtml}</td>
-                            <td>${statusHtml}</td>
-                            ${actionsHtml}
-                        </tr>
-                    `;
+                    html += `<tr class="${rowClass}">`;
+                    guestColsConfig.forEach(col => {
+                        if (!col.visible) return;
+                        switch(col.key) {
+                            case 'customer_code':
+                                html += `<td>${customerCodeHtml}</td>`;
+                                break;
+                            case 'full_name':
+                                html += `<td><strong>${item.full_name}</strong></td>`;
+                                break;
+                            case 'phone':
+                                html += `<td>${item.phone}</td>`;
+                                break;
+                            case 'organization':
+                                html += `<td>${item.organization || '-'}</td>`;
+                                break;
+                            case 'table_name':
+                                html += `<td>${tableHtml}</td>`;
+                                break;
+                            case 'lucky_draw_code':
+                                html += `<td>${luckyHtml}</td>`;
+                                break;
+                            case 'status':
+                                html += `<td>${statusHtml}</td>`;
+                                break;
+                            case 'actions':
+                                if (hasActions) html += actionsHtml;
+                                break;
+                        }
+                    });
+                    html += `</tr>`;
                 });
 
                 tbody.innerHTML = html;

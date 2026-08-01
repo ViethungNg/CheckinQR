@@ -77,5 +77,22 @@ try {
     try { $dbInstance->exec("ALTER TABLE guests ADD INDEX idx_guests_table (table_id)"); } catch (\Throwable $e) {}
     try { $dbInstance->exec("ALTER TABLE guests ADD INDEX idx_guests_table_status (table_id, status)"); } catch (\Throwable $e) {}
     try { $dbInstance->exec("ALTER TABLE guests ADD INDEX idx_guests_event_phone (event_id, normalized_phone)"); } catch (\Throwable $e) {}
-    try { $dbInstance->exec("ALTER TABLE event_tables ADD INDEX idx_tables_assigned (assigned_user_id)"); } catch (\Throwable $e) {}
+    // Tạo bảng system_settings và user_settings nếu chưa tồn tại
+    $dbInstance->exec("
+        CREATE TABLE IF NOT EXISTS system_settings (
+            setting_key VARCHAR(100) NOT NULL PRIMARY KEY,
+            setting_value LONGTEXT NOT NULL,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
+
+    $dbInstance->exec("
+        CREATE TABLE IF NOT EXISTS user_settings (
+            user_id INT NOT NULL,
+            setting_key VARCHAR(100) NOT NULL,
+            setting_value TEXT NOT NULL,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, setting_key)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ");
 } catch (\Throwable $e) {}

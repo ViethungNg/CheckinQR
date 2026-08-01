@@ -65,3 +65,116 @@ function normalizePhone(string $phone): string {
 function isPost(): bool {
     return $_SERVER['REQUEST_METHOD'] === 'POST';
 }
+
+/**
+ * Lấy cấu hình cột mặc định cho 3 bảng
+ */
+function getDefaultTableColumns(string $tableName): array {
+    switch ($tableName) {
+        case 'dashboard':
+            return [
+                ['key' => 'customer_code',   'label' => 'Mã KH',            'visible' => true],
+                ['key' => 'full_name',       'label' => 'Họ và tên',        'visible' => true],
+                ['key' => 'phone',           'label' => 'Số điện thoại',    'visible' => true],
+                ['key' => 'organization',    'label' => 'Đơn vị / Đại lý',  'visible' => true],
+                ['key' => 'table_name',      'label' => 'Bàn ngồi',         'visible' => true],
+                ['key' => 'lucky_draw_code', 'label' => 'Mã trúng thưởng',  'visible' => true],
+                ['key' => 'checkin_time',    'label' => 'Thời gian checkin','visible' => true],
+            ];
+        case 'guests':
+            return [
+                ['key' => 'customer_code',   'label' => 'Mã KH',            'visible' => true],
+                ['key' => 'full_name',       'label' => 'Họ và tên',        'visible' => true],
+                ['key' => 'phone',           'label' => 'Số điện thoại',    'visible' => true],
+                ['key' => 'organization',    'label' => 'Đơn vị / Đại lý',  'visible' => true],
+                ['key' => 'table_name',      'label' => 'Bàn ngồi',         'visible' => true],
+                ['key' => 'lucky_draw_code', 'label' => 'Mã trúng thưởng',  'visible' => true],
+                ['key' => 'status',          'label' => 'Trạng thái',       'visible' => true],
+                ['key' => 'actions',         'label' => 'Thao tác',         'visible' => true],
+            ];
+        case 'checkins':
+            return [
+                ['key' => 'customer_code',   'label' => 'Mã KH',            'visible' => true],
+                ['key' => 'full_name',       'label' => 'Họ và tên',        'visible' => true],
+                ['key' => 'phone',           'label' => 'Số điện thoại',    'visible' => true],
+                ['key' => 'organization',    'label' => 'Đơn vị / Đại lý',  'visible' => true],
+                ['key' => 'table_name',      'label' => 'Bàn ngồi',         'visible' => true],
+                ['key' => 'lucky_draw_code', 'label' => 'Mã trúng thưởng',  'visible' => true],
+                ['key' => 'checkin_time',    'label' => 'Thời gian checkin','visible' => true],
+                ['key' => 'method',          'label' => 'Phương thức',      'visible' => true],
+                ['key' => 'actions',         'label' => 'Thao tác',         'visible' => true],
+            ];
+        default:
+            return [];
+    }
+}
+
+/**
+ * Lấy cấu hình cột bảng hiện tại từ CSDL (gồm thứ tự và trạng thái ẩn/hiện)
+ */
+function getTableColumnsConfig(string $tableName): array {
+    $defaults = getDefaultTableColumns($tableName);
+    if (empty($defaults)) return [];
+
+    try {
+        $db = Database::getConnection();
+        $stmt = $db->prepare("SELECT setting_value FROM system_settings WHERE setting_key = ?");
+        $stmt->execute(['table_config_' . $tableName]);
+        $row = $stmt->fetch();
+
+        if ($row && !empty($row['setting_value'])) {
+            $saved = json_decode($row['setting_value'], true);
+            if (is_array($saved) && !empty($saved)) {
+                // Map nhãn gốc để phòng trường hợp đổi nhãn
+                $defaultKeysMap = [];
+                foreach ($defaults as $d) {
+                    $defaultKeysMap[$d['key']] = $d['label'];
+                }
+
+                $result = [];
+                $savedKeys = [];
+
+                foreach ($saved as $item) {
+                    if (isset($item['key']) && isset($defaultKeysMap[$item['key']])) {
+                        $result[] = [
+                            'key'     => $item['key'],
+                            'label'   => $defaultKeysMap[$item['key']],
+                            'visible' => !empty($item['visible'])
+                        ];
+                        $savedKeys[$item['key']] = true;
+                    }
+                }
+
+                // Bổ sung các cột mới nếu mặc định có mà trong saved chưa có
+                foreach ($defaults as $d) {
+                    if (!isset($savedKeys[$d['key']])) {
+                        $result[] = $d;
+                    }
+                }
+
+                return $result;
+            }
+        }
+    } catch (\Throwable $e) {}
+
+    return $defaults;
+}
+
+/**
+ * Lấy cài đặt bật/tắt thông báo cá nhân của User
+ */
+function getUserNotificationSetting(int $userId): bool {
+    if ($userId <= 0) return true;
+    try {
+        $db = Database::getConnection();
+        $stmt = $db->prepare("SELECT setting_value FROM user_settings WHERE user_id = ? AND setting_key = 'notifications_enabled'");
+        $stmt->execute([$userId]);
+        $val = $stmt->fetchColumn();
+        if ($val !== false) {
+            return $val === '1' || $val === 1 || $val === 'true';
+        }
+    } catch (\Throwable $e) {}
+
+    return true; // Mặc định bật
+}
+

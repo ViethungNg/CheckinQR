@@ -260,19 +260,17 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                 <?php endif; ?>
             </form>
 
+            <?php $checkinCols = getTableColumnsConfig('checkins'); ?>
             <div class="table-responsive">
                 <table>
                     <thead>
                         <tr>
-                            <th>Mã KH</th>
-                            <th>Họ Tên Khách Điền</th>
-                            <th>SĐT Khách Điền</th>
-                            <th>Vị Trí Bàn</th>
-                            <th>Mã Dự Thưởng Khách Điền</th>
-                            <th>Phương Thức Check-in</th>
-                            <th>Thời Gian</th>
-                            <th>Trạng Thái</th>
-                            <?php if(!isKinhDoanh()): ?><th>Thao Tác</th><?php endif; ?>
+                            <?php foreach ($checkinCols as $c): ?>
+                                <?php if (!empty($c['visible'])): ?>
+                                    <?php if ($c['key'] === 'actions' && isKinhDoanh()) continue; ?>
+                                    <th><?php echo esc($c['label']); ?></th>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
                         </tr>
                     </thead>
                     <tbody id="checkins-table-body">
@@ -281,71 +279,97 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                             $custCode = !empty($c['customer_code']) ? $c['customer_code'] : ($c['guest_customer_code'] ?? '');
                         ?>
                         <tr id="checkin-row-<?php echo (int)$c['id']; ?>" class="<?php echo $c['match_status'] === 'matched' ? 'row-checked-in' : ''; ?>">
-                            <td>
-                                <?php if (!empty($custCode)): ?>
-                                    <strong style="color: #0284c7; font-family: monospace; font-size: 0.88rem;"><?php echo esc($custCode); ?></strong>
-                                <?php else: ?>
-                                    <span style="color: #aaa;">-</span>
+                            <?php foreach ($checkinCols as $col): ?>
+                                <?php if (!empty($col['visible'])): ?>
+                                    <?php switch($col['key']):
+                                        case 'customer_code': ?>
+                                            <td>
+                                                <?php if (!empty($custCode)): ?>
+                                                    <strong style="color: #0284c7; font-weight:700; font-size: 0.88rem;"><?php echo esc($custCode); ?></strong>
+                                                <?php else: ?>
+                                                    <span style="color: #aaa;">-</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <?php break;
+                                        case 'full_name': ?>
+                                            <td><strong><?php echo esc($c['full_name_entered']); ?></strong></td>
+                                            <?php break;
+                                        case 'phone': ?>
+                                            <td><?php echo esc($c['phone_entered']); ?></td>
+                                            <?php break;
+                                        case 'organization': ?>
+                                            <td><?php echo esc($c['address_entered'] ?? '-'); ?></td>
+                                            <?php break;
+                                        case 'table_name': ?>
+                                            <td>
+                                                <?php if (!empty($c['table_name'])): ?>
+                                                    <span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 4px 10px; border-radius: 8px; font-size: 0.85rem; white-space: nowrap; display: inline-flex; align-items: center;">
+                                                        <?php echo esc($c['table_name']); ?>
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span style="color: #888; font-style: italic;">Chưa xếp</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <?php break;
+                                        case 'lucky_draw_code': ?>
+                                            <td>
+                                                <?php if (!empty($c['lucky_draw_code'])): ?>
+                                                    <span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 4px 10px; border-radius: 8px; font-size: 0.85rem;">
+                                                        <?php echo esc($c['lucky_draw_code']); ?>
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span style="color: #aaa;">-</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <?php break;
+                                        case 'checkin_time': ?>
+                                            <td><?php echo date('d/m/Y H:i:s', strtotime($c['checkin_time'])); ?></td>
+                                            <?php break;
+                                        case 'method': ?>
+                                            <td>
+                                                <?php if ($c['match_status'] === 'walk_in'): ?>
+                                                    <span style="background: #fff3e0; color: #ef6c00; border: 1px solid #ffcc80; padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8rem;">
+                                                        Khách phát sinh
+                                                    </span>
+                                                <?php elseif ($isByLuckyCode): ?>
+                                                    <span style="background: #f3e5f5; color: #7b1fa2; border: 1.5px solid #ab47bc; padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 0.8rem;">
+                                                        Khớp Mã dự thưởng
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span style="background: #e8f5e9; color: #1b5e20; border: 1.5px solid #81c784; padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 0.8rem;">
+                                                        Khớp SĐT
+                                                    </span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <?php break;
+                                        case 'status': ?>
+                                            <td>
+                                                <span class="badge <?php echo esc($c['match_status']); ?>">
+                                                    <?php echo $c['match_status'] === 'matched' ? 'Khách hợp lệ' : 'Khách phát sinh'; ?>
+                                                </span>
+                                            </td>
+                                            <?php break;
+                                        case 'actions': ?>
+                                            <?php if(!isKinhDoanh()): ?>
+                                                <td style="text-align: center;">
+                                                    <div class="action-btns-wrapper">
+                                                        <button type="button" class="btn btn-action-primary" onclick="openCompareModal(<?php echo (int)$c['id']; ?>)">Đối chiếu</button>
+                                                        <?php if(isAdmin()): ?>
+                                                            <button type="button" class="btn btn-action-assign" onclick="openAssignModal(<?php echo (int)$c['id']; ?>)">Xếp bàn</button>
+                                                            <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
+                                                                <?php echo csrfField(); ?>
+                                                                <input type="hidden" name="action" value="delete">
+                                                                <input type="hidden" name="id" value="<?php echo $c['id']; ?>">
+                                                                <button type="submit" class="btn btn-action-danger">Xóa Test</button>
+                                                            </form>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </td>
+                                            <?php endif; ?>
+                                            <?php break;
+                                    endswitch; ?>
                                 <?php endif; ?>
-                            </td>
-                            <td><strong><?php echo esc($c['full_name_entered']); ?></strong></td>
-                            <td><?php echo esc($c['phone_entered']); ?></td>
-                            <td>
-                                <?php if (!empty($c['table_name'])): ?>
-                                    <span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 4px 10px; border-radius: 8px; font-size: 0.85rem; white-space: nowrap; display: inline-flex; align-items: center;">
-                                        <?php echo esc($c['table_name']); ?>
-                                    </span>
-                                <?php else: ?>
-                                    <span style="color: #888; font-style: italic;">Chưa xếp</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <?php if (!empty($c['lucky_draw_code'])): ?>
-                                    <span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 4px 10px; border-radius: 8px; font-size: 0.85rem;">
-                                        <?php echo esc($c['lucky_draw_code']); ?>
-                                    </span>
-                                <?php else: ?>
-                                    <span style="color: #aaa;">-</span>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <?php if ($c['match_status'] === 'walk_in'): ?>
-                                    <span style="background: #fff3e0; color: #ef6c00; border: 1px solid #ffcc80; padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8rem;">
-                                        Khách phát sinh
-                                    </span>
-                                <?php elseif ($isByLuckyCode): ?>
-                                    <span style="background: #f3e5f5; color: #7b1fa2; border: 1.5px solid #ab47bc; padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 0.8rem;">
-                                        Khớp Mã dự thưởng
-                                    </span>
-                                <?php else: ?>
-                                    <span style="background: #e8f5e9; color: #1b5e20; border: 1.5px solid #81c784; padding: 4px 10px; border-radius: 20px; font-weight: 800; font-size: 0.8rem;">
-                                        Khớp SĐT
-                                    </span>
-                                <?php endif; ?>
-                            </td>
-                            <td><?php echo date('d/m/Y H:i:s', strtotime($c['checkin_time'])); ?></td>
-                            <td>
-                                <span class="badge <?php echo esc($c['match_status']); ?>">
-                                    <?php echo $c['match_status'] === 'matched' ? 'Khách hợp lệ' : 'Khách phát sinh'; ?>
-                                </span>
-                            </td>
-                            <td>
-                                <div class="action-btns-wrapper">
-                                    <button type="button" class="btn btn-action-primary" onclick="openCompareModal(<?php echo (int)$c['id']; ?>)">Đối chiếu</button>
-                                    <?php if(!isKinhDoanh()): ?>
-                                        <button type="button" class="btn btn-action-assign" onclick="openAssignModal(<?php echo (int)$c['id']; ?>)">Xếp bàn</button>
-                                        
-                                        <?php if(isAdmin()): ?>
-                                        <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
-                                            <?php echo csrfField(); ?>
-                                            <input type="hidden" name="action" value="delete">
-                                            <input type="hidden" name="id" value="<?php echo $c['id']; ?>">
-                                            <button type="submit" class="btn btn-action-danger">Xóa Test</button>
-                                        </form>
-                                        <?php endif; ?>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
+                            <?php endforeach; ?>
                         </tr>
                         <?php endforeach; ?>
                     </tbody>
@@ -571,6 +595,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
     let currentCheckinSearchVal = '<?php echo esc($search); ?>';
     let currentCheckinMatchStatus = '<?php echo esc($matchStatus); ?>';
     let currentCheckinSort = '<?php echo esc($sort); ?>';
+    const checkinColsConfig = <?php echo json_encode($checkinCols); ?>;
 
     function liveSearchCheckins(val) {
         clearTimeout(liveSearchCheckinTimer);
@@ -610,8 +635,9 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                 const tbody = document.getElementById('checkins-table-body');
                 if (!tbody) return;
 
+                const visibleCount = checkinColsConfig.filter(c => c.visible).length || 1;
                 if (result.data.recent_checkins.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="${isKinhDoanhUser ? 8 : 9}" style="text-align:center; color:#777; padding:20px;">Không tìm thấy lượt check-in nào phù hợp với bộ lọc</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="${visibleCount}" style="text-align:center; color:#777; padding:20px;">Không tìm thấy lượt check-in nào phù hợp với bộ lọc</td></tr>`;
                     return;
                 }
 
@@ -642,7 +668,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                     const rowClass = isCheckedIn ? 'row-checked-in' : '';
                     
                     const customerCodeHtml = item.customer_code 
-                        ? `<strong style="color: #0284c7; font-family: monospace; font-size: 0.88rem;">${item.customer_code}</strong>` 
+                        ? `<strong style="color: #0284c7; font-weight:700; font-size: 0.88rem;">${item.customer_code}</strong>` 
                         : `<span style="color: #aaa;">-</span>`;
 
                     const luckyCodeHtml = item.lucky_draw_code 
@@ -664,11 +690,12 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                         ? `<span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 4px 10px; border-radius: 8px; font-size: 0.85rem; white-space: nowrap; display: inline-flex; align-items: center;">${item.table_name}</span>`
                         : `<span style="color: #888; font-style: italic;">Chưa xếp</span>`;
 
-                    let actionsHtml = `
-                        <td>
-                            <div class="action-btns-wrapper">
-                                <button type="button" class="btn btn-action-primary" onclick="openCompareModal(${item.id})">Đối chiếu</button>
-                                ${!isKinhDoanhUser ? `
+                    let actionsHtml = '';
+                    if (!isKinhDoanhUser) {
+                        actionsHtml = `
+                            <td style="text-align: center;">
+                                <div class="action-btns-wrapper">
+                                    <button type="button" class="btn btn-action-primary" onclick="openCompareModal(${item.id})">Đối chiếu</button>
                                     <button type="button" class="btn btn-action-assign" onclick="openAssignModal(${item.id})">Xếp bàn</button>
                                     ${isAdminUser ? `
                                     <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
@@ -678,24 +705,48 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                                         <button type="submit" class="btn btn-action-danger">Xóa Test</button>
                                     </form>
                                     ` : ''}
-                                ` : ''}
-                            </div>
-                        </td>
-                    `;
+                                </div>
+                            </td>
+                        `;
+                    }
 
-                    html += `
-                        <tr id="checkin-row-${item.id}" class="${rowClass}">
-                            <td>${customerCodeHtml}</td>
-                            <td><strong>${item.full_name}</strong></td>
-                            <td>${item.phone}</td>
-                            <td>${tableNameHtml}</td>
-                            <td>${luckyCodeHtml}</td>
-                            <td>${methodBadge}</td>
-                            <td>${item.time}</td>
-                            <td>${statusBadge}</td>
-                            ${actionsHtml}
-                        </tr>
-                    `;
+                    html += `<tr id="checkin-row-${item.id}" class="${rowClass}">`;
+                    checkinColsConfig.forEach(col => {
+                        if (!col.visible) return;
+                        switch(col.key) {
+                            case 'customer_code':
+                                html += `<td>${customerCodeHtml}</td>`;
+                                break;
+                            case 'full_name':
+                                html += `<td><strong>${item.full_name}</strong></td>`;
+                                break;
+                            case 'phone':
+                                html += `<td>${item.phone}</td>`;
+                                break;
+                            case 'organization':
+                                html += `<td>${item.address_entered || '-'}</td>`;
+                                break;
+                            case 'table_name':
+                                html += `<td>${tableNameHtml}</td>`;
+                                break;
+                            case 'lucky_draw_code':
+                                html += `<td>${luckyCodeHtml}</td>`;
+                                break;
+                            case 'checkin_time':
+                                html += `<td>${item.time}</td>`;
+                                break;
+                            case 'method':
+                                html += `<td>${methodBadge}</td>`;
+                                break;
+                            case 'status':
+                                html += `<td>${statusBadge}</td>`;
+                                break;
+                            case 'actions':
+                                if (!isKinhDoanhUser) html += actionsHtml;
+                                break;
+                        }
+                    });
+                    html += `</tr>`;
                 });
 
                 tbody.innerHTML = html;

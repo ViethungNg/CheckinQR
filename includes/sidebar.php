@@ -54,6 +54,11 @@ $firstChar = mb_strtoupper(mb_substr($adminName, 0, 1, 'UTF-8'));
             </a>
         </li>
         <?php endif; ?>
+        <li>
+            <a href="settings.php" class="<?php echo $currentPage === 'settings.php' ? 'active' : ''; ?>">
+                Cấu hình hệ thống
+            </a>
+        </li>
     </ul>
 
     <!-- User Profile & Logout Box inside Left Sidebar -->

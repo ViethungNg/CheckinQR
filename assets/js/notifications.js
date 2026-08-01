@@ -200,6 +200,19 @@
         container.appendChild(toast);
         setTimeout(() => toast.classList.add('show'), 50);
 
+        // Phát Mobile / OS Native Push Notification nếu được cấp quyền
+        if ('Notification' in window && Notification.permission === 'granted') {
+            try {
+                const notifTitle = isWalkIn ? 'CẢNH BÁO KHÁCH CHECK-IN MỚI' : 'KHÁCH HÀNG CHECK-IN MỚI';
+                const notifBody = `${item.full_name || 'Khách hàng'} (${item.phone || ''}) vừa check-in vào ${item.table_name || 'sảnh'}`;
+                new Notification(notifTitle, {
+                    body: notifBody,
+                    icon: '../img/logo pmt.png',
+                    tag: 'checkin-' + item.id
+                });
+            } catch (e) {}
+        }
+
         setTimeout(() => {
             if (toast && toast.parentNode) {
                 toast.classList.remove('show');
