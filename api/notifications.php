@@ -53,9 +53,14 @@ try {
 
     // 2. Luôn lấy 15 lượt checkin mới nhất để hiển thị nội dung trong Dropdown
     $stmtCheckins = $db->query("
-        SELECT c.*, t.table_name 
+        SELECT c.*, 
+               t.table_name,
+               COALESCE(NULLIF(c.customer_code, ''), g.customer_code, '') as final_customer_code,
+               COALESCE(NULLIF(g.organization, ''), NULLIF(c.address_entered, ''), '') as final_organization,
+               COALESCE(NULLIF(c.lucky_draw_code, ''), g.lucky_draw_code, '') as final_lucky_code
         FROM checkins c 
         LEFT JOIN event_tables t ON c.table_id = t.id 
+        LEFT JOIN guests g ON c.guest_id = g.id
         {$whereClause}
         ORDER BY c.id DESC LIMIT 15
     ");
@@ -63,14 +68,17 @@ try {
     $checkinsList = [];
     while ($row = $stmtCheckins->fetch()) {
         $checkinsList[] = [
-            'id'          => (int)$row['id'],
-            'full_name'   => esc($row['full_name_entered']),
-            'phone'       => esc($row['phone_entered']),
-            'table_name'  => esc($row['table_name'] ?? 'Chưa xếp bàn'),
-            'time'        => date('H:i:s d/m/Y', strtotime($row['checkin_time'])),
-            'status'      => esc($row['match_status']),
-            'status_text' => $row['match_status'] === 'matched' ? 'Hợp lệ' : 'Phát sinh',
-            'is_new'      => ($lastSeenId > 0 && (int)$row['id'] > $lastSeenId)
+            'id'              => (int)$row['id'],
+            'customer_code'   => esc($row['final_customer_code']),
+            'organization'    => esc($row['final_organization']),
+            'full_name'       => esc($row['full_name_entered']),
+            'phone'           => esc($row['phone_entered']),
+            'table_name'      => esc($row['table_name'] ?? 'Chưa xếp bàn'),
+            'lucky_draw_code' => esc($row['final_lucky_code']),
+            'time'            => date('H:i:s d/m/Y', strtotime($row['checkin_time'])),
+            'status'          => esc($row['match_status']),
+            'status_text'     => $row['match_status'] === 'matched' ? 'Hợp lệ' : 'Phát sinh',
+            'is_new'          => ($lastSeenId > 0 && (int)$row['id'] > $lastSeenId)
         ];
     }
 

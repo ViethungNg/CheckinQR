@@ -1,3 +1,20 @@
+// Vô hiệu hóa tính năng nhấp 2 - 3 lần (double/triple-tap) phóng to màn hình trên Mobile
+// Vẫn giữ nguyên khả năng kéo/thu bằng 2 ngón tay (Pinch-to-zoom)
+(function disableDoubleTapZoom() {
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (event) {
+        if (event.touches && event.touches.length > 0) return;
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+            const tag = (event.target && event.target.tagName) ? event.target.tagName.toUpperCase() : '';
+            if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+                event.preventDefault();
+            }
+        }
+        lastTouchEnd = now;
+    }, { passive: false });
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('checkin-form');
     const submitBtn = document.getElementById('btn-submit');

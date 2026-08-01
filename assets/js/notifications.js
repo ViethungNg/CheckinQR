@@ -2,6 +2,23 @@
  * Global Real-time QR Check-in Notification System with Dual Audio Engine
  */
 
+// Vô hiệu hóa tính năng nhấp 2 - 3 lần (double/triple-tap) phóng to màn hình trên Mobile
+// Vẫn giữ nguyên khả năng kéo/thu bằng 2 ngón tay (Pinch-to-zoom)
+(function disableDoubleTapZoom() {
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (event) {
+        if (event.touches && event.touches.length > 0) return;
+        const now = Date.now();
+        if (now - lastTouchEnd <= 300) {
+            const tag = (event.target && event.target.tagName) ? event.target.tagName.toUpperCase() : '';
+            if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+                event.preventDefault();
+            }
+        }
+        lastTouchEnd = now;
+    }, { passive: false });
+})();
+
 (function () {
     let clientLastCheckinId = 0;
     let audioCtx = null;
@@ -152,7 +169,21 @@
     };
 
     const shownToastIds = new Set();
-    let isCheckingNotifications = false;
+    function formatNotifText(item) {
+        if (!item) return '';
+        const custCode = item.customer_code || '';
+        const org = item.organization || item.agency || '';
+        const table = (item.table_name && item.table_name !== 'Chưa xếp bàn') ? item.table_name : (item.table || 'Chưa xếp bàn');
+        const lucky = item.lucky_draw_code || '';
+
+        const parts = [];
+        if (custCode) parts.push(custCode);
+        if (org) parts.push(org);
+        if (table) parts.push(table);
+        if (lucky) parts.push(lucky);
+
+        return parts.join(' - ') || 'Mã KH - Đại lý - Số bàn';
+    }
 
     function showToastNotification(item) {
         if (!item || !item.id) return;
@@ -175,18 +206,17 @@
         toast.className = `toast-item ${isWalkIn ? 'walk_in' : 'matched'}`;
         toast.dataset.toastId = item.id;
 
-        const timeDisplay = item.time ? item.time.split(' ')[0] : '';
+        const notifContent = formatNotifText(item);
 
         toast.innerHTML = `
             <div class="toast-icon">${isWalkIn ? '🔸' : '✅'}</div>
             <div class="toast-content">
                 <div class="toast-title">
-                    <span>${isWalkIn ? 'Khách phát sinh vừa quét QR!' : 'Khách hợp lệ đã Check-in!'}</span>
+                    <span>Khách checkin thành công</span>
                     <button class="toast-close" onclick="this.closest('.toast-item').remove()">×</button>
                 </div>
-                <div class="toast-body">
-                    <strong>👤 ${item.full_name}</strong> (${item.phone})<br>
-                    🪑 Bàn: <strong>${item.table_name}</strong> ${timeDisplay ? '| ⏰ ' + timeDisplay : ''}
+                <div class="toast-body" style="font-weight: 700; font-size: 0.92rem; color: #0f172a; margin-top: 4px;">
+                    ${notifContent}
                 </div>
             </div>
         `;
@@ -201,17 +231,7 @@
         setTimeout(() => toast.classList.add('show'), 50);
 
         // Phát Mobile / OS Native Push Notification nếu được cấp quyền
-        if ('Notification' in window && Notification.permission === 'granted') {
-            try {
-                const notifTitle = isWalkIn ? 'CẢNH BÁO KHÁCH CHECK-IN MỚI' : 'KHÁCH HÀNG CHECK-IN MỚI';
-                const notifBody = `${item.full_name || 'Khách hàng'} (${item.phone || ''}) vừa check-in vào ${item.table_name || 'sảnh'}`;
-                new Notification(notifTitle, {
-                    body: notifBody,
-                    icon: '../img/logo pmt.png',
-                    tag: 'checkin-' + item.id
-                });
-            } catch (e) {}
-        }
+        triggerNativeNotification(item);
 
         setTimeout(() => {
             if (toast && toast.parentNode) {
@@ -226,7 +246,7 @@
 
         const notifBox = document.createElement('div');
         notifBox.id = 'headerNotifBox';
-        notifBox.className = 'header-notif-box';
+        notifBox.className = 'notif-bell-container';
 
         notifBox.innerHTML = `
             <button type="button" class="notif-bell-btn-icon" id="notifBellBtn" onclick="toggleNotifDropdown(event)" title="Thông báo quét QR">
@@ -294,6 +314,7 @@
             const badgeClass = isWalkIn ? 'badge-walkin' : 'badge-matched';
             const statusLabel = isWalkIn ? 'Khách phát sinh' : 'Khách hợp lệ';
             const timeDisplay = item.time ? item.time.split(' ')[0] : '';
+            const notifTextStr = formatNotifText(item);
 
             html += `
                 <div class="notif-item ${statusClass} ${item.is_new ? 'unread' : ''}" onclick="window.location.href='checkins.php?highlight=${item.id}'">
@@ -301,9 +322,8 @@
                         <span class="notif-status-badge ${badgeClass}">${statusLabel}</span>
                         <span class="notif-item-time">${timeDisplay}</span>
                     </div>
-                    <div class="notif-item-desc">
-                        <strong>${item.full_name}</strong> - ${item.phone}<br>
-                        Bàn: <strong>${item.table_name}</strong>
+                    <div class="notif-item-desc" style="font-weight:700; color:#0f172a; margin-top:4px;">
+                        ${notifTextStr}
                     </div>
                 </div>
             `;
@@ -313,14 +333,13 @@
 
     function triggerNativeNotification(item) {
         if ('Notification' in window && Notification.permission === 'granted') {
-            const isWalkIn = item.status === 'walk_in';
-            const title = isWalkIn ? '🔸 Khách phát sinh vừa quét QR!' : '✅ Khách đã Check-in thành công!';
-            const body = `Họ tên: ${item.full_name}\nSĐT: ${item.phone}\nBàn: ${item.table_name}`;
+            const bodyText = formatNotifText(item);
             try {
-                new Notification(title, {
-                    body: body,
+                new Notification('Khách checkin thành công', {
+                    body: bodyText,
                     icon: '../img/logo pmt.png',
                     badge: '../img/logo pmt.png',
+                    tag: 'checkin-' + item.id,
                     vibrate: [200, 100, 200]
                 });
             } catch (e) {}
