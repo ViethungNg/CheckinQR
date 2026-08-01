@@ -270,6 +270,32 @@ $stmtGuests = $db->prepare("
 $stmtGuests->execute($params);
 $guests = $stmtGuests->fetchAll();
 
+// Xử lý Xuất File Excel (.xlsx) Danh sách khách hàng theo bộ lọc hiện tại
+if (isset($_GET['action']) && $_GET['action'] === 'export_excel') {
+    require_once __DIR__ . '/../includes/xlsx_reader.php';
+
+    $headers = ['Mã KH', 'Họ và tên', 'Số điện thoại', 'Đơn vị / Đại lý', 'Bàn ngồi', 'Mã trúng thưởng', 'Trạng thái'];
+    $exportRows = [];
+
+    foreach ($guests as $g) {
+        $statusText = ($g['status'] === 'checked_in') ? 'Đã tới' : 'Chưa tới';
+        $tableName  = !empty($g['table_name']) ? $g['table_name'] : 'Chưa xếp bàn';
+        
+        $exportRows[] = [
+            $g['customer_code'] ?? '',
+            $g['full_name'] ?? '',
+            $g['phone'] ?? '',
+            $g['organization'] ?? '',
+            $tableName,
+            $g['lucky_draw_code'] ?? '',
+            $statusText
+        ];
+    }
+
+    $fileName = 'Danh_Sach_Khach_Hang_' . date('d_m_Y_H_i') . '.xlsx';
+    downloadXlsxFile($fileName, $headers, $exportRows);
+}
+
 if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
@@ -360,12 +386,13 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 
         <div class="content-box">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-                <?php if(isAdmin()): ?>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-primary" onclick="openAddModal()">Thêm khách thủ công</button>
-                    <a href="import.php" class="btn btn-success">Import từ Excel (.xlsx)</a>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <?php if(isAdmin()): ?>
+                        <button class="btn btn-primary" onclick="openAddModal()">Thêm khách thủ công</button>
+                        <a href="import.php" class="btn btn-success">Import từ Excel (.xlsx)</a>
+                    <?php endif; ?>
+                    <a href="guests.php?action=export_excel&search=<?php echo urlencode($search); ?>&sort=<?php echo urlencode($sort); ?>" class="btn" style="background: #2e7d32; color: white; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: bold; padding: 8px 16px; border-radius: 6px;">📥 Xuất file Excel (.xlsx)</a>
                 </div>
-                <?php endif; ?>
             </div>
 
             <!-- Thanh Lọc & Sắp Xếp Thông Minh (Live Typing Search) -->
