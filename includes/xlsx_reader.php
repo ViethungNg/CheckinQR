@@ -6,6 +6,19 @@ declare(strict_types=1);
  * Đọc và Xuất file Excel chuẩn .xlsx không cần thư viện ngoài
  */
 
+function cellRefToColIndex(string $cellRef): int {
+    preg_match('/^([A-Z]+)/i', $cellRef, $matches);
+    if (empty($matches[1])) return 0;
+    
+    $letters = strtoupper($matches[1]);
+    $colIndex = 0;
+    $len = strlen($letters);
+    for ($i = 0; $i < $len; $i++) {
+        $colIndex = $colIndex * 26 + (ord($letters[$i]) - ord('A') + 1);
+    }
+    return $colIndex - 1; // 0-indexed: A=0, B=1, C=2, D=3...
+}
+
 function parseXlsxFile(string $filePath): array {
     $rows = [];
     
@@ -48,16 +61,33 @@ function parseXlsxFile(string $filePath): array {
             foreach ($xml->sheetData->row as $r) {
                 $row = [];
                 foreach ($r->c as $c) {
+                    $cellRef = (string)$c['r'];
+                    $colIdx = !empty($cellRef) ? cellRefToColIndex($cellRef) : count($row);
+                    
                     $cellValue = (string)$c->v;
                     $type = (string)$c['t'];
 
                     if ($type === 's') { // Shared String
                         $cellValue = $sharedStrings[(int)$cellValue] ?? '';
+                    } elseif ($type === 'inlineStr' && isset($c->is->t)) {
+                        $cellValue = (string)$c->is->t;
                     }
-                    $row[] = trim($cellValue);
+                    
+                    $row[$colIdx] = trim($cellValue);
                 }
-                if (!empty(array_filter($row))) {
-                    $rows[] = $row;
+                
+                if (!empty($row)) {
+                    $maxIdx = max(array_keys($row));
+                    for ($i = 0; $i <= $maxIdx; $i++) {
+                        if (!isset($row[$i])) {
+                            $row[$i] = '';
+                        }
+                    }
+                    ksort($row);
+                    
+                    if (!empty(array_filter($row, function($v) { return $v !== ''; }))) {
+                        $rows[] = array_values($row);
+                    }
                 }
             }
         }

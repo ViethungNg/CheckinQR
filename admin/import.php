@@ -52,25 +52,36 @@ if (isPost() && (isset($_FILES['excel_file']) || isset($_FILES['csv_file']))) {
             if (!empty($rowsData)) {
                 $headerRow = array_shift($rowsData); // Bỏ qua dòng tiêu đề
                 
-                // Smart Header Mapping: Nhận diện tự động nếu người dùng đổi thứ tự các cột trong Excel
+                // Smart Header Mapping: Nhận diện tự động chuẩn xác bằng cách khử dấu tiếng Việt
                 if (!empty($headerRow) && is_array($headerRow)) {
                     $foundMap = [];
                     foreach ($headerRow as $idx => $headerText) {
-                        $h = strtolower(trim((string)$headerText));
+                        $rawH = (string)$headerText;
+                        // Khử dấu tiếng Việt
+                        $h = preg_replace("/(à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ)/", "a", strtolower($rawH));
+                        $h = preg_replace("/(è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ)/", "e", $h);
+                        $h = preg_replace("/(ì|í|ị|ỉ|ĩ)/", "i", $h);
+                        $h = preg_replace("/(ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ)/", "o", $h);
+                        $h = preg_replace("/(ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ)/", "u", $h);
+                        $h = preg_replace("/(ỳ|ý|ỵ|ỷ|ỹ)/", "y", $h);
+                        $h = preg_replace("/(đ)/", "d", $h);
+                        $h = trim($h);
+
                         if (empty($h)) continue;
 
-                        if (strpos($h, 'mã kh') !== false || strpos($h, 'ma kh') !== false || strpos($h, 'mã đối chiếu') !== false) {
-                            $foundMap['customer_code'] = $idx;
-                        } elseif (strpos($h, 'họ') !== false || strpos($h, 'tên') !== false || strpos($h, 'ho va ten') !== false) {
-                            $foundMap['full_name'] = $idx;
-                        } elseif (strpos($h, 'sđt') !== false || strpos($h, 'sdt') !== false || strpos($h, 'điện thoại') !== false || strpos($h, 'phone') !== false) {
-                            $foundMap['phone'] = $idx;
-                        } elseif (strpos($h, 'đơn vị') !== false || strpos($h, 'don vi') !== false || strpos($h, 'đại lý') !== false || strpos($h, 'dai ly') !== false) {
+                        // 1. Khớp Đơn vị / Đại lý / Công ty / Nơi công tác trước (tránh 'Tên đơn vị' bị khớp nhầm vào Họ và tên)
+                        if (strpos($h, 'don vi') !== false || strpos($h, 'dai ly') !== false || strpos($h, 'cong ty') !== false || strpos($h, 'noi cong tac') !== false || strpos($h, 'org') !== false || strpos($h, 'agency') !== false) {
                             $foundMap['organization'] = $idx;
-                        } elseif (strpos($h, 'bàn') !== false || strpos($h, 'ban') !== false) {
+                        } elseif (strpos($h, 'ban') !== false || strpos($h, 'table') !== false) {
                             $foundMap['table_code'] = $idx;
-                        } elseif (strpos($h, 'thưởng') !== false || strpos($h, 'bốc thăm') !== false || strpos($h, 'quay') !== false || strpos($h, 'lucky') !== false) {
+                        } elseif (strpos($h, 'thuong') !== false || strpos($h, 'boc tham') !== false || strpos($h, 'quay') !== false || strpos($h, 'lucky') !== false) {
                             $foundMap['lucky_code'] = $idx;
+                        } elseif (strpos($h, 'ma kh') !== false || strpos($h, 'doi chieu') !== false || strpos($h, 'ma khach') !== false || strpos($h, 'code') !== false) {
+                            $foundMap['customer_code'] = $idx;
+                        } elseif (strpos($h, 'sdt') !== false || strpos($h, 'dien thoai') !== false || strpos($h, 'phone') !== false || strpos($h, 'mobile') !== false) {
+                            $foundMap['phone'] = $idx;
+                        } elseif (strpos($h, 'ho') !== false || strpos($h, 'ten') !== false || strpos($h, 'name') !== false) {
+                            $foundMap['full_name'] = $idx;
                         }
                     }
                     if (isset($foundMap['full_name'])) {
@@ -82,12 +93,17 @@ if (isPost() && (isset($_FILES['excel_file']) || isset($_FILES['csv_file']))) {
             $successCount = 0;
             $failCount = 0;
             
-            // Lấy danh sách bàn
-            $stmtTables = $db->prepare("SELECT id, table_code FROM event_tables WHERE event_id = ? AND table_code != ''");
+            // Lấy danh sách bàn (khớp cả Mã bàn lẫn Tên bàn)
+            $stmtTables = $db->prepare("SELECT id, table_name, table_code FROM event_tables WHERE event_id = ?");
             $stmtTables->execute([$eventId]);
             $tableMap = [];
             while ($row = $stmtTables->fetch()) {
-                $tableMap[strtolower(trim($row['table_code']))] = $row['id'];
+                if (!empty($row['table_code'])) {
+                    $tableMap[strtolower(trim($row['table_code']))] = $row['id'];
+                }
+                if (!empty($row['table_name'])) {
+                    $tableMap[strtolower(trim($row['table_name']))] = $row['id'];
+                }
             }
             
             $stmtInsert = $db->prepare("

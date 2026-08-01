@@ -126,7 +126,7 @@ if (isPost()) {
                     $stmt->execute([$eventId, $customerCode, $fullName, $phone, $normalizedPhone, $tableId, $luckyDrawCode, $organization, $status]);
                     $message = 'Thêm khách thành công!';
                 } catch(PDOException $e) {
-                    $error = 'Lỗi thêm khách (Có thể trùng số điện thoại hoặc trùng Mã KH).';
+                    $error = 'Lỗi thêm khách. Vui lòng kiểm tra lại thông tin hoặc kết nối CSDL.';
                 }
             }
         } elseif ($action === 'edit') {
@@ -144,56 +144,50 @@ if (isPost()) {
             $normalizedPhone = normalizePhone($phone);
             
             try {
-                if (empty($tableId)) {
-                    $db->prepare("UPDATE checkins SET table_id = NULL, guest_id = NULL, match_status = 'walk_in' WHERE guest_id = ?")->execute([$id]);
-                    $db->prepare("DELETE FROM guests WHERE id = ?")->execute([$id]);
-                    $message = 'Đã chuyển khách thành Khách phát sinh và xóa khỏi Danh sách khách hàng!';
+                $stmt = $db->prepare("UPDATE guests SET event_id=?, customer_code=?, full_name=?, phone=?, normalized_phone=?, table_id=?, lucky_draw_code=?, organization=?, status=? WHERE id=?");
+                $stmt->execute([$eventId, $customerCode, $fullName, $phone, $normalizedPhone, $tableId, $luckyDrawCode, $organization, $status, $id]);
+                
+                // Đồng bộ dữ liệu với bảng checkins
+                if ($status !== 'checked_in') {
+                    // Nếu chuyển về "Chưa tới", xóa hẳn lượt checkin trong bảng checkins
+                    $db->prepare("DELETE FROM checkins WHERE guest_id = ?")->execute([$id]);
                 } else {
-                    $stmt = $db->prepare("UPDATE guests SET event_id=?, customer_code=?, full_name=?, phone=?, normalized_phone=?, table_id=?, lucky_draw_code=?, organization=?, status=? WHERE id=?");
-                    $stmt->execute([$eventId, $customerCode, $fullName, $phone, $normalizedPhone, $tableId, $luckyDrawCode, $organization, $status, $id]);
-                    
-                    // Đồng bộ dữ liệu với bảng checkins
-                    if ($status !== 'checked_in') {
-                        // Nếu chuyển về "Chưa tới", xóa hẳn lượt checkin trong bảng checkins
-                        $db->prepare("DELETE FROM checkins WHERE guest_id = ?")->execute([$id]);
+                    // Nếu chuyển sang "Đã checkin", tạo hoặc cập nhật lượt checkin trong bảng checkins
+                    $chkCount = (int)$db->query("SELECT COUNT(*) FROM checkins WHERE guest_id = {$id}")->fetchColumn();
+                    if ($chkCount === 0) {
+                        $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+                        $stmtIns = $db->prepare("
+                            INSERT INTO checkins (
+                                event_id, guest_id, table_id, customer_code, lucky_draw_code,
+                                full_name_entered, phone_entered, normalized_phone, address_entered,
+                                match_status, checkin_method, ip_address, user_agent
+                            ) VALUES (
+                                ?, ?, ?, ?, ?,
+                                ?, ?, ?, ?,
+                                'matched', 'manual_letan', ?, ?
+                            )
+                        ");
+                        $stmtIns->execute([
+                            $eventId,
+                            $id,
+                            $tableId,
+                            $customerCode ?: null,
+                            $luckyDrawCode ?: null,
+                            $fullName,
+                            $phone,
+                            $normalizedPhone,
+                            $organization,
+                            $ip,
+                            $userAgent
+                        ]);
                     } else {
-                        // Nếu chuyển sang "Đã checkin", tạo hoặc cập nhật lượt checkin trong bảng checkins
-                        $chkCount = (int)$db->query("SELECT COUNT(*) FROM checkins WHERE guest_id = {$id}")->fetchColumn();
-                        if ($chkCount === 0) {
-                            $ip = $_SERVER['REMOTE_ADDR'] ?? null;
-                            $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
-                            $stmtIns = $db->prepare("
-                                INSERT INTO checkins (
-                                    event_id, guest_id, table_id, customer_code, lucky_draw_code,
-                                    full_name_entered, phone_entered, normalized_phone, address_entered,
-                                    match_status, checkin_method, ip_address, user_agent
-                                ) VALUES (
-                                    ?, ?, ?, ?, ?,
-                                    ?, ?, ?, ?,
-                                    'matched', 'manual_letan', ?, ?
-                                )
-                            ");
-                            $stmtIns->execute([
-                                $eventId,
-                                $id,
-                                $tableId,
-                                null,
-                                $luckyDrawCode ?: null,
-                                $fullName,
-                                $phone,
-                                $normalizedPhone,
-                                $organization,
-                                $ip,
-                                $userAgent
-                            ]);
-                        } else {
-                            $db->prepare("UPDATE checkins SET table_id = ?, lucky_draw_code = ?, full_name_entered = ?, phone_entered = ?, normalized_phone = ?, address_entered = ? WHERE guest_id = ?")
-                               ->execute([$tableId, $luckyDrawCode ?: null, $fullName, $phone, $normalizedPhone, $organization, $id]);
-                        }
+                        $db->prepare("UPDATE checkins SET table_id = ?, customer_code = ?, lucky_draw_code = ?, full_name_entered = ?, phone_entered = ?, normalized_phone = ?, address_entered = ? WHERE guest_id = ?")
+                           ->execute([$tableId, $customerCode ?: null, $luckyDrawCode ?: null, $fullName, $phone, $normalizedPhone, $organization, $id]);
                     }
-
-                    $message = 'Cập nhật thông tin khách thành công!';
                 }
+
+                $message = 'Cập nhật thông tin khách thành công!';
             } catch(PDOException $e) {
                 $error = 'Lỗi cập nhật khách: ' . $e->getMessage();
             }
@@ -240,13 +234,29 @@ if (!empty($whereClauses)) {
 
 $orderSql = "ORDER BY g.id DESC";
 if ($sort === 'table_asc') {
-    $orderSql = "ORDER BY (CASE WHEN g.table_id IS NULL OR g.table_id = 0 THEN 1 ELSE 0 END) ASC, t.sort_order ASC, t.id ASC, g.id DESC";
+    $orderSql = "ORDER BY (CASE WHEN g.table_id IS NULL OR g.table_id = 0 THEN 1 ELSE 0 END) ASC, t.sort_order ASC, t.table_name ASC, g.id DESC";
 } elseif ($sort === 'table_desc') {
-    $orderSql = "ORDER BY (CASE WHEN g.table_id IS NULL OR g.table_id = 0 THEN 1 ELSE 0 END) ASC, t.sort_order DESC, t.id DESC, g.id DESC";
+    $orderSql = "ORDER BY (CASE WHEN g.table_id IS NULL OR g.table_id = 0 THEN 1 ELSE 0 END) ASC, t.sort_order DESC, t.table_name DESC, g.id DESC";
 } elseif ($sort === 'code_asc') {
-    $orderSql = "ORDER BY CAST(g.lucky_draw_code AS UNSIGNED) ASC, g.lucky_draw_code ASC, g.id DESC";
+    $orderSql = "ORDER BY (CASE WHEN g.lucky_draw_code IS NULL OR g.lucky_draw_code = '' THEN 1 ELSE 0 END) ASC, CAST(g.lucky_draw_code AS UNSIGNED) ASC, g.lucky_draw_code ASC, g.id DESC";
 } elseif ($sort === 'code_desc') {
-    $orderSql = "ORDER BY CAST(g.lucky_draw_code AS UNSIGNED) DESC, g.lucky_draw_code DESC, g.id DESC";
+    $orderSql = "ORDER BY (CASE WHEN g.lucky_draw_code IS NULL OR g.lucky_draw_code = '' THEN 1 ELSE 0 END) ASC, CAST(g.lucky_draw_code AS UNSIGNED) DESC, g.lucky_draw_code DESC, g.id DESC";
+} elseif ($sort === 'status_asc') {
+    $orderSql = "ORDER BY (CASE WHEN g.status = 'checked_in' THEN 0 ELSE 1 END) ASC, g.id DESC";
+} elseif ($sort === 'status_desc') {
+    $orderSql = "ORDER BY (CASE WHEN g.status = 'checked_in' THEN 0 ELSE 1 END) DESC, g.id DESC";
+} elseif ($sort === 'customer_asc') {
+    $orderSql = "ORDER BY (CASE WHEN g.customer_code IS NULL OR g.customer_code = '' THEN 1 ELSE 0 END) ASC, g.customer_code ASC, g.id DESC";
+} elseif ($sort === 'customer_desc') {
+    $orderSql = "ORDER BY (CASE WHEN g.customer_code IS NULL OR g.customer_code = '' THEN 1 ELSE 0 END) ASC, g.customer_code DESC, g.id DESC";
+} elseif ($sort === 'name_asc') {
+    $orderSql = "ORDER BY g.full_name ASC, g.id DESC";
+} elseif ($sort === 'name_desc') {
+    $orderSql = "ORDER BY g.full_name DESC, g.id DESC";
+} elseif ($sort === 'org_asc') {
+    $orderSql = "ORDER BY (CASE WHEN g.organization IS NULL OR g.organization = '' THEN 1 ELSE 0 END) ASC, g.organization ASC, g.id DESC";
+} elseif ($sort === 'org_desc') {
+    $orderSql = "ORDER BY (CASE WHEN g.organization IS NULL OR g.organization = '' THEN 1 ELSE 0 END) ASC, g.organization DESC, g.id DESC";
 }
 
 $stmtGuests = $db->prepare("
@@ -367,10 +377,18 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 <div style="min-width: 220px;">
                     <select name="sort" class="form-control" onchange="this.form.submit()" style="cursor: pointer; background: #fff; font-weight: 500;">
                         <option value="id_desc" <?php echo $sort === 'id_desc' ? 'selected' : ''; ?>>Mới nhất trước</option>
-                        <option value="table_asc" <?php echo $sort === 'table_asc' ? 'selected' : ''; ?>>Thứ tự Bàn: Tăng dần (1 ➔ N)</option>
-                        <option value="table_desc" <?php echo $sort === 'table_desc' ? 'selected' : ''; ?>>Thứ tự Bàn: Giảm dần (N ➔ 1)</option>
-                        <option value="code_asc" <?php echo $sort === 'code_asc' ? 'selected' : ''; ?>>Mã dự thưởng: Tăng dần (0 ➔ 9)</option>
-                        <option value="code_desc" <?php echo $sort === 'code_desc' ? 'selected' : ''; ?>>Mã dự thưởng: Giảm dần (9 ➔ 0)</option>
+                        <option value="table_asc" <?php echo $sort === 'table_asc' ? 'selected' : ''; ?>>Bàn ngồi: Tăng dần (A ➔ Z)</option>
+                        <option value="table_desc" <?php echo $sort === 'table_desc' ? 'selected' : ''; ?>>Bàn ngồi: Giảm dần (Z ➔ A)</option>
+                        <option value="code_asc" <?php echo $sort === 'code_asc' ? 'selected' : ''; ?>>Mã trúng thưởng: Tăng dần (0 ➔ 9)</option>
+                        <option value="code_desc" <?php echo $sort === 'code_desc' ? 'selected' : ''; ?>>Mã trúng thưởng: Giảm dần (9 ➔ 0)</option>
+                        <option value="status_asc" <?php echo $sort === 'status_asc' ? 'selected' : ''; ?>>Trạng thái: Đã check-in trước</option>
+                        <option value="status_desc" <?php echo $sort === 'status_desc' ? 'selected' : ''; ?>>Trạng thái: Chưa tới trước</option>
+                        <option value="customer_asc" <?php echo $sort === 'customer_asc' ? 'selected' : ''; ?>>Mã KH: Tăng dần (A ➔ Z)</option>
+                        <option value="customer_desc" <?php echo $sort === 'customer_desc' ? 'selected' : ''; ?>>Mã KH: Giảm dần (Z ➔ A)</option>
+                        <option value="name_asc" <?php echo $sort === 'name_asc' ? 'selected' : ''; ?>>Họ và tên: A ➔ Z</option>
+                        <option value="name_desc" <?php echo $sort === 'name_desc' ? 'selected' : ''; ?>>Họ và tên: Z ➔ A</option>
+                        <option value="org_asc" <?php echo $sort === 'org_asc' ? 'selected' : ''; ?>>Đơn vị: A ➔ Z</option>
+                        <option value="org_desc" <?php echo $sort === 'org_desc' ? 'selected' : ''; ?>>Đơn vị: Z ➔ A</option>
                     </select>
                 </div>
                 
@@ -387,8 +405,57 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                         <tr>
                             <?php foreach ($guestCols as $c): ?>
                                 <?php if (!empty($c['visible'])): ?>
-                                    <?php if ($c['key'] === 'actions' && !isAdmin() && !isLeTan()) continue; ?>
-                                    <th><?php echo esc($c['label']); ?></th>
+                                    <?php 
+                                    if ($c['key'] === 'actions' && !isAdmin() && !isLeTan()) continue;
+                                    
+                                    $key = $c['key'];
+                                    $nextSort = '';
+                                    $sortIcon = '<span style="color: #cbd5e1; margin-left: 4px; font-size: 0.82rem;">↕</span>';
+                                    $isCurrentSort = false;
+                                    
+                                    switch($key) {
+                                        case 'table_name':
+                                            $isCurrentSort = ($sort === 'table_asc' || $sort === 'table_desc');
+                                            $nextSort = ($sort === 'table_asc') ? 'table_desc' : 'table_asc';
+                                            $sortIcon = ($sort === 'table_asc') ? ' <span style="color: #d32f2f; font-weight: 800;">▲</span>' : (($sort === 'table_desc') ? ' <span style="color: #d32f2f; font-weight: 800;">▼</span>' : ' <span style="color: #94a3b8; font-size: 0.82rem;">↕</span>');
+                                            break;
+                                        case 'lucky_draw_code':
+                                            $isCurrentSort = ($sort === 'code_asc' || $sort === 'code_desc');
+                                            $nextSort = ($sort === 'code_asc') ? 'code_desc' : 'code_asc';
+                                            $sortIcon = ($sort === 'code_asc') ? ' <span style="color: #d32f2f; font-weight: 800;">▲</span>' : (($sort === 'code_desc') ? ' <span style="color: #d32f2f; font-weight: 800;">▼</span>' : ' <span style="color: #94a3b8; font-size: 0.82rem;">↕</span>');
+                                            break;
+                                        case 'status':
+                                            $isCurrentSort = ($sort === 'status_asc' || $sort === 'status_desc');
+                                            $nextSort = ($sort === 'status_asc') ? 'status_desc' : 'status_asc';
+                                            $sortIcon = ($sort === 'status_asc') ? ' <span style="color: #d32f2f; font-weight: 800;">▲</span>' : (($sort === 'status_desc') ? ' <span style="color: #d32f2f; font-weight: 800;">▼</span>' : ' <span style="color: #94a3b8; font-size: 0.82rem;">↕</span>');
+                                            break;
+                                        case 'customer_code':
+                                            $isCurrentSort = ($sort === 'customer_asc' || $sort === 'customer_desc');
+                                            $nextSort = ($sort === 'customer_asc') ? 'customer_desc' : 'customer_asc';
+                                            $sortIcon = ($sort === 'customer_asc') ? ' <span style="color: #d32f2f; font-weight: 800;">▲</span>' : (($sort === 'customer_desc') ? ' <span style="color: #d32f2f; font-weight: 800;">▼</span>' : ' <span style="color: #94a3b8; font-size: 0.82rem;">↕</span>');
+                                            break;
+                                        case 'full_name':
+                                            $isCurrentSort = ($sort === 'name_asc' || $sort === 'name_desc');
+                                            $nextSort = ($sort === 'name_asc') ? 'name_desc' : 'name_asc';
+                                            $sortIcon = ($sort === 'name_asc') ? ' <span style="color: #d32f2f; font-weight: 800;">▲</span>' : (($sort === 'name_desc') ? ' <span style="color: #d32f2f; font-weight: 800;">▼</span>' : ' <span style="color: #94a3b8; font-size: 0.82rem;">↕</span>');
+                                            break;
+                                        case 'organization':
+                                            $isCurrentSort = ($sort === 'org_asc' || $sort === 'org_desc');
+                                            $nextSort = ($sort === 'org_asc') ? 'org_desc' : 'org_asc';
+                                            $sortIcon = ($sort === 'org_asc') ? ' <span style="color: #d32f2f; font-weight: 800;">▲</span>' : (($sort === 'org_desc') ? ' <span style="color: #d32f2f; font-weight: 800;">▼</span>' : ' <span style="color: #94a3b8; font-size: 0.82rem;">↕</span>');
+                                            break;
+                                    }
+                                    ?>
+                                    <?php if (!empty($nextSort)): ?>
+                                        <th style="cursor: pointer; user-select: none; transition: background 0.2s; <?php echo $isCurrentSort ? 'background: #fee2e2; color: #991b1b;' : ''; ?>" onclick="sortTableByKey('<?php echo $nextSort; ?>')" title="Bấm để sắp xếp Tăng dần / Giảm dần">
+                                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+                                                <span><?php echo esc($c['label']); ?></span>
+                                                <?php echo $sortIcon; ?>
+                                            </div>
+                                        </th>
+                                    <?php else: ?>
+                                        <th><?php echo esc($c['label']); ?></th>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             <?php endforeach; ?>
                         </tr>
@@ -959,6 +1026,12 @@ counter.textContent = count;
             console.error('Realtime guests error:', e);
         }
     }
+
+    window.sortTableByKey = function(sortVal) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('sort', sortVal);
+        window.location.href = url.toString();
+    };
 
     document.addEventListener('DOMContentLoaded', function() {
         const input = document.getElementById('search-input');

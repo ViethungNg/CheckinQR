@@ -71,6 +71,10 @@ try {
     // Mở rộng role sang VARCHAR(50)
     $dbInstance->exec("ALTER TABLE users MODIFY COLUMN role VARCHAR(50) NOT NULL DEFAULT 'letan'");
 
+    // Cho phép trùng hoặc để trống số điện thoại (Hủy bỏ ràng buộc UNIQUE trên SĐT)
+    try { $dbInstance->exec("ALTER TABLE guests DROP INDEX uq_guests_event_phone"); } catch (\Throwable $e) {}
+    try { $dbInstance->exec("ALTER TABLE guests DROP INDEX uq_guests_phone"); } catch (\Throwable $e) {}
+
     // Bổ sung các chỉ mục Database (Index) để tăng tốc truy vấn gấp 10x-50x
     try { $dbInstance->exec("ALTER TABLE checkins ADD INDEX idx_checkins_event_time (event_id, checkin_time)"); } catch (\Throwable $e) {}
     try { $dbInstance->exec("ALTER TABLE checkins ADD INDEX idx_checkins_match (match_status)"); } catch (\Throwable $e) {}
