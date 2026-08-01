@@ -207,9 +207,9 @@ if (isPost()) {
 $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetchAll();
 $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event_tables ORDER BY sort_order ASC, id ASC")->fetchAll();
 
-// Lấy tham số Tìm kiếm & Sắp xếp
-$search = trim($_GET['search'] ?? '');
-$sort   = $_GET['sort'] ?? 'id_desc';
+// Lấy tham số Tìm kiếm & Sắp xếp (Đọc từ cả GET và POST để duy trì bộ lọc)
+$search = trim($_GET['search'] ?? $_POST['search'] ?? '');
+$sort   = trim($_GET['sort'] ?? $_POST['sort'] ?? 'id_desc');
 
 $whereClauses = [];
 $params = [];
@@ -527,7 +527,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 
                                                         <?php if(isAdmin()): ?>
                                                             <button type="button" class="btn btn-action-edit" onclick='openEditModal(<?php echo json_encode($guest); ?>)'>Sửa</button>
-                                                            <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa khách này?');">
+                                                            <form action="" method="POST" style="display:inline;" onsubmit="attachSearchAndSortToForm(this); return confirmModal(event, 'Bạn có chắc chắn muốn xóa khách này?');">
                                                                 <?php echo csrfField(); ?>
                                                                 <input type="hidden" name="action" value="delete">
                                                                 <input type="hidden" name="id" value="<?php echo $guest['id']; ?>">
@@ -557,7 +557,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             <h2 id="modalTitle">Thêm Khách Mời</h2>
             <span class="close" onclick="closeModal()">&times;</span>
         </div>
-        <form method="POST" action="">
+        <form method="POST" action="" onsubmit="attachSearchAndSortToForm(this)">
             <?php echo csrfField(); ?>
             <input type="hidden" name="action" id="formAction" value="add">
             <input type="hidden" name="id" id="guestId" value="">
@@ -859,8 +859,53 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         modal.style.display = 'none';
     }
     
-    function liveSearchGuests(val) {
+    function updateUrlSearchParam(val) {
+        const url = new URL(window.location.href);
+        const searchVal = (val || '').trim();
+        if (searchVal) {
+            url.searchParams.set('search', searchVal);
+        } else {
+            url.searchParams.delete('search');
+        }
+        window.history.replaceState(null, '', url.toString());
+    }
+
+    function attachSearchAndSortToForm(formEl) {
+        if (!formEl) return;
+        const searchInput = document.getElementById('search-input');
+        const searchVal = searchInput ? searchInput.value.trim() : ((new URL(window.location.href)).searchParams.get('search') || '');
+        const sortVal = (new URL(window.location.href)).searchParams.get('sort') || '';
+
+        if (searchVal) {
+            let inp = formEl.querySelector('input[name="search"]');
+            if (!inp) {
+                inp = document.createElement('input');
+                inp.type = 'hidden';
+                inp.name = 'search';
+                formEl.appendChild(inp);
+            }
+            inp.value = searchVal;
+        }
+
+        if (sortVal) {
+            let inp = formEl.querySelector('input[name="sort"]');
+            if (!inp) {
+                inp = document.createElement('input');
+                inp.type = 'hidden';
+                inp.name = 'sort';
+                formEl.appendChild(inp);
+            }
+            inp.value = sortVal;
+        }
+    }
+    window.attachSearchAndSortToForm = attachSearchAndSortToForm;
+
+    function liveSearchGuests(val, skipUrlSync = false) {
         const query = (val || '').toLowerCase().trim();
+        if (!skipUrlSync) {
+            updateUrlSearchParam(val);
+        }
+
         const tbody = document.getElementById('guests-table-body');
         if (!tbody) return;
         
@@ -878,7 +923,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         });
 
         const counter = document.getElementById('guest-count-title');
-counter.textContent = count;
+        if (counter) counter.textContent = count;
     }
 
     let lastGuestsHash = '';

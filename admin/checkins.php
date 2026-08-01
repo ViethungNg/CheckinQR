@@ -44,11 +44,11 @@ if (isPost()) {
                 $gId = $c['guest_id'];
                 $db->prepare("UPDATE checkins SET table_id = NULL, guest_id = NULL, match_status = 'walk_in' WHERE id = ?")->execute([$checkinId]);
                 
-                // 2. Xóa thông tin người đó khỏi Danh sách khách hàng (guests)
+                // 2. Cập nhật Bàn ngồi thành Chưa xếp trong Danh sách khách hàng (guests)
                 if (!empty($gId)) {
-                    $db->prepare("DELETE FROM guests WHERE id = ?")->execute([$gId]);
+                    $db->prepare("UPDATE guests SET table_id = NULL WHERE id = ?")->execute([$gId]);
                 }
-                $message = 'Đã chuyển thành Khách phát sinh và xóa khỏi Danh sách khách hàng!';
+                $message = 'Đã cập nhật Bàn ngồi thành Chưa xếp!';
             } else {
                 // 1. Cập nhật bàn cho checkin này
                 $stmtUp = $db->prepare("UPDATE checkins SET table_id = ?, match_status = 'matched' WHERE id = ?");
@@ -83,10 +83,10 @@ if (isPost()) {
     }
 }
 
-// Lấy danh sách lượt check-in kèm lọc & tìm kiếm
-$search = trim($_GET['search'] ?? '');
-$matchStatus = trim($_GET['match_status'] ?? 'all');
-$sort = trim($_GET['sort'] ?? 'time_desc');
+// Lấy danh sách lượt check-in kèm lọc & tìm kiếm (Đọc từ cả GET và POST)
+$search = trim($_GET['search'] ?? $_POST['search'] ?? '');
+$matchStatus = trim($_GET['match_status'] ?? $_POST['match_status'] ?? 'all');
+$sort = trim($_GET['sort'] ?? $_POST['sort'] ?? 'time_desc');
 
 $whereConditions = [];
 $paramsCheckin = [];
@@ -597,10 +597,63 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
     let currentCheckinSort = '<?php echo esc($sort); ?>';
     const checkinColsConfig = <?php echo json_encode($checkinCols); ?>;
 
+    function updateUrlSearchParam(val) {
+        const url = new URL(window.location.href);
+        const searchVal = (val || '').trim();
+        if (searchVal) {
+            url.searchParams.set('search', searchVal);
+        } else {
+            url.searchParams.delete('search');
+        }
+        window.history.replaceState(null, '', url.toString());
+    }
+
+    function attachSearchAndSortToForm(formEl) {
+        if (!formEl) return;
+        const searchVal = currentCheckinSearchVal || ((new URL(window.location.href)).searchParams.get('search') || '');
+        const sortVal = currentCheckinSort || ((new URL(window.location.href)).searchParams.get('sort') || '');
+        const matchStatusVal = currentCheckinMatchStatus || ((new URL(window.location.href)).searchParams.get('match_status') || '');
+
+        if (searchVal) {
+            let inp = formEl.querySelector('input[name="search"]');
+            if (!inp) {
+                inp = document.createElement('input');
+                inp.type = 'hidden';
+                inp.name = 'search';
+                formEl.appendChild(inp);
+            }
+            inp.value = searchVal;
+        }
+
+        if (sortVal) {
+            let inp = formEl.querySelector('input[name="sort"]');
+            if (!inp) {
+                inp = document.createElement('input');
+                inp.type = 'hidden';
+                inp.name = 'sort';
+                formEl.appendChild(inp);
+            }
+            inp.value = sortVal;
+        }
+
+        if (matchStatusVal) {
+            let inp = formEl.querySelector('input[name="match_status"]');
+            if (!inp) {
+                inp = document.createElement('input');
+                inp.type = 'hidden';
+                inp.name = 'match_status';
+                formEl.appendChild(inp);
+            }
+            inp.value = matchStatusVal;
+        }
+    }
+    window.attachSearchAndSortToForm = attachSearchAndSortToForm;
+
     function liveSearchCheckins(val) {
         clearTimeout(liveSearchCheckinTimer);
         liveSearchCheckinTimer = setTimeout(() => {
             currentCheckinSearchVal = val.trim();
+            updateUrlSearchParam(val);
             updateRealtimeCheckinsList(true);
         }, 250);
     }

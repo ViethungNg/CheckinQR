@@ -653,12 +653,20 @@
 
         const lower = message.toLowerCase();
 
-        // 1. UƯ TIÊN KIỂM TRA LỖI TRƯỚC TIÊN -> POPUP ĐỎ
-        if (type === 'error' || lower.includes('lỗi') || lower.includes('thất bại') || lower.includes('không thể')) {
+        // 1. ƯU TIÊN KIỂM TRA TYPE SUCCESS HOẶC LOẠI TRỪ CÁC THÔNG BÁO THÀNH CÔNG VỚI "0 KHÁCH THẤT BẠI"
+        if (type === 'success' || lower.includes('thành công') && !lower.includes('thất bại: [1-9]')) {
+            defaultTitle = 'Thao tác thành công';
+            toastClass = 'toast-success';
+            if (lower.includes('thêm') || lower.includes('import')) defaultTitle = 'Thao tác thành công';
+            if (lower.includes('cập nhật') || lower.includes('sửa')) defaultTitle = 'Cập nhật thành công';
+            if (lower.includes('xóa')) defaultTitle = 'Đã xóa thành công';
+        }
+        // 2. NẾU LÀ LỖI RÕ RÀNG -> POPUP ĐỎ
+        else if (type === 'error' || lower.includes('lỗi') || lower.includes('thất bại') || lower.includes('không thể')) {
             defaultTitle = 'Thông báo lỗi';
             toastClass = 'toast-error';
         } 
-        // 2. CÁC THAO TÁC THÀNH CÔNG -> POPUP XANH LÁ
+        // 3. CÁC THAO TÁC THÀNH CÔNG MẶC ĐỊNH
         else if (type === 'edit' || lower.includes('sửa') || lower.includes('cập nhật')) {
             defaultTitle = 'Cập nhật thành công';
             toastClass = 'toast-success';

@@ -90,9 +90,6 @@ if (isPost() && (isset($_FILES['excel_file']) || isset($_FILES['csv_file']))) {
                 }
             }
             
-            $successCount = 0;
-            $failCount = 0;
-            
             // Lấy danh sách bàn (khớp cả Mã bàn lẫn Tên bàn)
             $stmtTables = $db->prepare("SELECT id, table_name, table_code FROM event_tables WHERE event_id = ?");
             $stmtTables->execute([$eventId]);
@@ -105,45 +102,119 @@ if (isPost() && (isset($_FILES['excel_file']) || isset($_FILES['csv_file']))) {
                     $tableMap[strtolower(trim($row['table_name']))] = $row['id'];
                 }
             }
-            
-            $stmtInsert = $db->prepare("
-                INSERT INTO guests 
-                (event_id, customer_code, full_name, phone, normalized_phone, table_id, lucky_draw_code, organization, status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'invited')
-            ");
-            
-            foreach ($rowsData as $data) {
+
+            // Lấy danh sách Mã KH hiện tại trong CSDL để đối chiếu trùng lặp
+            $stmtExistCode = $db->prepare("SELECT customer_code FROM guests WHERE event_id = ? AND customer_code IS NOT NULL AND customer_code != ''");
+            $stmtExistCode->execute([$eventId]);
+            $existingDbCodes = array_flip(array_map('strtolower', array_map('trim', $stmtExistCode->fetchAll(PDO::FETCH_COLUMN))));
+
+            // Bước 1: Thẩm định (Validate) toàn bộ dữ liệu trước khi lưu
+            $validationErrors = [];
+            $validatedRows = [];
+            $seenFileCustomerCodes = [];
+
+            foreach ($rowsData as $rowIdx => $data) {
+                $lineNum = $rowIdx + 2; // Dòng 1 là Tiêu đề
                 $customerCode = isset($colMap['customer_code']) ? trim($data[$colMap['customer_code']] ?? '') : '';
                 $fullName     = isset($colMap['full_name']) ? trim($data[$colMap['full_name']] ?? '') : '';
                 $phone        = isset($colMap['phone']) ? trim($data[$colMap['phone']] ?? '') : '';
                 $org          = isset($colMap['organization']) ? trim($data[$colMap['organization']] ?? '') : '';
                 $tableCode    = isset($colMap['table_code']) ? trim($data[$colMap['table_code']] ?? '') : '';
                 $luckyCode    = isset($colMap['lucky_code']) ? trim($data[$colMap['lucky_code']] ?? '') : '';
-                
-                if (empty($fullName)) {
-                    $failCount++;
+
+                // Bỏ qua dòng trống hoàn toàn
+                if (empty($fullName) && empty($customerCode) && empty($phone) && empty($org) && empty($tableCode) && empty($luckyCode)) {
                     continue;
                 }
-                
-                $normalizedPhone = normalizePhone($phone);
-                
+
+                // Kiểm tra 1: Bắt buộc phải có Họ và tên
+                if (empty($fullName)) {
+                    $validationErrors[] = "Dòng {$lineNum}: Thiếu Họ và tên khách hàng.";
+                    continue;
+                }
+
+                // Kiểm tra 2: Nếu có điền Bàn ngồi, phải tồn tại trong Quản lý Bàn
                 $tableId = null;
                 if (!empty($tableCode)) {
                     $codeLower = strtolower($tableCode);
                     if (isset($tableMap[$codeLower])) {
                         $tableId = $tableMap[$codeLower];
+                    } else {
+                        $validationErrors[] = "Dòng {$lineNum} ('{$fullName}'): Bàn '{$tableCode}' không tồn tại trong Quản lý Bàn.";
                     }
                 }
-                
+
+                // Kiểm tra 3: Mã KH trùng lặp
+                if (!empty($customerCode)) {
+                    $codeLower = strtolower($customerCode);
+                    if (isset($seenFileCustomerCodes[$codeLower])) {
+                        $validationErrors[] = "Dòng {$lineNum} ('{$fullName}'): Mã KH '{$customerCode}' bị trùng lặp trong file Excel.";
+                    } else {
+                        $seenFileCustomerCodes[$codeLower] = true;
+                    }
+
+                    if (isset($existingDbCodes[$codeLower])) {
+                        $validationErrors[] = "Dòng {$lineNum} ('{$fullName}'): Mã KH '{$customerCode}' đã tồn tại sẵn trong CSDL.";
+                    }
+                }
+
+                $normalizedPhone = normalizePhone($phone);
+                $validatedRows[] = [
+                    'customer_code'    => $customerCode,
+                    'full_name'        => $fullName,
+                    'phone'            => $phone,
+                    'normalized_phone' => $normalizedPhone,
+                    'table_id'         => $tableId,
+                    'lucky_draw_code'  => $luckyCode,
+                    'organization'     => $org
+                ];
+            }
+
+            // Bước 2: Nếu có BẤT KỲ lỗi dữ liệu nào -> HỦY BỎ IMPORT TOÀN BỘ (All-or-Nothing)
+            if (!empty($validationErrors)) {
+                $maxShow = array_slice($validationErrors, 0, 8);
+                $totalErrors = count($validationErrors);
+                $errorMsg = "Import không thành công! Phát hiện {$totalErrors} lỗi dữ liệu trong file Excel. Vui lòng sửa lại file và thử lại:<br>• " . implode("<br>• ", $maxShow);
+                if ($totalErrors > 8) {
+                    $errorMsg .= "<br>... và " . ($totalErrors - 8) . " lỗi khác.";
+                }
+                $error = $errorMsg;
+            } elseif (empty($validatedRows)) {
+                $error = 'File Excel không chứa dòng dữ liệu khách hàng nào hợp lệ.';
+            } else {
+                // Bước 3: Đảm bảo đúng 100% -> Thực thi Database Transaction
                 try {
-                    $stmtInsert->execute([$eventId, $customerCode, $fullName, $phone, $normalizedPhone, $tableId, $luckyCode, $org]);
-                    $successCount++;
-                } catch(PDOException $e) {
-                    $failCount++;
+                    $db->beginTransaction();
+
+                    $stmtInsert = $db->prepare("
+                        INSERT INTO guests 
+                        (event_id, customer_code, full_name, phone, normalized_phone, table_id, lucky_draw_code, organization, status) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'invited')
+                    ");
+
+                    foreach ($validatedRows as $item) {
+                        $stmtInsert->execute([
+                            $eventId,
+                            $item['customer_code'] ?: null,
+                            $item['full_name'],
+                            $item['phone'],
+                            $item['normalized_phone'],
+                            $item['table_id'],
+                            $item['lucky_draw_code'] ?: null,
+                            $item['organization'] ?: null
+                        ]);
+                    }
+
+                    $db->commit();
+                    $successCount = count($validatedRows);
+                    $message = "Import thành công toàn bộ {$successCount} khách hàng từ file Excel!";
+                } catch (\Throwable $e) {
+                    if ($db->inTransaction()) {
+                        $db->rollBack();
+                    }
+                    $error = "Lỗi hệ thống CSDL: " . $e->getMessage() . ". Đã hoàn tác toàn bộ dữ liệu (Rollback).";
                 }
             }
-            
-            $message = "Đã Import xong từ file Excel! Thành công: $successCount khách, Thất bại/Trùng/Bỏ qua: $failCount khách.";
         }
     } else {
         $error = 'Lỗi upload file.';
