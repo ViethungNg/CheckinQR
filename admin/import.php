@@ -7,10 +7,10 @@ require_once __DIR__ . '/../includes/xlsx_reader.php';
 
 // Xử lý Xuất File Mẫu Excel chuẩn (.xlsx)
 if (isset($_GET['action']) && $_GET['action'] === 'download_template') {
-    $headers = ['Họ và tên', 'Số điện thoại', 'Mã bàn', 'Mã bốc thăm', 'Đơn vị công tác'];
+    $headers = ['Mã KH', 'Họ và tên', 'Số điện thoại', 'Mã bàn', 'Mã bốc thăm', 'Đơn vị / Đại lý'];
     $sampleData = [
-        ['Nguyễn Văn A', '0987654321', 'VIP1', '101', 'Công ty Hòa Vinh'],
-        ['Trần Thị B', '0912345678', 'TB02', '102', 'Tập đoàn Vĩnh Phú']
+        ['KH001', 'Nguyễn Văn A', '0987654321', 'VIP1', '101', 'Công ty Hòa Vinh'],
+        ['KH002', 'Trần Thị B', '0912345678', 'TB02', '102', 'Tập đoàn Vĩnh Phú']
     ];
     downloadXlsxFile('Mau_Danh_Sach_Khach_Hang.xlsx', $headers, $sampleData);
 }
@@ -37,8 +37,17 @@ if (isPost() && (isset($_FILES['excel_file']) || isset($_FILES['csv_file']))) {
             $error = 'Vui lòng chọn file Excel định dạng chuẩn (.xlsx).';
         } else {
             $rowsData = parseXlsxFile($tmpPath);
+            $hasCustomerCodeCol = true;
             if (!empty($rowsData)) {
-                array_shift($rowsData); // Bỏ qua dòng tiêu đề
+                $headerRow = array_shift($rowsData); // Bỏ qua dòng tiêu đề
+                
+                // Tự động nhận diện nếu file Excel cũ chỉ có 5 cột (chưa có cột Mã KH ở đầu)
+                if (isset($headerRow[0])) {
+                    $firstHeader = strtolower(trim($headerRow[0]));
+                    if (strpos($firstHeader, 'họ') !== false || strpos($firstHeader, 'ten') !== false || strpos($firstHeader, 'tên') !== false) {
+                        $hasCustomerCodeCol = false;
+                    }
+                }
             }
             
             $successCount = 0;
@@ -52,14 +61,28 @@ if (isPost() && (isset($_FILES['excel_file']) || isset($_FILES['csv_file']))) {
                 $tableMap[strtolower(trim($row['table_code']))] = $row['id'];
             }
             
-            $stmtInsert = $db->prepare("INSERT INTO guests (event_id, full_name, phone, normalized_phone, table_id, lucky_draw_code, organization, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'invited')");
+            $stmtInsert = $db->prepare("
+                INSERT INTO guests 
+                (event_id, customer_code, full_name, phone, normalized_phone, table_id, lucky_draw_code, organization, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'invited')
+            ");
             
             foreach ($rowsData as $data) {
-                $fullName  = trim($data[0] ?? '');
-                $phone     = trim($data[1] ?? '');
-                $tableCode = trim($data[2] ?? '');
-                $luckyCode = trim($data[3] ?? '');
-                $org       = trim($data[4] ?? '');
+                if ($hasCustomerCodeCol) {
+                    $customerCode = trim($data[0] ?? '');
+                    $fullName     = trim($data[1] ?? '');
+                    $phone        = trim($data[2] ?? '');
+                    $tableCode    = trim($data[3] ?? '');
+                    $luckyCode    = trim($data[4] ?? '');
+                    $org          = trim($data[5] ?? '');
+                } else {
+                    $customerCode = '';
+                    $fullName     = trim($data[0] ?? '');
+                    $phone        = trim($data[1] ?? '');
+                    $tableCode    = trim($data[2] ?? '');
+                    $luckyCode    = trim($data[3] ?? '');
+                    $org          = trim($data[4] ?? '');
+                }
                 
                 if (empty($fullName)) {
                     $failCount++;
@@ -77,7 +100,7 @@ if (isPost() && (isset($_FILES['excel_file']) || isset($_FILES['csv_file']))) {
                 }
                 
                 try {
-                    $stmtInsert->execute([$eventId, $fullName, $phone, $normalizedPhone, $tableId, $luckyCode, $org]);
+                    $stmtInsert->execute([$eventId, $customerCode, $fullName, $phone, $normalizedPhone, $tableId, $luckyCode, $org]);
                     $successCount++;
                 } catch(PDOException $e) {
                     $failCount++;
@@ -119,7 +142,7 @@ $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetc
         .alert.error { background: #ffebee; color: #c62828; border-left: 5px solid #c62828; }
         .alert.info { background: #e3f2fd; color: #1565c0; border-left: 5px solid #1565c0; }
         
-        table.example-table { width: 100%; max-width: 800px; border-collapse: collapse; margin-top: 10px; background: #fafafa; }
+        table.example-table { width: 100%; max-width: 900px; border-collapse: collapse; margin-top: 10px; background: #fafafa; }
         table.example-table th, table.example-table td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; }
         table.example-table th { background: #eee; }
     </style>
@@ -150,22 +173,24 @@ $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetc
             <div class="alert info">
                 <strong>Hướng dẫn:</strong><br>
                 1. Bấm nút <b>"Tải File Mẫu Excel (.xlsx)"</b> phía trên để tải file Excel chuẩn về máy.<br>
-                2. Điền thông tin danh sách khách mời vào file Excel (định dạng chuẩn <b>.xlsx</b>).<br>
+                2. Điền thông tin danh sách khách mời vào file Excel (định dạng chuẩn <b>.xlsx</b> với các cột: <b>Mã KH, Họ và tên, SĐT, Mã bàn, Mã bốc thăm, Đơn vị/Đại lý</b>).<br>
                 3. Đảm bảo cột "Mã Bàn" phải khớp chính xác với "Mã Bàn" bạn đã tạo trong phần <i>Quản lý Bàn</i>.
             </div>
             
             <table class="example-table" style="margin-bottom: 30px;">
                 <thead>
                     <tr>
-                        <th>Cột A: Họ và tên</th>
-                        <th>Cột B: SĐT</th>
-                        <th>Cột C: Mã Bàn</th>
-                        <th>Cột D: Mã Quay thưởng</th>
-                        <th>Cột E: Đơn vị</th>
+                        <th>Cột A: Mã KH</th>
+                        <th>Cột B: Họ và tên</th>
+                        <th>Cột C: SĐT</th>
+                        <th>Cột D: Mã Bàn</th>
+                        <th>Cột E: Mã Quay thưởng</th>
+                        <th>Cột F: Đơn vị / Đại lý</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
+                        <td><strong style="color: #0284c7;">KH001</strong></td>
                         <td>Nguyễn Văn A</td>
                         <td>0987654321</td>
                         <td>VIP1</td>
@@ -173,6 +198,7 @@ $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetc
                         <td>Công ty Hòa Vinh</td>
                     </tr>
                     <tr>
+                        <td><strong style="color: #0284c7;">KH002</strong></td>
                         <td>Trần Thị B</td>
                         <td>0912345678</td>
                         <td>TB02</td>
