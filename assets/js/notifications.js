@@ -377,6 +377,7 @@
                         playNotifChime();
                         openNotifDropdown();
                         newItems.forEach(item => {
+                            showToastNotification(item);
                             triggerNativeNotification(item);
                             shownToastIds.add(item.id);
                         });
@@ -760,7 +761,6 @@
         injectHeaderNotifBell();
         injectConfirmModalHTML();
         checkNewNotifications();
-        initRealtimeSSE();
         initAlertAndAutoScrollInterceptor();
         setInterval(checkNewNotifications, 3000);
     });
