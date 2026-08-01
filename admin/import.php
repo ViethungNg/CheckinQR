@@ -7,10 +7,10 @@ require_once __DIR__ . '/../includes/xlsx_reader.php';
 
 // Xử lý Xuất File Mẫu Excel chuẩn (.xlsx)
 if (isset($_GET['action']) && $_GET['action'] === 'download_template') {
-    $headers = ['Mã KH', 'Họ và tên', 'Số điện thoại', 'Mã bàn', 'Mã bốc thăm', 'Đơn vị / Đại lý'];
+    $headers = ['Mã KH', 'Họ và tên', 'Số điện thoại', 'Đơn vị / Đại lý', 'Bàn ngồi', 'Mã trúng thưởng'];
     $sampleData = [
-        ['KH001', 'Nguyễn Văn A', '0987654321', 'VIP1', '101', 'Công ty Hòa Vinh'],
-        ['KH002', 'Trần Thị B', '0912345678', 'TB02', '102', 'Tập đoàn Vĩnh Phú']
+        ['KH001', 'Nguyễn Văn A', '0987654321', 'Công ty Hòa Vinh', 'VIP1', '101'],
+        ['KH002', 'Trần Thị B', '0912345678', 'Tập đoàn Vĩnh Phú', 'TB02', '102']
     ];
     downloadXlsxFile('Mau_Danh_Sach_Khach_Hang.xlsx', $headers, $sampleData);
 }
@@ -37,15 +37,44 @@ if (isPost() && (isset($_FILES['excel_file']) || isset($_FILES['csv_file']))) {
             $error = 'Vui lòng chọn file Excel định dạng chuẩn (.xlsx).';
         } else {
             $rowsData = parseXlsxFile($tmpPath);
-            $hasCustomerCodeCol = true;
+            
+            // Cấu hình chỉ số cột mặc định (Khớp 100% thứ tự bảng Danh sách khách hàng)
+            // Cột A (0): Mã KH, Cột B (1): Họ và tên, Cột C (2): SĐT, Cột D (3): Đơn vị / Đại lý, Cột E (4): Bàn ngồi, Cột F (5): Mã trúng thưởng
+            $colMap = [
+                'customer_code' => 0,
+                'full_name'     => 1,
+                'phone'         => 2,
+                'organization'  => 3,
+                'table_code'    => 4,
+                'lucky_code'    => 5
+            ];
+
             if (!empty($rowsData)) {
                 $headerRow = array_shift($rowsData); // Bỏ qua dòng tiêu đề
                 
-                // Tự động nhận diện nếu file Excel cũ chỉ có 5 cột (chưa có cột Mã KH ở đầu)
-                if (isset($headerRow[0])) {
-                    $firstHeader = strtolower(trim($headerRow[0]));
-                    if (strpos($firstHeader, 'họ') !== false || strpos($firstHeader, 'ten') !== false || strpos($firstHeader, 'tên') !== false) {
-                        $hasCustomerCodeCol = false;
+                // Smart Header Mapping: Nhận diện tự động nếu người dùng đổi thứ tự các cột trong Excel
+                if (!empty($headerRow) && is_array($headerRow)) {
+                    $foundMap = [];
+                    foreach ($headerRow as $idx => $headerText) {
+                        $h = strtolower(trim((string)$headerText));
+                        if (empty($h)) continue;
+
+                        if (strpos($h, 'mã kh') !== false || strpos($h, 'ma kh') !== false || strpos($h, 'mã đối chiếu') !== false) {
+                            $foundMap['customer_code'] = $idx;
+                        } elseif (strpos($h, 'họ') !== false || strpos($h, 'tên') !== false || strpos($h, 'ho va ten') !== false) {
+                            $foundMap['full_name'] = $idx;
+                        } elseif (strpos($h, 'sđt') !== false || strpos($h, 'sdt') !== false || strpos($h, 'điện thoại') !== false || strpos($h, 'phone') !== false) {
+                            $foundMap['phone'] = $idx;
+                        } elseif (strpos($h, 'đơn vị') !== false || strpos($h, 'don vi') !== false || strpos($h, 'đại lý') !== false || strpos($h, 'dai ly') !== false) {
+                            $foundMap['organization'] = $idx;
+                        } elseif (strpos($h, 'bàn') !== false || strpos($h, 'ban') !== false) {
+                            $foundMap['table_code'] = $idx;
+                        } elseif (strpos($h, 'thưởng') !== false || strpos($h, 'bốc thăm') !== false || strpos($h, 'quay') !== false || strpos($h, 'lucky') !== false) {
+                            $foundMap['lucky_code'] = $idx;
+                        }
+                    }
+                    if (isset($foundMap['full_name'])) {
+                        $colMap = array_merge($colMap, $foundMap);
                     }
                 }
             }
@@ -68,21 +97,12 @@ if (isPost() && (isset($_FILES['excel_file']) || isset($_FILES['csv_file']))) {
             ");
             
             foreach ($rowsData as $data) {
-                if ($hasCustomerCodeCol) {
-                    $customerCode = trim($data[0] ?? '');
-                    $fullName     = trim($data[1] ?? '');
-                    $phone        = trim($data[2] ?? '');
-                    $tableCode    = trim($data[3] ?? '');
-                    $luckyCode    = trim($data[4] ?? '');
-                    $org          = trim($data[5] ?? '');
-                } else {
-                    $customerCode = '';
-                    $fullName     = trim($data[0] ?? '');
-                    $phone        = trim($data[1] ?? '');
-                    $tableCode    = trim($data[2] ?? '');
-                    $luckyCode    = trim($data[3] ?? '');
-                    $org          = trim($data[4] ?? '');
-                }
+                $customerCode = isset($colMap['customer_code']) ? trim($data[$colMap['customer_code']] ?? '') : '';
+                $fullName     = isset($colMap['full_name']) ? trim($data[$colMap['full_name']] ?? '') : '';
+                $phone        = isset($colMap['phone']) ? trim($data[$colMap['phone']] ?? '') : '';
+                $org          = isset($colMap['organization']) ? trim($data[$colMap['organization']] ?? '') : '';
+                $tableCode    = isset($colMap['table_code']) ? trim($data[$colMap['table_code']] ?? '') : '';
+                $luckyCode    = isset($colMap['lucky_code']) ? trim($data[$colMap['lucky_code']] ?? '') : '';
                 
                 if (empty($fullName)) {
                     $failCount++;
@@ -142,7 +162,7 @@ $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetc
         .alert.error { background: #ffebee; color: #c62828; border-left: 5px solid #c62828; }
         .alert.info { background: #e3f2fd; color: #1565c0; border-left: 5px solid #1565c0; }
         
-        table.example-table { width: 100%; max-width: 900px; border-collapse: collapse; margin-top: 10px; background: #fafafa; }
+        table.example-table { width: 100%; max-width: 950px; border-collapse: collapse; margin-top: 10px; background: #fafafa; }
         table.example-table th, table.example-table td { padding: 8px 12px; border: 1px solid #ddd; text-align: left; }
         table.example-table th { background: #eee; }
     </style>
@@ -173,8 +193,8 @@ $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetc
             <div class="alert info">
                 <strong>Hướng dẫn:</strong><br>
                 1. Bấm nút <b>"Tải File Mẫu Excel (.xlsx)"</b> phía trên để tải file Excel chuẩn về máy.<br>
-                2. Điền thông tin danh sách khách mời vào file Excel (định dạng chuẩn <b>.xlsx</b> với các cột: <b>Mã KH, Họ và tên, SĐT, Mã bàn, Mã bốc thăm, Đơn vị/Đại lý</b>).<br>
-                3. Đảm bảo cột "Mã Bàn" phải khớp chính xác với "Mã Bàn" bạn đã tạo trong phần <i>Quản lý Bàn</i>.
+                2. Điền thông tin vào file Excel đúng theo thứ tự các cột của bảng <i>Danh sách khách hàng</i>: <b>Mã KH &rarr; Họ và tên &rarr; SĐT &rarr; Đơn vị / Đại lý &rarr; Bàn ngồi &rarr; Mã trúng thưởng</b>.<br>
+                3. Đảm bảo cột "Bàn ngồi" phải khớp chính xác với "Mã Bàn" bạn đã tạo trong phần <i>Quản lý Bàn</i>.
             </div>
             
             <table class="example-table" style="margin-bottom: 30px;">
@@ -183,9 +203,9 @@ $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetc
                         <th>Cột A: Mã KH</th>
                         <th>Cột B: Họ và tên</th>
                         <th>Cột C: SĐT</th>
-                        <th>Cột D: Mã Bàn</th>
-                        <th>Cột E: Mã Quay thưởng</th>
-                        <th>Cột F: Đơn vị / Đại lý</th>
+                        <th>Cột D: Đơn vị / Đại lý</th>
+                        <th>Cột E: Bàn ngồi</th>
+                        <th>Cột F: Mã trúng thưởng</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -193,17 +213,17 @@ $events = $db->query("SELECT id, event_name FROM events ORDER BY id DESC")->fetc
                         <td><strong style="color: #0284c7;">KH001</strong></td>
                         <td>Nguyễn Văn A</td>
                         <td>0987654321</td>
+                        <td>Công ty Hòa Vinh</td>
                         <td>VIP1</td>
                         <td>101</td>
-                        <td>Công ty Hòa Vinh</td>
                     </tr>
                     <tr>
                         <td><strong style="color: #0284c7;">KH002</strong></td>
                         <td>Trần Thị B</td>
                         <td>0912345678</td>
+                        <td>Tập đoàn Vĩnh Phú</td>
                         <td>TB02</td>
                         <td>102</td>
-                        <td>Tập đoàn Vĩnh Phú</td>
                     </tr>
                 </tbody>
             </table>
