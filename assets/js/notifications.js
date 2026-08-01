@@ -195,6 +195,7 @@
             container = document.createElement('div');
             container.id = 'globalToastContainer';
             container.className = 'toast-container';
+            container.style.cssText = 'position:fixed!important; top:80px!important; right:24px!important; z-index:999999!important; display:flex!important; flex-direction:column!important; gap:12px!important; max-width:400px!important; width:calc(100% - 48px)!important; pointer-events:none!important;';
             document.body.appendChild(container);
         }
 
@@ -206,39 +207,56 @@
         toast.className = `toast-item ${isWalkIn ? 'walk_in' : 'matched'}`;
         toast.dataset.toastId = item.id;
 
+        // Ép kiểu CSS trực tiếp đảm bảo Toast hiển thị 100% rực rỡ không bị ẩn
+        toast.style.cssText = `
+            display: flex !important;
+            align-items: center !important;
+            gap: 14px !important;
+            background: ${isWalkIn ? '#fffbeb' : '#f0fdf4'} !important;
+            border: 2px solid ${isWalkIn ? '#f59e0b' : '#22c55e'} !important;
+            border-left: 8px solid ${isWalkIn ? '#d97706' : '#15803d'} !important;
+            border-radius: 16px !important;
+            padding: 16px 20px !important;
+            box-shadow: 0 20px 45px rgba(0, 0, 0, 0.3), 0 4px 14px rgba(0, 0, 0, 0.15) !important;
+            opacity: 1 !important;
+            transform: translateY(0) scale(1) !important;
+            margin-bottom: 12px !important;
+            pointer-events: auto !important;
+            cursor: pointer !important;
+        `;
+
         const notifContent = formatNotifText(item);
 
         toast.innerHTML = `
-            <div class="toast-icon">${isWalkIn ? '🔸' : '✅'}</div>
-            <div class="toast-content">
-                <div class="toast-title">
+            <div class="toast-icon" style="font-size: 1.8rem; flex-shrink: 0;">${isWalkIn ? '🔸' : '✅'}</div>
+            <div class="toast-content" style="flex-grow: 1;">
+                <div class="toast-title" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: 800; color: ${isWalkIn ? '#b45309' : '#047857'}; text-transform: uppercase; letter-spacing: 0.5px;">
                     <span>Khách checkin thành công</span>
-                    <button class="toast-close" onclick="this.closest('.toast-item').remove()">×</button>
+                    <button class="toast-close" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: #94a3b8; padding: 0 4px;" onclick="event.stopPropagation(); this.closest('.toast-item').remove()">×</button>
                 </div>
-                <div class="toast-body" style="font-weight: 700; font-size: 0.92rem; color: #0f172a; margin-top: 4px;">
+                <div class="toast-body" style="font-weight: 800; font-size: 1rem; color: #0f172a; margin-top: 6px; line-height: 1.4;">
                     ${notifContent}
                 </div>
             </div>
         `;
 
-        toast.style.cursor = 'pointer';
         toast.onclick = function(e) {
             if (e.target.classList.contains('toast-close')) return;
             window.location.href = `checkins.php?highlight=${item.id}`;
         };
 
         container.appendChild(toast);
-        setTimeout(() => toast.classList.add('show'), 50);
 
         // Phát Mobile / OS Native Push Notification nếu được cấp quyền
         triggerNativeNotification(item);
 
         setTimeout(() => {
             if (toast && toast.parentNode) {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300);
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-15px)';
+                setTimeout(() => toast.remove(), 350);
             }
-        }, 6000);
+        }, 8000);
     }
 
     function injectHeaderNotifBell() {
@@ -388,11 +406,30 @@
             if (data.status === 'success') {
                 const newMaxId = data.max_id;
 
-                // Lần quét đầu tiên khi mở trang
+                // Lần quét đầu tiên khi mở/tải lại trang
                 if (clientLastCheckinId === 0) {
                     clientLastCheckinId = newMaxId;
                     if (data.checkins) {
-                        data.checkins.forEach(item => shownToastIds.add(item.id));
+                        const nowTs = Math.floor(Date.now() / 1000);
+                        const recentCheckins = data.checkins.filter(item => {
+                            const secAgo = item.created_at_ts ? (nowTs - item.created_at_ts) : 999;
+                            return secAgo <= 120;
+                        });
+
+                        if (recentCheckins.length > 0) {
+                            playNotifChime();
+                            openNotifDropdown();
+                            recentCheckins.reverse().forEach(item => {
+                                showToastNotification(item);
+                            });
+                        }
+
+                        data.checkins.forEach(item => {
+                            const secAgo = item.created_at_ts ? (nowTs - item.created_at_ts) : 999;
+                            if (secAgo > 120) {
+                                shownToastIds.add(item.id);
+                            }
+                        });
                     }
                     renderNotifDropdown(data.checkins, data.unread_count);
                     return;
@@ -796,6 +833,6 @@
         injectConfirmModalHTML();
         checkNewNotifications();
         initAlertAndAutoScrollInterceptor();
-        setInterval(checkNewNotifications, 3000);
+        setInterval(checkNewNotifications, 1500);
     });
 })();

@@ -32,7 +32,7 @@ try {
 
     $whereConditions = [];
     if (isKinhDoanh()) {
-        $whereConditions[] = "t.assigned_user_id = {$userId}";
+        $whereConditions[] = "(t.assigned_user_id = {$userId} OR c.table_id IS NULL OR c.match_status = 'walk_in')";
     }
 
     $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
@@ -78,6 +78,7 @@ try {
             'table_name'      => esc($row['table_name'] ?? 'Chưa xếp bàn'),
             'lucky_draw_code' => esc($row['final_lucky_code']),
             'time'            => date('H:i:s d/m/Y', strtotime($row['checkin_time'])),
+            'created_at_ts'   => strtotime($row['checkin_time']),
             'status'          => esc($row['match_status']),
             'status_text'     => $row['match_status'] === 'matched' ? 'Hợp lệ' : 'Phát sinh',
             'is_new'          => ($lastSeenId > 0 && $checkinId > $lastSeenId)
