@@ -346,18 +346,49 @@
         }
     }
 
+    function getNotificationApiUrl(action = 'check', extraParams = '') {
+        const loc = window.location.pathname;
+        let apiPath = '../api/notifications.php';
+        if (!loc.includes('/admin/')) {
+            if (loc.includes('/CheckinQR/')) {
+                apiPath = '/CheckinQR/api/notifications.php';
+            } else {
+                apiPath = '/api/notifications.php';
+            }
+        }
+        return `${apiPath}?action=${action}${extraParams}&_t=${Date.now()}`;
+    }
+
+    // Phát tín hiệu Realtime cho tất cả các Tab trình duyệt khác khi có khách check-in
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'checkin_realtime_signal') {
+            checkNewNotifications();
+            if (typeof window.fetchRealtimeGuests === 'function') window.fetchRealtimeGuests(true);
+            if (typeof window.updateRealtimeCheckinsList === 'function') window.updateRealtimeCheckinsList(true);
+        }
+    });
+
+    function broadcastCheckinSignal() {
+        try {
+            localStorage.setItem('checkin_realtime_signal', Date.now().toString());
+        } catch(e) {}
+    }
+    window.broadcastCheckinSignal = broadcastCheckinSignal;
+
     async function checkNewNotifications() {
         if (isCheckingNotifications) return;
         isCheckingNotifications = true;
 
         try {
-            const res = await fetch(`../api/notifications.php?action=check&_t=${Date.now()}`, { cache: 'no-store' });
+            const sinceParam = clientLastCheckinId > 0 ? `&since_id=${clientLastCheckinId}` : '';
+            const res = await fetch(getNotificationApiUrl('check', sinceParam), { cache: 'no-store' });
             if (!res.ok) return;
             const data = await res.json();
 
             if (data.status === 'success') {
                 const newMaxId = data.max_id;
 
+                // Lần quét đầu tiên khi mở trang
                 if (clientLastCheckinId === 0) {
                     clientLastCheckinId = newMaxId;
                     if (data.checkins) {
@@ -367,21 +398,24 @@
                     return;
                 }
 
+                // Nếu phát hiện lượt check-in mới
                 if (newMaxId > clientLastCheckinId) {
-                    const oldLastId = clientLastCheckinId;
-                    clientLastCheckinId = newMaxId;
+                    const itemsToNotify = (data.new_items && data.new_items.length > 0) 
+                        ? data.new_items 
+                        : (data.checkins || []).filter(item => item.id > clientLastCheckinId);
 
-                    const newItems = (data.checkins || []).filter(item => item.id > oldLastId && !shownToastIds.has(item.id));
-
-                    if (newItems.length > 0) {
+                    if (itemsToNotify.length > 0) {
                         playNotifChime();
                         openNotifDropdown();
-                        newItems.forEach(item => {
-                            showToastNotification(item);
-                            triggerNativeNotification(item);
-                            shownToastIds.add(item.id);
+                        itemsToNotify.forEach(item => {
+                            if (!shownToastIds.has(item.id)) {
+                                shownToastIds.add(item.id);
+                                showToastNotification(item);
+                                triggerNativeNotification(item);
+                            }
                         });
                     }
+                    clientLastCheckinId = newMaxId;
                 }
 
                 renderNotifDropdown(data.checkins, data.unread_count);

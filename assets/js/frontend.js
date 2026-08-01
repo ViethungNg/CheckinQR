@@ -217,6 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             } else if (data.status === 'success') {
                 // 4. CHECK-IN THÀNH CÔNG!
+                try { localStorage.setItem('checkin_realtime_signal', Date.now().toString()); } catch(e) {}
                 if (window.playNotifChime) window.playNotifChime();
 
                 alertBox.style.display = 'block';

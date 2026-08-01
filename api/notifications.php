@@ -27,6 +27,7 @@ try {
         exit;
     }
 
+    $clientSinceId = isset($_GET['since_id']) ? (int)$_GET['since_id'] : null;
     $lastSeenId = (int)($_SESSION['last_seen_checkin_id'] ?? 0);
 
     $whereConditions = [];
@@ -36,7 +37,7 @@ try {
 
     $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
     
-    // 1. Max ID hiện tại trong hệ thống
+    // Max ID hiện tại trong hệ thống
     $stmtMax = $db->query("
         SELECT COALESCE(MAX(c.id), 0) 
         FROM checkins c 
@@ -45,13 +46,13 @@ try {
     ");
     $maxId = (int)$stmtMax->fetchColumn();
 
-    // Lần đầu vào phiên làm việc, lưu maxId làm mốc đã xem để không báo động tất cả dữ liệu cũ
+    // Lần đầu vào phiên làm việc
     if ($lastSeenId === 0 && $maxId > 0) {
         $lastSeenId = $maxId;
         $_SESSION['last_seen_checkin_id'] = $maxId;
     }
 
-    // 2. Luôn lấy 15 lượt checkin mới nhất để hiển thị nội dung trong Dropdown
+    // 1. Luôn lấy 15 lượt checkin mới nhất để hiển thị nội dung trong Dropdown
     $stmtCheckins = $db->query("
         SELECT c.*, 
                t.table_name,
@@ -67,8 +68,9 @@ try {
 
     $checkinsList = [];
     while ($row = $stmtCheckins->fetch()) {
+        $checkinId = (int)$row['id'];
         $checkinsList[] = [
-            'id'              => (int)$row['id'],
+            'id'              => $checkinId,
             'customer_code'   => esc($row['final_customer_code']),
             'organization'    => esc($row['final_organization']),
             'full_name'       => esc($row['full_name_entered']),
@@ -78,8 +80,42 @@ try {
             'time'            => date('H:i:s d/m/Y', strtotime($row['checkin_time'])),
             'status'          => esc($row['match_status']),
             'status_text'     => $row['match_status'] === 'matched' ? 'Hợp lệ' : 'Phát sinh',
-            'is_new'          => ($lastSeenId > 0 && (int)$row['id'] > $lastSeenId)
+            'is_new'          => ($lastSeenId > 0 && $checkinId > $lastSeenId)
         ];
+    }
+
+    // 2. Danh sách các lượt checkin thực sự MỚI kể từ clientSinceId
+    $newItems = [];
+    if ($clientSinceId !== null && $clientSinceId > 0 && $maxId > $clientSinceId) {
+        $whereNew = $whereConditions;
+        $whereNew[] = "c.id > {$clientSinceId}";
+        $clauseNew = "WHERE " . implode(" AND ", $whereNew);
+        $stmtNew = $db->query("
+            SELECT c.*, 
+                   t.table_name,
+                   COALESCE(NULLIF(c.customer_code, ''), g.customer_code, '') as final_customer_code,
+                   COALESCE(NULLIF(g.organization, ''), NULLIF(c.address_entered, ''), '') as final_organization,
+                   COALESCE(NULLIF(c.lucky_draw_code, ''), g.lucky_draw_code, '') as final_lucky_code
+            FROM checkins c 
+            LEFT JOIN event_tables t ON c.table_id = t.id 
+            LEFT JOIN guests g ON c.guest_id = g.id
+            {$clauseNew}
+            ORDER BY c.id ASC
+        ");
+        while ($row = $stmtNew->fetch()) {
+            $newItems[] = [
+                'id'              => (int)$row['id'],
+                'customer_code'   => esc($row['final_customer_code']),
+                'organization'    => esc($row['final_organization']),
+                'full_name'       => esc($row['full_name_entered']),
+                'phone'           => esc($row['phone_entered']),
+                'table_name'      => esc($row['table_name'] ?? 'Chưa xếp bàn'),
+                'lucky_draw_code' => esc($row['final_lucky_code']),
+                'time'            => date('H:i:s d/m/Y', strtotime($row['checkin_time'])),
+                'status'          => esc($row['match_status']),
+                'status_text'     => $row['match_status'] === 'matched' ? 'Hợp lệ' : 'Phát sinh'
+            ];
+        }
     }
 
     // 3. Số lượng lượt checkin chưa đọc
@@ -101,7 +137,8 @@ try {
         'status'       => 'success',
         'max_id'       => $maxId,
         'unread_count' => $unreadCount,
-        'checkins'     => $checkinsList
+        'checkins'     => $checkinsList,
+        'new_items'    => $newItems
     ], JSON_UNESCAPED_UNICODE);
 
 } catch (Exception $e) {
