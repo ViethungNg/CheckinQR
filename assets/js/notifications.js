@@ -170,26 +170,45 @@
     };
 
     const shownToastIds = new Set();
-    function formatNotifText(item) {
+    function formatNotifText(item, isPlain = false) {
         if (!item) return '';
-        const name = item.full_name || item.name || '';
-        const custCode = item.customer_code || '';
-        const org = item.organization || item.agency || '';
-        const table = (item.table_name && item.table_name !== 'Chưa xếp bàn') ? item.table_name : (item.table || 'Chưa xếp bàn');
-        const lucky = item.lucky_draw_code || '';
+        const name = (item.full_name || item.name || '').trim();
+        const custCode = (item.customer_code || '').trim();
+        const org = (item.organization || item.agency || '').trim();
+        const tableStr = (item.table_name && item.table_name !== 'Chưa xếp bàn') 
+            ? item.table_name.trim() 
+            : ((item.table && item.table !== 'Chưa xếp bàn') ? item.table.trim() : '');
+        const lucky = (item.lucky_draw_code || '').trim();
 
-        const details = [];
-        if (custCode) details.push(`Mã: ${custCode}`);
-        if (org) details.push(org);
-        if (table) details.push(`Bàn: ${table}`);
-        if (lucky) details.push(`Mã trúng thưởng: ${lucky}`);
-
-        const detailsStr = details.length > 0 ? ` (${details.join(' - ')})` : '';
-
-        if (name) {
-            return `Khách hàng <strong>${name}</strong> vừa check-in thành công!${detailsStr}`;
+        let head = '';
+        if (custCode) {
+            head = isPlain 
+                ? `Khách hàng mã ${custCode}${name ? ' - ' + name : ''}`
+                : `Khách hàng mã <strong>${custCode}</strong>${name ? ' - <strong>' + name + '</strong>' : ''}`;
+        } else if (name) {
+            head = isPlain 
+                ? `Khách hàng ${name}`
+                : `Khách hàng <strong>${name}</strong>`;
+        } else {
+            head = `Khách hàng`;
         }
-        return `Khách hàng vừa check-in thành công!${detailsStr}`;
+
+        let notifText = head;
+
+        if (org) {
+            notifText += `, ${org}`;
+        }
+
+        if (tableStr) {
+            const formattedTable = tableStr.toLowerCase().startsWith('bàn') ? tableStr : `Bàn ${tableStr}`;
+            notifText += ` - ${formattedTable}`;
+        }
+
+        if (lucky) {
+            notifText += ` - Mã quay giải: ${lucky}`;
+        }
+
+        return notifText;
     }
 
     function showToastNotification(item) {
@@ -374,9 +393,9 @@
 
     function triggerNativeNotification(item) {
         if ('Notification' in window && Notification.permission === 'granted') {
-            const bodyText = formatNotifText(item);
+            const bodyText = formatNotifText(item, true);
             try {
-                new Notification('Khách checkin thành công', {
+                new Notification('Khách check-in thành công', {
                     body: bodyText,
                     icon: '../img/logo pmt.png',
                     badge: '../img/logo pmt.png',
