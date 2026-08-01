@@ -1008,7 +1008,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                     const rowClass = isCheckedIn ? 'row-checked-in' : '';
 
                     const customerCodeHtml = item.customer_code 
-                        ? `<strong style="color: #0284c7; font-family: monospace; font-size: 0.88rem;">${item.customer_code}</strong>`
+                        ? `<strong style="color: #0284c7; font-weight:700; font-size: 0.88rem;">${item.customer_code}</strong>`
                         : `<span style="color: #aaa;">-</span>`;
 
                     const tableNameStr = item.table_name || '';
