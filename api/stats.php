@@ -54,7 +54,7 @@ try {
     ");
 
     $stmtGuestsByTable = $db->prepare("
-        SELECT id, full_name, phone, status 
+        SELECT id, customer_code, full_name, phone, status 
         FROM guests 
         WHERE table_id = ? 
         ORDER BY status DESC, id DESC
@@ -66,10 +66,11 @@ try {
         $tableGuests = [];
         while ($g = $stmtGuestsByTable->fetch()) {
             $tableGuests[] = [
-                'id'        => (int)$g['id'],
-                'full_name' => esc($g['full_name']),
-                'phone'     => esc($g['phone']),
-                'status'    => esc($g['status']),
+                'id'            => (int)$g['id'],
+                'customer_code' => esc($g['customer_code'] ?? ''),
+                'full_name'     => esc($g['full_name']),
+                'phone'         => esc($g['phone']),
+                'status'        => esc($g['status']),
             ];
         }
 
@@ -116,9 +117,9 @@ try {
         }
 
         if ($searchKeyword !== '') {
-            $whereConditions[] = "(g.full_name LIKE ? OR g.phone LIKE ? OR t.table_name LIKE ?)";
+            $whereConditions[] = "(g.full_name LIKE ? OR g.phone LIKE ? OR g.customer_code LIKE ? OR t.table_name LIKE ?)";
             $likeStr = '%' . $searchKeyword . '%';
-            $params = [$likeStr, $likeStr, $likeStr];
+            $params = [$likeStr, $likeStr, $likeStr, $likeStr];
         }
 
         $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
@@ -135,13 +136,14 @@ try {
 
         while ($row = $stmtGuests->fetch()) {
             $recentCheckins[] = [
-                'id'          => $row['id'],
-                'full_name'   => esc($row['full_name']),
-                'phone'       => esc($row['phone']),
-                'table_name'  => esc($row['table_name'] ?? 'Chưa xếp bàn'),
-                'time'        => $row['status'] === 'checked_in' ? '✅ Đã checkin' : '⏳ Chưa tới',
-                'status'      => $row['status'],
-                'status_text' => $row['status'] === 'checked_in' ? 'Đã checkin' : 'Chưa tới',
+                'id'            => $row['id'],
+                'customer_code' => esc($row['customer_code'] ?? ''),
+                'full_name'     => esc($row['full_name']),
+                'phone'         => esc($row['phone']),
+                'table_name'    => esc($row['table_name'] ?? 'Chưa xếp bàn'),
+                'time'          => $row['status'] === 'checked_in' ? '✅ Đã checkin' : '⏳ Chưa tới',
+                'status'        => $row['status'],
+                'status_text'   => $row['status'] === 'checked_in' ? 'Đã checkin' : 'Chưa tới',
             ];
         }
     } else {
@@ -163,9 +165,9 @@ try {
         }
 
         if ($searchKeyword !== '') {
-            $whereConditions[] = "(c.full_name_entered LIKE ? OR c.phone_entered LIKE ? OR t.table_name LIKE ? OR c.lucky_draw_code LIKE ?)";
+            $whereConditions[] = "(c.full_name_entered LIKE ? OR c.phone_entered LIKE ? OR t.table_name LIKE ? OR c.lucky_draw_code LIKE ? OR g.customer_code LIKE ?)";
             $likeStr = '%' . $searchKeyword . '%';
-            $params = [$likeStr, $likeStr, $likeStr, $likeStr];
+            $params = [$likeStr, $likeStr, $likeStr, $likeStr, $likeStr];
         }
 
         $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
@@ -186,7 +188,8 @@ try {
         $recentStmt = $db->prepare("
             SELECT c.*, t.table_name, 
                    g.full_name as guest_full_name, g.phone as guest_phone, g.organization as guest_organization,
-                   g.lucky_draw_code as guest_lucky_code, g.notes as guest_notes, g.normalized_phone as guest_normalized_phone
+                   g.lucky_draw_code as guest_lucky_code, g.notes as guest_notes, g.normalized_phone as guest_normalized_phone,
+                   g.customer_code as guest_customer_code
             FROM checkins c 
             LEFT JOIN event_tables t ON c.table_id = t.id 
             LEFT JOIN guests g ON c.guest_id = g.id
@@ -204,11 +207,14 @@ try {
                 $methodText = '🎟️ Khớp Mã dự thưởng';
             }
 
+            $custCode = !empty($row['customer_code']) ? $row['customer_code'] : ($row['guest_customer_code'] ?? '');
+
             $recentCheckins[] = [
                 'id'                  => (int)$row['id'],
                 'event_id'            => (int)($row['event_id'] ?? 0),
                 'table_id'            => $row['table_id'] ? (int)$row['table_id'] : null,
                 'guest_id'            => $row['guest_id'] ? (int)$row['guest_id'] : null,
+                'customer_code'       => esc($custCode),
                 'lucky_draw_code'     => esc($row['lucky_draw_code'] ?? ''),
                 'full_name'           => esc($row['full_name_entered']),
                 'phone'               => esc($row['phone_entered']),

@@ -30,15 +30,16 @@ $db = Database::getConnection();
  */
 function getDbStateHash($db) {
     try {
-        $maxCheckinId = $db->query("SELECT COALESCE(MAX(id), 0) FROM checkins")->fetchColumn();
-        $checkinCount = $db->query("SELECT COUNT(*) FROM checkins")->fetchColumn();
-        $guestCount   = $db->query("SELECT COUNT(*) FROM guests")->fetchColumn();
-        $tableCount   = $db->query("SELECT COUNT(*) FROM event_tables")->fetchColumn();
-        $lastGuestStatus = $db->query("SELECT COALESCE(MAX(status), '') FROM guests")->fetchColumn();
+        $maxCheckinId    = $db->query("SELECT COALESCE(MAX(id), 0) FROM checkins")->fetchColumn();
+        $checkinCount    = $db->query("SELECT COUNT(*) FROM checkins")->fetchColumn();
+        $guestCount      = $db->query("SELECT COUNT(*) FROM guests")->fetchColumn();
+        $tableCount      = $db->query("SELECT COUNT(*) FROM event_tables")->fetchColumn();
+        $checkedInCount  = $db->query("SELECT COUNT(*) FROM guests WHERE status = 'checked_in'")->fetchColumn();
+        $sumGuestIds     = $db->query("SELECT COALESCE(SUM(id), 0) FROM guests WHERE status = 'checked_in'")->fetchColumn();
         
-        return md5("{$maxCheckinId}-{$checkinCount}-{$guestCount}-{$tableCount}-{$lastGuestStatus}");
+        return md5("{$maxCheckinId}-{$checkinCount}-{$guestCount}-{$tableCount}-{$checkedInCount}-{$sumGuestIds}");
     } catch (\Throwable $e) {
-        return md5(time());
+        return md5((string)time());
     }
 }
 

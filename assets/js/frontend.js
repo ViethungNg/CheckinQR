@@ -4,257 +4,284 @@ document.addEventListener('DOMContentLoaded', () => {
     const spinner = document.getElementById('spinner');
     const btnText = document.getElementById('btn-text');
     const alertBox = document.getElementById('alert-message');
-    const resultBox = document.getElementById('result-box');
     const formBody = document.getElementById('form-fields');
 
     if (!form) return;
 
+    // Reset Form về trạng thái ban đầu
+    window.resetCheckinForm = function () {
+        alertBox.style.display = 'none';
+        alertBox.className = 'alert';
+        alertBox.innerHTML = '';
+
+        if (formBody) formBody.style.display = 'block';
+        if (submitBtn) {
+            submitBtn.style.display = 'block';
+            submitBtn.disabled = false;
+        }
+        if (spinner) spinner.style.display = 'none';
+        if (btnText) btnText.textContent = 'Xác nhận Check-in';
+
+        const actionInput = document.getElementById('form-action-type');
+        if (actionInput) actionInput.value = 'lookup';
+        
+        const guestIdInput = document.getElementById('form-guest-id');
+        if (guestIdInput) guestIdInput.value = '';
+
+        const codeInput = document.getElementById('customer_code');
+        if (codeInput) {
+            codeInput.value = '';
+            codeInput.focus();
+        }
+    };
+
+    // Xử lý gửi Form
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        // Reset trạng thái
+        // Reset cảnh báo
         alertBox.style.display = 'none';
         alertBox.className = 'alert';
         alertBox.innerHTML = '';
 
         // Khóa nút
         submitBtn.disabled = true;
-        spinner.style.display = 'inline-block';
-        btnText.textContent = 'Đang xử lý...';
+        if (spinner) spinner.style.display = 'inline-block';
+        if (btnText) btnText.textContent = 'Đang tra cứu...';
 
         const formData = new FormData(form);
 
         try {
-            const response = await fetch(form.action, {
+            const targetUrl = form.getAttribute('action') || 'api/checkin.php';
+            const response = await fetch(targetUrl, {
                 method: 'POST',
                 body: formData,
-                headers: {
-                    'Accept': 'application/json'
-                }
+                headers: { 'Accept': 'application/json' }
             });
 
-            const data = await response.json();
+            const text = await response.text();
+            let data = null;
+            try {
+                data = JSON.parse(text);
+            } catch (jsonErr) {
+                console.error('Phản hồi từ server không phải JSON chuẩn:', text);
+                if (text.includes('Not Found') || text.includes('404')) {
+                    throw new Error('Đã có bản cập nhật mới. Vui lòng nhấn F5 (Tải lại trang) để áp dụng!');
+                }
+                throw new Error('Lỗi phản hồi máy chủ: ' + text);
+            }
 
-            alertBox.style.display = 'block';
-            if (data.status === 'require_confirmation') {
-                alertBox.classList.add('warning');
-                submitBtn.style.display = 'none';
-                
+            // Ẩn form nhập liệu khi hiển thị popup/kết quả
+            if (formBody) formBody.style.display = 'none';
+            if (submitBtn) submitBtn.style.display = 'none';
+
+            if (data.status === 'not_found') {
+                // 1. Không tìm thấy mã khách hàng trong CSDL
+                alertBox.style.display = 'block';
+                alertBox.className = 'alert error';
+                alertBox.style.background = 'transparent';
+                alertBox.style.padding = '0';
+                alertBox.style.border = 'none';
+
                 alertBox.innerHTML = `
-                    <div style="background: #ffffff; border: 2px solid #8b5cf6; border-radius: 14px; padding: 20px; text-align: left; box-shadow: 0 10px 25px rgba(139,92,246,0.15); margin-top: 5px;">
-                        <div style="font-size: 1.05rem; font-weight: 800; color: #6d28d9; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                            <span>🎟️</span> Xác Nhận Thông Tin Mã Dự Thưởng (${data.data.lucky_draw_code})
+                    <div style="background: #ffffff; border: 2px solid #ef4444; border-radius: 18px; padding: 24px 20px; box-shadow: 0 12px 30px rgba(239, 68, 68, 0.15); text-align: center;">
+                        <div style="font-weight: 800; color: #b91c1c; font-size: 1.1rem; margin-bottom: 8px;">
+                            ${data.message || 'Mã khách hàng không tồn tại trong hệ thống.'}
                         </div>
-                        
-                        <p style="font-size: 0.92rem; color: #4b5563; margin-bottom: 12px; line-height: 1.5;">
-                            Hệ thống ghi nhận Mã dự thưởng <strong>${data.data.lucky_draw_code}</strong> thuộc danh sách mời của BTC:
-                        </p>
+                        <div style="font-size: 0.88rem; color: #64748b; margin-bottom: 20px;">
+                            Vui lòng kiểm tra lại mã do Nhà Phân Phối cung cấp.
+                        </div>
+                        <button type="button" onclick="window.resetCheckinForm()" style="background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%); color: white; border: none; padding: 12px 28px; border-radius: 10px; font-weight: 800; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 14px rgba(211, 47, 47, 0.3); transition: all 0.2s ease;">
+                            Nhập lại Mã KH
+                        </button>
+                    </div>
+                `;
+            } else if (data.status === 'require_guest_confirmation') {
+                // 2. Tìm thấy Mã hợp lệ -> Hiện Modal Xác nhận Sang Trọng (Chỉ gồm Mã KH và Đơn vị / Đại lý)
+                alertBox.style.display = 'block';
+                alertBox.className = 'alert warning';
+                alertBox.style.background = 'transparent';
+                alertBox.style.padding = '0';
+                alertBox.style.border = 'none';
 
-                        <div style="background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 10px; padding: 14px; margin-bottom: 14px;">
-                            <div style="font-weight: 700; color: #5b21b6; font-size: 0.95rem; margin-bottom: 4px;">👤 Khách BTC mời: ${data.data.original_name}</div>
-                            <div style="font-size: 0.88rem; color: #6d28d9; margin-bottom: 4px;">📱 SĐT dự kiến: ${data.data.original_phone_masked}</div>
-                            <div style="font-size: 0.88rem; color: #047857; font-weight: 700;">📍 Vị trí bàn: ${data.data.table_name}</div>
+                const gInfo = data.data;
+
+                alertBox.innerHTML = `
+                    <div style="background: #ffffff; border: 1.5px solid #d32f2f; border-radius: 18px; padding: 24px 20px; box-shadow: 0 12px 30px rgba(211, 47, 47, 0.12); text-align: center;">
+                        <div style="font-size: 1.15rem; font-weight: 800; color: #b71c1c; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">
+                            XÁC NHẬN THÔNG TIN KHÁCH HÀNG
+                        </div>
+                        <div style="font-size: 0.88rem; color: #64748b; margin-bottom: 20px;">
+                            Quý khách vui lòng kiểm tra thông tin dưới đây:
                         </div>
 
-                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-bottom: 14px;">
-                            <div style="font-size: 0.8rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Thông tin người quét check-in:</div>
-                            <div style="font-weight: 700; color: #0f172a; font-size: 0.92rem; margin-top: 2px;">${data.data.entered_name} (${data.data.entered_phone})</div>
+                        <div style="background: #fef2f2; border: 1.5px solid #fca5a5; border-radius: 12px; padding: 18px; text-align: left; margin-bottom: 20px;">
+                            <div style="margin-bottom: 12px; font-size: 0.95rem; display: flex; align-items: center; justify-content: space-between;">
+                                <span style="color: #7f1d1d; font-weight: 600;">Mã KH:</span>
+                                <strong style="color: #b71c1c; background: #ffffff; border: 1.5px solid #fca5a5; padding: 4px 14px; border-radius: 8px; font-weight: 800; font-size: 1.1rem;">${gInfo.customer_code}</strong>
+                            </div>
+                            <div style="font-size: 0.95rem; display: flex; align-items: center; justify-content: space-between;">
+                                <span style="color: #7f1d1d; font-weight: 600;">Đơn vị / Đại lý:</span>
+                                <strong style="color: #1e293b; font-weight: 700; font-size: 1.05rem;">${gInfo.organization}</strong>
+                            </div>
                         </div>
 
-                        <p style="font-size: 0.92rem; font-weight: 800; color: #1e293b; margin-bottom: 14px; text-align: center;">
-                            Bạn có phải là người đại diện hoặc được ủy quyền tham dự theo mã vé này không?
-                        </p>
+                        <div style="font-weight: 700; color: #1e293b; font-size: 0.95rem; margin-bottom: 20px; line-height: 1.4;">
+                            Thông tin trên có phải là thông tin của Quý khách không?
+                        </div>
 
-                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button type="button" id="btn-confirm-yes" class="btn" style="flex: 1; min-width: 140px; background: #10b981; border: none; padding: 12px; border-radius: 10px; font-weight: 800; cursor: pointer; color: white; font-size: 0.95rem; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
-                                🟢 Đúng, Tôi là người đại diện
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <button type="button" id="btn-confirm-yes" style="background: linear-gradient(135deg, #d32f2f 0%, #b71c1c 100%); color: #ffffff; border: none; padding: 15px; border-radius: 12px; font-weight: 800; font-size: 1.02rem; cursor: pointer; box-shadow: 0 6px 18px rgba(211, 47, 47, 0.35); transition: all 0.2s ease;">
+                                Đúng thông tin của tôi - Xác nhận Check-in
                             </button>
-                            <button type="button" id="btn-confirm-no" class="btn" style="flex: 1; min-width: 140px; background: #ef4444; border: none; padding: 12px; border-radius: 10px; font-weight: 800; cursor: pointer; color: white; font-size: 0.95rem; box-shadow: 0 4px 12px rgba(239,68,68,0.3);">
-                                🔴 Không phải / Sai thông tin
+                            <button type="button" onclick="window.resetCheckinForm()" style="background: #f8fafc; color: #475569; border: 1.5px solid #cbd5e1; padding: 12px; border-radius: 12px; font-weight: 700; font-size: 0.92rem; cursor: pointer; transition: all 0.2s ease;">
+                                Không phải tôi - Nhập lại
                             </button>
                         </div>
                     </div>
                 `;
 
-                document.getElementById('btn-confirm-yes').addEventListener('click', () => submitConfirmationChoice('confirm'));
-                document.getElementById('btn-confirm-no').addEventListener('click', () => submitConfirmationChoice('reject'));
+                // Bấm nút "Đúng thông tin của tôi" -> Gửi request xác nhận Check-in
+                document.getElementById('btn-confirm-yes').addEventListener('click', () => {
+                    const actionInput = document.getElementById('form-action-type');
+                    const guestIdInput = document.getElementById('form-guest-id');
+                    if (actionInput) actionInput.value = 'confirm_checkin';
+                    if (guestIdInput) guestIdInput.value = gInfo.guest_id;
+                    
+                    form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit', { cancelable: true }));
+                });
+
             } else if (data.status === 'already_checked_in') {
-                alertBox.classList.add('info');
-                if (formBody) formBody.style.display = 'none';
-                alertBox.innerHTML = `<strong>Thông báo:</strong> Quý khách đã check-in trước đó!`;
+                // 3. Khách đã check-in trước đó
+                alertBox.style.display = 'block';
+                alertBox.className = 'alert info';
+                alertBox.style.background = 'transparent';
+                alertBox.style.padding = '0';
+                alertBox.style.border = 'none';
 
-                // Ẩn form nhập liệu khi đã checkin
-                if (formBody) formBody.style.display = 'none';
-                submitBtn.style.display = 'none';
+                const resData = data.data;
 
-                if (data.data) {
-                    let extraMsg = `
-                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #90caf9; text-align: center;">
-                            <div style="font-size: 0.88rem; color: #1565c0; margin-bottom: 12px;">
-                                Thời gian ghi nhận: <strong>${data.data.checkin_time}</strong>
+                alertBox.innerHTML = `
+                    <div style="background: #ffffff; border: 2px solid #0284c7; border-radius: 18px; padding: 24px 20px; box-shadow: 0 12px 35px rgba(2, 132, 199, 0.15); text-align: center;">
+                        <div style="font-size: 1.25rem; font-weight: 800; color: #0284c7; margin-bottom: 6px;">
+                            Quý khách đã check-in trước đó!
+                        </div>
+                        <div style="font-size: 0.88rem; color: #64748b; margin-bottom: 20px;">
+                            Thời gian ghi nhận: <strong>${resData.checkin_time}</strong>
+                        </div>
+
+                        <div style="background: #f0f9ff; border: 1.5px solid #bae6fd; border-radius: 12px; padding: 14px 18px; text-align: left; margin-bottom: 20px;">
+                            <div style="margin-bottom: 8px; font-size: 0.92rem; display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #0369a1; font-weight: 600;">Mã KH:</span>
+                                <strong style="color: #0284c7; font-weight: 800; font-size: 1.05rem;">${resData.customer_code}</strong>
                             </div>
+                            <div style="font-size: 0.92rem; display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #0369a1; font-weight: 600;">Đơn vị / Đại lý:</span>
+                                <strong style="color: #0f172a; font-weight: 700; font-size: 1rem;">${resData.organization}</strong>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;">
+                            ${resData.table_name ? `
+                                <div style="flex: 1; min-width: 140px; background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border: 2.5px solid #2e7d32; border-radius: 16px; padding: 14px 12px; text-align: center; box-shadow: 0 6px 18px rgba(46, 125, 50, 0.18);">
+                                    <div style="font-size: 0.78rem; color: #1b5e20; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">VỊ TRÍ BÀN NGỒI</div>
+                                    <div style="font-size: 1.5rem; font-weight: 900; color: #1b5e20;">${resData.table_name}</div>
+                                </div>
+                            ` : ''}
                             
-                            <div style="background: #ffffff; border: 1px solid #bbdefb; border-radius: 12px; padding: 15px; text-align: left; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
-                                <div style="margin-bottom: 8px; font-size: 0.95rem; color: #333;">
-                                    <strong>Họ tên:</strong> ${data.data.full_name}
+                            ${resData.lucky_draw_code ? `
+                                <div style="flex: 1; min-width: 140px; background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); border: 2.5px solid #7b1fa2; border-radius: 16px; padding: 14px 12px; text-align: center; box-shadow: 0 6px 18px rgba(123, 31, 162, 0.18);">
+                                    <div style="font-size: 0.78rem; color: #4a148c; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">MÃ TRÚNG THƯỞNG</div>
+                                    <div style="font-size: 1.5rem; font-weight: 900; color: #4a148c;">${resData.lucky_draw_code}</div>
                                 </div>
-                                <div style="margin-bottom: 14px; font-size: 0.95rem; color: #333;">
-                                    <strong>Số điện thoại:</strong> ${data.data.phone}
-                                </div>
-                                
-                                <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px;">
-                                    ${data.data.table_name ? `
-                                        <div style="flex: 1; min-width: 140px; background: #e8f5e9; border: 2px solid #66bb6a; border-radius: 12px; padding: 10px 14px; text-align: center; box-shadow: 0 3px 8px rgba(46,125,50,0.12);">
-                                            <div style="font-size: 0.75rem; color: #2e7d32; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Vị trí ngồi</div>
-                                            <div style="font-size: 1.25rem; font-weight: 800; color: #1b5e20;">${data.data.table_name}</div>
-                                        </div>
-                                    ` : ''}
-                                    
-                                    ${data.data.lucky_draw_code ? `
-                                        <div style="flex: 1; min-width: 140px; background: #f3e5f5; border: 2px solid #ab47bc; border-radius: 12px; padding: 10px 14px; text-align: center; box-shadow: 0 3px 8px rgba(123,31,162,0.12);">
-                                            <div style="font-size: 0.75rem; color: #7b1fa2; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Mã bốc thăm</div>
-                                            <div style="font-size: 1.25rem; font-weight: 800; color: #4a148c;">${data.data.lucky_draw_code}</div>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            </div>
+                            ` : ''}
                         </div>
-                    `;
-                    alertBox.innerHTML += extraMsg;
-                }
+                    </div>
+                `;
             } else if (data.status === 'success') {
-                // Ẩn form nhập liệu
-                if (formBody) formBody.style.display = 'none';
-                submitBtn.style.display = 'none';
+                // 4. CHECK-IN THÀNH CÔNG!
+                if (window.playNotifChime) window.playNotifChime();
 
-                if (data.data && data.data.match_status === 'walk_in') {
-                    alertBox.classList.remove('success');
-                    alertBox.classList.add('error');
-                    alertBox.style.background = '#fff5f5';
-                    alertBox.style.border = '2px solid #ef5350';
-                    alertBox.style.color = '#c62828';
+                alertBox.style.display = 'block';
+                alertBox.className = 'alert success';
+                alertBox.style.background = 'transparent';
+                alertBox.style.padding = '0';
+                alertBox.style.border = 'none';
 
-                    alertBox.innerHTML = `
-                        <div style="text-align: center; margin-bottom: 8px;">
-                            <strong style="font-size: 1.15rem; color: #c62828;">Chưa có trong danh sách chuẩn bị!</strong>
+                const resData = data.data;
+
+                alertBox.innerHTML = `
+                    <div style="background: #ffffff; border: 2px solid #22c55e; border-radius: 20px; padding: 26px 20px; box-shadow: 0 15px 40px rgba(34, 197, 94, 0.18); text-align: center;">
+                        <div style="font-size: 1.4rem; font-weight: 900; color: #15803d; letter-spacing: 0.5px; margin-bottom: 8px;">
+                            CHECK-IN THÀNH CÔNG
                         </div>
-                        <div style="font-size: 0.95rem; color: #b71c1c; text-align: center; margin-bottom: 14px; line-height: 1.4;">
-                            Thông tin của quý khách chưa có trong danh sách chuẩn bị trước. Vui lòng liên hệ lễ tân để được hỗ trợ!
+                        <div style="font-size: 0.95rem; color: #166534; font-weight: 600; margin-bottom: 22px; line-height: 1.5; padding: 0 8px;">
+                            Sự hiện diện của Quý khách là niềm vinh hạnh lớn cho chúng tôi. Xin trân trọng cảm ơn!
                         </div>
 
-                        <div style="background: #ffffff; border: 1px solid #ffcdd2; border-radius: 12px; padding: 14px; text-align: left; box-shadow: 0 4px 12px rgba(239,83,80,0.08);">
-                            <div style="font-size: 0.8rem; color: #c62828; margin-bottom: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;">
-                                THÔNG TIN VỪA NHẬP (LIÊN HỆ LỄ TÂN HỖ TRỢ)
+                        <!-- Thẻ thông tin khách hàng -->
+                        <div style="background: #f0fdf4; border: 1.5px solid #bbf7d0; border-radius: 12px; padding: 14px 18px; text-align: left; margin-bottom: 22px;">
+                            <div style="margin-bottom: 8px; font-size: 0.92rem; display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #166534; font-weight: 600;">Mã KH:</span>
+                                <strong style="color: #15803d; font-weight: 800; font-size: 1.05rem;">${resData.customer_code}</strong>
                             </div>
-                            <div style="margin-bottom: 8px; font-size: 0.95rem; color: #333;">
-                                <strong>Họ tên:</strong> ${data.data.full_name || ''}
+                            <div style="font-size: 0.92rem; display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #166534; font-weight: 600;">Đơn vị / Đại lý:</span>
+                                <strong style="color: #0f172a; font-weight: 700; font-size: 1rem;">${resData.organization}</strong>
                             </div>
-                            <div style="margin-bottom: 8px; font-size: 0.95rem; color: #333;">
-                                <strong>Số điện thoại:</strong> ${data.data.phone || ''}
-                            </div>
-                            ${data.data.address ? `<div style="margin-bottom: 8px; font-size: 0.95rem; color: #333;"><strong>Địa chỉ:</strong> ${data.data.address}</div>` : ''}
-                            ${data.data.lucky_draw_code ? `<div style="margin-bottom: 8px; font-size: 0.95rem; color: #d32f2f;"><strong>Mã dự thưởng:</strong> ${data.data.lucky_draw_code}</div>` : ''}
                         </div>
-                    `;
-                } else {
-                    alertBox.classList.add('success');
-                    alertBox.innerHTML = `<strong>Thành công!</strong> ${data.message}`;
 
-                    if (data.data && data.data.match_status === 'matched') {
-                        let extraMsg = `
-                            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed #81c784; text-align: center;">
-                                <div style="font-size: 0.95rem; color: #2e7d32; font-weight: 600; margin-bottom: 12px; line-height: 1.5;">
-                                    Sự hiện diện của Quý khách là niềm vinh hạnh của chúng tôi. Chúc Quý khách có một buổi hội nghị tràn đầy năng lượng và thành công!
+                        <!-- Thẻ NỔI BẬT Vị Trí Bàn & Mã Trúng Thưởng -->
+                        <div style="display: flex; flex-wrap: wrap; gap: 14px; justify-content: center;">
+                            ${resData.table_name ? `
+                                <div style="flex: 1; min-width: 140px; background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border: 2.5px solid #2e7d32; border-radius: 16px; padding: 16px 12px; text-align: center; box-shadow: 0 8px 20px rgba(46, 125, 50, 0.2);">
+                                    <div style="font-size: 0.78rem; color: #1b5e20; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">VỊ TRÍ BÀN NGỒI</div>
+                                    <div style="font-size: 1.6rem; font-weight: 900; color: #1b5e20;">${resData.table_name}</div>
                                 </div>
-                                
-                                <div style="background: #ffffff; border: 1px solid #c8e6c9; border-radius: 12px; padding: 12px 16px; text-align: left; margin-bottom: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.03);">
-                                    <div style="margin-bottom: 6px; font-size: 0.95rem; color: #1b5e20;">
-                                        <strong>Họ tên:</strong> ${data.data.full_name || ''}
-                                    </div>
-                                    <div style="margin-bottom: 6px; font-size: 0.95rem; color: #1b5e20;">
-                                        <strong>Số điện thoại:</strong> ${data.data.phone || ''}
-                                    </div>
-                                    ${data.data.address ? `
-                                        <div style="font-size: 0.95rem; color: #1b5e20;">
-                                            <strong>Địa chỉ / Cửa hàng:</strong> ${data.data.address}
-                                        </div>
-                                    ` : ''}
+                            ` : ''}
+                            
+                            ${resData.lucky_draw_code ? `
+                                <div style="flex: 1; min-width: 140px; background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%); border: 2.5px solid #7b1fa2; border-radius: 16px; padding: 16px 12px; text-align: center; box-shadow: 0 8px 20px rgba(123, 31, 162, 0.2);">
+                                    <div style="font-size: 0.78rem; color: #4a148c; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">MÃ TRÚNG THƯỞNG</div>
+                                    <div style="font-size: 1.6rem; font-weight: 900; color: #4a148c;">${resData.lucky_draw_code}</div>
                                 </div>
-
-                                <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 10px;">
-                                    ${data.data.table_name ? `
-                                        <div style="flex: 1; min-width: 140px; background: #e8f5e9; border: 2px solid #66bb6a; border-radius: 12px; padding: 10px 14px; text-align: center; box-shadow: 0 3px 8px rgba(46,125,50,0.12);">
-                                            <div style="font-size: 0.75rem; color: #2e7d32; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Vị trí ngồi</div>
-                                            <div style="font-size: 1.25rem; font-weight: 800; color: #1b5e20;">${data.data.table_name}</div>
-                                        </div>
-                                    ` : ''}
-                                    
-                                    ${data.data.lucky_draw_code ? `
-                                        <div style="flex: 1; min-width: 140px; background: #f3e5f5; border: 2px solid #ab47bc; border-radius: 12px; padding: 10px 14px; text-align: center; box-shadow: 0 3px 8px rgba(123,31,162,0.12);">
-                                            <div style="font-size: 0.75rem; color: #7b1fa2; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Mã bốc thăm</div>
-                                            <div style="font-size: 1.25rem; font-weight: 800; color: #4a148c;">${data.data.lucky_draw_code}</div>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        `;
-                        alertBox.innerHTML += extraMsg;
-                    }
-                }
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
             } else {
-                alertBox.classList.add('error');
-                alertBox.innerHTML = `<strong>Lỗi:</strong> ${data.message}`;
-                // Mở khóa nút để thử lại
-                submitBtn.disabled = false;
-                spinner.style.display = 'none';
-                btnText.textContent = 'Xác nhận Check-in';
+                // Phản hồi lỗi chung
+                alertBox.style.display = 'block';
+                alertBox.className = 'alert error';
+                alertBox.style.background = 'transparent';
+                alertBox.style.padding = '0';
+                alertBox.style.border = 'none';
+
+                alertBox.innerHTML = `
+                    <div style="background: #ffffff; border: 2px solid #ef4444; border-radius: 16px; padding: 20px; text-align: center; box-shadow: 0 10px 25px rgba(239, 68, 68, 0.12);">
+                        <div style="font-weight: 700; color: #b91c1c; margin-bottom: 14px;">${data.message || 'Đã có lỗi xảy ra. Vui lòng thử lại!'}</div>
+                        <button type="button" onclick="window.resetCheckinForm()" style="background: #ef4444; color: white; border: none; padding: 10px 22px; border-radius: 8px; font-weight: 700; cursor: pointer;">Nhập lại</button>
+                    </div>
+                `;
             }
+        } catch (e) {
+            console.error('Checkin error:', e);
+            
+            if (formBody) formBody.style.display = 'none';
+            if (submitBtn) submitBtn.style.display = 'none';
 
-        } catch (error) {
             alertBox.style.display = 'block';
-            alertBox.classList.add('error');
-            alertBox.innerHTML = '<strong>Lỗi:</strong> Không thể kết nối đến máy chủ. Vui lòng thử lại!';
+            alertBox.className = 'alert error';
+            alertBox.style.background = 'transparent';
+            alertBox.style.padding = '0';
+            alertBox.style.border = 'none';
 
-            // Mở khóa nút
-            submitBtn.disabled = false;
-            spinner.style.display = 'none';
-            btnText.textContent = 'Xác nhận Check-in';
+            alertBox.innerHTML = `
+                <div style="background: #ffffff; border: 2px solid #ef4444; border-radius: 16px; padding: 20px; text-align: center; box-shadow: 0 10px 25px rgba(239, 68, 68, 0.12);">
+                    <div style="font-weight: 700; color: #b91c1c; margin-bottom: 14px;">${e.message || 'Không thể kết nối máy chủ. Vui lòng thử lại!'}</div>
+                    <button type="button" onclick="window.resetCheckinForm()" style="background: #ef4444; color: white; border: none; padding: 10px 22px; border-radius: 8px; font-weight: 700; cursor: pointer;">Thử lại</button>
+                </div>
+            `;
         }
     });
-});
-
-function submitConfirmationChoice(action) {
-    const form = document.getElementById('checkin-form');
-    if (!form) return;
-    
-    let hiddenInput = document.getElementById('confirm_code_action');
-    if (!hiddenInput) {
-        hiddenInput = document.createElement('input');
-        hiddenInput.type = 'hidden';
-        hiddenInput.id = 'confirm_code_action';
-        hiddenInput.name = 'confirm_code_action';
-        form.appendChild(hiddenInput);
-    }
-    hiddenInput.value = action;
-    
-    const submitBtn = document.getElementById('btn-submit');
-    if (submitBtn) submitBtn.disabled = false;
-    
-    form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-}
-
-// Phím tắt Y / N hỗ trợ xác nhận siêu nhanh
-document.addEventListener('keydown', (e) => {
-    const yesBtn = document.getElementById('btn-confirm-yes');
-    const noBtn = document.getElementById('btn-confirm-no');
-    if (yesBtn && noBtn) {
-        const key = e.key.toLowerCase();
-        if (key === 'y') {
-            e.preventDefault();
-            yesBtn.click();
-        } else if (key === 'n') {
-            e.preventDefault();
-            noBtn.click();
-        }
-    }
 });

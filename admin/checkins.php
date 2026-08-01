@@ -127,7 +127,8 @@ if ($sort === 'table_asc') {
 $stmtCheckins = $db->prepare("
     SELECT c.*, e.event_name, t.table_name, 
            g.full_name as guest_full_name, g.phone as guest_phone, g.organization as guest_organization,
-           g.lucky_draw_code as guest_lucky_code, g.notes as guest_notes, g.normalized_phone as guest_normalized_phone
+           g.lucky_draw_code as guest_lucky_code, g.notes as guest_notes, g.normalized_phone as guest_normalized_phone,
+           g.customer_code as guest_customer_code
     FROM checkins c 
     LEFT JOIN events e ON c.event_id = e.id 
     LEFT JOIN event_tables t ON c.table_id = t.id 
@@ -263,6 +264,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                 <table>
                     <thead>
                         <tr>
+                            <th>Mã KH</th>
                             <th>Họ Tên Khách Điền</th>
                             <th>SĐT Khách Điền</th>
                             <th>Vị Trí Bàn</th>
@@ -276,8 +278,16 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                     <tbody id="checkins-table-body">
                         <?php foreach($checkins as $c): 
                             $isByLuckyCode = ($c['checkin_method'] ?? '') === 'lucky_code' || (!empty($c['guest_normalized_phone']) && $c['normalized_phone'] !== $c['guest_normalized_phone']);
+                            $custCode = !empty($c['customer_code']) ? $c['customer_code'] : ($c['guest_customer_code'] ?? '');
                         ?>
                         <tr id="checkin-row-<?php echo (int)$c['id']; ?>" class="<?php echo $c['match_status'] === 'matched' ? 'row-checked-in' : ''; ?>">
+                            <td>
+                                <?php if (!empty($custCode)): ?>
+                                    <strong style="color: #0284c7; font-family: monospace; font-size: 0.88rem;"><?php echo esc($custCode); ?></strong>
+                                <?php else: ?>
+                                    <span style="color: #aaa;">-</span>
+                                <?php endif; ?>
+                            </td>
                             <td><strong><?php echo esc($c['full_name_entered']); ?></strong></td>
                             <td><?php echo esc($c['phone_entered']); ?></td>
                             <td>
@@ -601,7 +611,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                 if (!tbody) return;
 
                 if (result.data.recent_checkins.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="${isKinhDoanhUser ? 7 : 8}" style="text-align:center; color:#777; padding:20px;">Không tìm thấy lượt check-in nào phù hợp với bộ lọc</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="${isKinhDoanhUser ? 8 : 9}" style="text-align:center; color:#777; padding:20px;">Không tìm thấy lượt check-in nào phù hợp với bộ lọc</td></tr>`;
                     return;
                 }
 
@@ -612,6 +622,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                         event_id: item.event_id || 0,
                         table_id: item.table_id || null,
                         guest_id: item.guest_id || null,
+                        customer_code: item.customer_code || '',
                         full_name: item.full_name,
                         phone: item.phone,
                         address_entered: item.address_entered || '',
@@ -630,6 +641,10 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                     const isCheckedIn = item.status === 'matched';
                     const rowClass = isCheckedIn ? 'row-checked-in' : '';
                     
+                    const customerCodeHtml = item.customer_code 
+                        ? `<strong style="color: #0284c7; font-family: monospace; font-size: 0.88rem;">${item.customer_code}</strong>` 
+                        : `<span style="color: #aaa;">-</span>`;
+
                     const luckyCodeHtml = item.lucky_draw_code 
                         ? `<span style="font-weight: 700; color: #6a1b9a; background: #f3e5f5; border: 1px solid #ba68c8; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">${item.lucky_draw_code}</span>` 
                         : `<span style="color:#aaa;">-</span>`;
@@ -670,6 +685,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
 
                     html += `
                         <tr id="checkin-row-${item.id}" class="${rowClass}">
+                            <td>${customerCodeHtml}</td>
                             <td><strong>${item.full_name}</strong></td>
                             <td>${item.phone}</td>
                             <td>${tableNameHtml}</td>

@@ -76,35 +76,77 @@
         }
     }
 
-    // 3. Hàm phát âm thanh kép (HTML5 Audio + Web Audio Synth)
+    // 3. Hàm phát âm thanh thông báo hệ thống (Gõ Gỗ Marimba ấm áp & sang trọng)
     window.playNotifChime = function () {
         unlockAudio();
+        const selectedType = localStorage.getItem('pmt_selected_sound_type') || 'marimba';
 
-        // Engine 1: HTML5 Audio với WAV Data URI
-        try {
-            const wavUri = getChimeWavUri();
-            if (wavUri) {
-                const audio = new Audio(wavUri);
-                audio.volume = 0.9;
-                audio.play().catch(() => {});
-            }
-        } catch (e) {}
-
-        // Engine 2: Web Audio API Oscillator
         try {
             if (audioCtx) {
                 const now = audioCtx.currentTime;
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(783.99, now); // G5
-                osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.12); // C6
-                gain.gain.setValueAtTime(0.4, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start(now);
-                osc.stop(now + 0.45);
+                if (selectedType === 'marimba' || selectedType === 'chime' || !selectedType) {
+                    // Âm #6: Gõ Gỗ Marimba (E4 -> A4 -> C5)
+                    [329.63, 440.00, 523.25].forEach((f, i) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        const st = now + (i * 0.1);
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(f, st);
+                        gain.gain.setValueAtTime(0.5, st);
+                        gain.gain.exponentialRampToValueAtTime(0.001, st + 0.25);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(st);
+                        osc.stop(st + 0.25);
+                    });
+                } else if (selectedType === 'single') {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(1046.50, now);
+                    gain.gain.setValueAtTime(0.4, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.start(now); osc.stop(now + 0.5);
+                } else if (selectedType === 'dingdong') {
+                    [{ f: 659.25, t: 0, d: 0.3 }, { f: 523.25, t: 0.22, d: 0.6 }].forEach(n => {
+                        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                        osc.type = 'sine'; osc.frequency.setValueAtTime(n.f, now + n.t);
+                        gain.gain.setValueAtTime(0.4, now + n.t); gain.gain.exponentialRampToValueAtTime(0.001, now + n.t + n.d);
+                        osc.connect(gain); gain.connect(audioCtx.destination);
+                        osc.start(now + n.t); osc.stop(now + n.t + n.d);
+                    });
+                } else if (selectedType === 'crystal') {
+                    const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(1318.51, now);
+                    osc.frequency.exponentialRampToValueAtTime(1760.00, now + 0.15);
+                    gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.start(now); osc.stop(now + 0.6);
+                } else if (selectedType === 'success') {
+                    [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+                        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); const st = now + (i * 0.08);
+                        osc.type = 'sine'; osc.frequency.setValueAtTime(f, st);
+                        gain.gain.setValueAtTime(0.3, st); gain.gain.exponentialRampToValueAtTime(0.001, st + 0.35);
+                        osc.connect(gain); gain.connect(audioCtx.destination);
+                        osc.start(st); osc.stop(st + 0.35);
+                    });
+                } else {
+                    // Mặc định: Marimba Gõ Gỗ
+                    [329.63, 440.00, 523.25].forEach((f, i) => {
+                        const osc = audioCtx.createOscillator();
+                        const gain = audioCtx.createGain();
+                        const st = now + (i * 0.1);
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(f, st);
+                        gain.gain.setValueAtTime(0.5, st);
+                        gain.gain.exponentialRampToValueAtTime(0.001, st + 0.25);
+                        osc.connect(gain);
+                        gain.connect(audioCtx.destination);
+                        osc.start(st);
+                        osc.stop(st + 0.25);
+                    });
+                }
             }
         } catch (e) {}
     };

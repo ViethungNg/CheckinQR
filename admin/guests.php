@@ -35,43 +35,69 @@ if (isPost()) {
             } elseif ($guestToCheckin['status'] === 'checked_in') {
                 $errMsg = 'Khách "' . esc($guestToCheckin['full_name']) . '" đã được check-in trước đó rồi.';
                 if (isset($_POST['ajax']) || isset($_GET['ajax'])) {
+                    if (ob_get_length()) ob_clean();
                     header('Content-Type: application/json; charset=utf-8');
-                    echo json_encode(['status' => 'error', 'message' => $errMsg]);
+                    echo json_encode([
+                        'status'          => 'already_checked_in',
+                        'message'         => $errMsg,
+                        'guest_id'        => $id,
+                        'table_name'      => esc($guestToCheckin['table_name'] ?? 'Chưa xếp bàn'),
+                        'lucky_draw_code' => esc($guestToCheckin['lucky_draw_code'] ?? '-')
+                    ], JSON_UNESCAPED_UNICODE);
                     exit;
                 }
                 $error = $errMsg;
             } else {
-                $luckyCode = !empty($guestToCheckin['lucky_draw_code']) ? $guestToCheckin['lucky_draw_code'] : null;
+                $customerCode = !empty($guestToCheckin['customer_code']) ? $guestToCheckin['customer_code'] : null;
+                $luckyCode    = !empty($guestToCheckin['lucky_draw_code']) ? $guestToCheckin['lucky_draw_code'] : null;
+                $phoneEntered = !empty($guestToCheckin['phone']) ? $guestToCheckin['phone'] : '';
+                $normPhone    = !empty($guestToCheckin['phone']) ? normalizePhone($guestToCheckin['phone']) : '';
+                $orgEntered   = !empty($guestToCheckin['organization']) ? $guestToCheckin['organization'] : '';
 
                 $db->prepare("UPDATE guests SET status = 'checked_in' WHERE id = ?")->execute([$id]);
 
                 $ip = $_SERVER['REMOTE_ADDR'] ?? null;
                 $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
-                $stmtIns = $db->prepare("
-                    INSERT INTO checkins (event_id, guest_id, table_id, lucky_draw_code, full_name_entered, phone_entered, normalized_phone, match_status, checkin_method, ip_address, user_agent)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 'matched', 'manual_letan', ?, ?)
-                ");
-                $stmtIns->execute([
-                    $guestToCheckin['event_id'],
-                    $id,
-                    $guestToCheckin['table_id'],
-                    $luckyCode,
-                    $guestToCheckin['full_name'],
-                    $guestToCheckin['phone'],
-                    $guestToCheckin['normalized_phone'],
-                    $ip,
-                    $userAgent
-                ]);
+
+                try {
+                    $stmtIns = $db->prepare("
+                        INSERT INTO checkins (
+                            event_id, guest_id, table_id, customer_code, lucky_draw_code,
+                            full_name_entered, phone_entered, normalized_phone, address_entered,
+                            match_status, checkin_method, ip_address, user_agent
+                        ) VALUES (
+                            ?, ?, ?, ?, ?,
+                            ?, ?, ?, ?,
+                            'matched', 'manual_letan', ?, ?
+                        )
+                    ");
+                    $stmtIns->execute([
+                        $guestToCheckin['event_id'],
+                        $id,
+                        $guestToCheckin['table_id'],
+                        $customerCode,
+                        $luckyCode,
+                        $guestToCheckin['full_name'],
+                        $phoneEntered,
+                        $normPhone,
+                        $orgEntered,
+                        $ip,
+                        $userAgent
+                    ]);
+                } catch (\Throwable $e) {
+                    error_log('Insert checkin_ho error: ' . $e->getMessage());
+                }
 
                 $succMsg = 'Check-in hộ khách "' . esc($guestToCheckin['full_name']) . '" thành công!';
                 if (isset($_POST['ajax']) || isset($_GET['ajax'])) {
+                    if (ob_get_length()) ob_clean();
                     header('Content-Type: application/json; charset=utf-8');
                     echo json_encode([
                         'status'          => 'success',
                         'message'         => $succMsg,
                         'guest_id'        => $id,
                         'table_name'      => esc($guestToCheckin['table_name'] ?? 'Chưa xếp bàn'),
-                        'lucky_draw_code' => esc($luckyCode)
+                        'lucky_draw_code' => esc($luckyCode ?? '-')
                     ], JSON_UNESCAPED_UNICODE);
                     exit;
                 }
@@ -81,6 +107,8 @@ if (isPost()) {
     } elseif (isAdmin()) {
         if ($action === 'add') {
             $eventId = (int)$_POST['event_id'];
+            $customerCode = trim($_POST['customer_code'] ?? '');
+            if ($customerCode === '') $customerCode = null;
             $fullName = trim($_POST['full_name'] ?? '');
             $phone = trim($_POST['phone'] ?? '');
             $tableId = !empty($_POST['table_id']) ? (int)$_POST['table_id'] : null;
@@ -94,16 +122,18 @@ if (isPost()) {
                 $error = 'Vui lòng chọn sự kiện và nhập họ tên';
             } else {
                 try {
-                    $stmt = $db->prepare("INSERT INTO guests (event_id, full_name, phone, normalized_phone, table_id, lucky_draw_code, organization, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->execute([$eventId, $fullName, $phone, $normalizedPhone, $tableId, $luckyDrawCode, $organization, $status]);
+                    $stmt = $db->prepare("INSERT INTO guests (event_id, customer_code, full_name, phone, normalized_phone, table_id, lucky_draw_code, organization, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                    $stmt->execute([$eventId, $customerCode, $fullName, $phone, $normalizedPhone, $tableId, $luckyDrawCode, $organization, $status]);
                     $message = 'Thêm khách thành công!';
                 } catch(PDOException $e) {
-                    $error = 'Lỗi thêm khách (Có thể trùng số điện thoại trong cùng sự kiện).';
+                    $error = 'Lỗi thêm khách (Có thể trùng số điện thoại hoặc trùng Mã KH).';
                 }
             }
         } elseif ($action === 'edit') {
             $id = (int)$_POST['id'];
             $eventId = (int)$_POST['event_id'];
+            $customerCode = trim($_POST['customer_code'] ?? '');
+            if ($customerCode === '') $customerCode = null;
             $fullName = trim($_POST['full_name'] ?? '');
             $phone = trim($_POST['phone'] ?? '');
             $tableId = !empty($_POST['table_id']) ? (int)$_POST['table_id'] : null;
@@ -119,15 +149,57 @@ if (isPost()) {
                     $db->prepare("DELETE FROM guests WHERE id = ?")->execute([$id]);
                     $message = 'Đã chuyển khách thành Khách phát sinh và xóa khỏi Danh sách khách hàng!';
                 } else {
-                    $stmt = $db->prepare("UPDATE guests SET event_id=?, full_name=?, phone=?, normalized_phone=?, table_id=?, lucky_draw_code=?, organization=?, status=? WHERE id=?");
-                    $stmt->execute([$eventId, $fullName, $phone, $normalizedPhone, $tableId, $luckyDrawCode, $organization, $status, $id]);
+                    $stmt = $db->prepare("UPDATE guests SET event_id=?, customer_code=?, full_name=?, phone=?, normalized_phone=?, table_id=?, lucky_draw_code=?, organization=?, status=? WHERE id=?");
+                    $stmt->execute([$eventId, $customerCode, $fullName, $phone, $normalizedPhone, $tableId, $luckyDrawCode, $organization, $status, $id]);
+                    
+                    // Đồng bộ dữ liệu với bảng checkins
+                    if ($status !== 'checked_in') {
+                        // Nếu chuyển về "Chưa tới", xóa hẳn lượt checkin trong bảng checkins
+                        $db->prepare("DELETE FROM checkins WHERE guest_id = ?")->execute([$id]);
+                    } else {
+                        // Nếu chuyển sang "Đã checkin", tạo hoặc cập nhật lượt checkin trong bảng checkins
+                        $chkCount = (int)$db->query("SELECT COUNT(*) FROM checkins WHERE guest_id = {$id}")->fetchColumn();
+                        if ($chkCount === 0) {
+                            $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+                            $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? null;
+                            $stmtIns = $db->prepare("
+                                INSERT INTO checkins (
+                                    event_id, guest_id, table_id, customer_code, lucky_draw_code,
+                                    full_name_entered, phone_entered, normalized_phone, address_entered,
+                                    match_status, checkin_method, ip_address, user_agent
+                                ) VALUES (
+                                    ?, ?, ?, ?, ?,
+                                    ?, ?, ?, ?,
+                                    'matched', 'manual_letan', ?, ?
+                                )
+                            ");
+                            $stmtIns->execute([
+                                $eventId,
+                                $id,
+                                $tableId,
+                                null,
+                                $luckyDrawCode ?: null,
+                                $fullName,
+                                $phone,
+                                $normalizedPhone,
+                                $organization,
+                                $ip,
+                                $userAgent
+                            ]);
+                        } else {
+                            $db->prepare("UPDATE checkins SET table_id = ?, lucky_draw_code = ?, full_name_entered = ?, phone_entered = ?, normalized_phone = ?, address_entered = ? WHERE guest_id = ?")
+                               ->execute([$tableId, $luckyDrawCode ?: null, $fullName, $phone, $normalizedPhone, $organization, $id]);
+                        }
+                    }
+
                     $message = 'Cập nhật thông tin khách thành công!';
                 }
             } catch(PDOException $e) {
-                $error = 'Lỗi cập nhật khách.';
+                $error = 'Lỗi cập nhật khách: ' . $e->getMessage();
             }
         } elseif ($action === 'delete') {
             $id = (int)$_POST['id'];
+            $db->prepare("DELETE FROM checkins WHERE guest_id = ?")->execute([$id]);
             $stmt = $db->prepare("DELETE FROM guests WHERE id=?");
             $stmt->execute([$id]);
             $message = 'Xóa khách thành công!';
@@ -152,8 +224,8 @@ if (!empty($search)) {
     $normalizedSearch = normalizePhone($search);
     $searchLike = "%$search%";
     $normLike = "%$normalizedSearch%";
-    $whereClauses[] = "(g.full_name LIKE ? OR g.phone LIKE ? OR g.normalized_phone LIKE ? OR g.lucky_draw_code LIKE ? OR t.table_name LIKE ? OR t.table_code LIKE ?)";
-    $params = [$searchLike, $searchLike, $normLike, $searchLike, $searchLike, $searchLike];
+    $whereClauses[] = "(g.full_name LIKE ? OR g.phone LIKE ? OR g.normalized_phone LIKE ? OR g.customer_code LIKE ? OR g.lucky_draw_code LIKE ? OR t.table_name LIKE ? OR t.table_code LIKE ?)";
+    $params = [$searchLike, $searchLike, $normLike, $searchLike, $searchLike, $searchLike, $searchLike];
 }
 
 if (isKinhDoanh()) {
@@ -197,6 +269,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         $guestList[] = [
             'id'              => (int)$g['id'],
             'event_id'        => (int)$g['event_id'],
+            'customer_code'   => esc($g['customer_code'] ?? ''),
             'full_name'       => esc($g['full_name']),
             'phone'           => esc($g['phone']),
             'organization'    => esc($g['organization'] ?? ''),
@@ -311,6 +384,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 <table>
                     <thead>
                         <tr>
+                            <th>Mã KH</th>
                             <th>Họ Tên</th>
                             <th>SĐT</th>
                             <th>Đơn vị</th>
@@ -331,13 +405,20 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                     <tbody id="guests-table-body">
                         <?php foreach($guests as $guest): ?>
                         <tr class="<?php echo $guest['status'] === 'checked_in' ? 'row-checked-in' : ''; ?>">
+                            <td>
+                                <?php if (!empty($guest['customer_code'])): ?>
+                                    <strong style="color: #0284c7; font-family: monospace; font-size: 0.88rem;"><?php echo esc($guest['customer_code']); ?></strong>
+                                <?php else: ?>
+                                    <span style="color: #aaa;">-</span>
+                                <?php endif; ?>
+                            </td>
                             <td><strong><?php echo esc($guest['full_name']); ?></strong></td>
                             <td><?php echo esc($guest['phone']); ?></td>
                             <td><?php echo esc($guest['organization'] ?? '-'); ?></td>
                             <td>
                                 <?php if (!empty($guest['table_name'])): ?>
                                     <span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">
-                                        <?php echo esc($guest['table_name'] . ($guest['table_code'] ? ' (' . $guest['table_code'] . ')' : '')); ?>
+                                        <?php echo esc($guest['table_name']); ?>
                                     </span>
                                 <?php else: ?>
                                     <span style="color: #888; font-style: italic;">Chưa xếp</span>
@@ -409,6 +490,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                         <option value="<?php echo $e['id']; ?>"><?php echo esc($e['event_name']); ?></option>
                     <?php endforeach; ?>
                 </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Mã khách hàng (Mã KH / Mã đối chiếu)</label>
+                <input type="text" name="customer_code" id="customerCode" class="form-control" placeholder="Ví dụ: KH001, AB002... (Để trống nếu chưa có)">
             </div>
             
             <div class="grid-2">
@@ -505,6 +591,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     window.allGuestsMap[<?php echo (int)$g['id']; ?>] = <?php echo json_encode([
         'id'              => (int)$g['id'],
         'event_id'        => (int)$g['event_id'],
+        'customer_code'   => $g['customer_code'] ?? '',
         'full_name'       => $g['full_name'],
         'phone'           => $g['phone'],
         'organization'    => $g['organization'] ?? '',
@@ -560,10 +647,21 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 
                 const response = await fetch('guests.php', {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    headers: { 'Accept': 'application/json' }
                 });
 
-                const result = await response.json();
+                const resText = await response.text();
+                let result = {};
+                try {
+                    const cleanText = resText.trim().replace(/^\uFEFF/, '');
+                    const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+                    result = JSON.parse(jsonMatch ? jsonMatch[0] : cleanText);
+                } catch(err) {
+                    console.error('Raw checkin_ho response:', resText);
+                    result = { status: 'error', message: 'Lỗi phản hồi từ máy chủ' };
+                }
+
                 if (result.status === 'success') {
                     showCheckinResultPopup({
                         title: 'Check-in Hộ Thành Công',
@@ -573,16 +671,27 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                         tableName: result.table_name || 'Chưa xếp bàn',
                         luckyCode: result.lucky_draw_code || '-'
                     });
-                    fetchRealtimeGuests();
+                    fetchRealtimeGuests(true);
+                } else if (result.status === 'already_checked_in') {
+                    showCheckinResultPopup({
+                        title: 'Khách Đã Check-in Trước Đó',
+                        subtitle: result.message || 'Khách hàng này đã được ghi nhận check-in.',
+                        fullName: guestName,
+                        phone: guestPhone,
+                        tableName: result.table_name || 'Chưa xếp bàn',
+                        luckyCode: result.lucky_draw_code || '-'
+                    });
+                    fetchRealtimeGuests(true);
                 } else {
                     showCheckinResultPopup({
                         title: 'Không thể Check-in',
                         subtitle: result.message || 'Khách hàng không hợp lệ hoặc có lỗi xảy ra.',
                         fullName: guestName,
                         phone: guestPhone,
-                        tableName: 'Lỗi',
+                        tableName: result.table_name || 'Chưa xếp bàn',
                         luckyCode: '-'
                     });
+                    fetchRealtimeGuests(true);
                 }
             } catch (e) {
                 console.error('Checkin ho error:', e);
@@ -617,7 +726,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             if (!eventId || t.event_id == eventId) {
                 const opt = document.createElement('option');
                 opt.value = t.id;
-                opt.textContent = t.table_code ? `${t.table_code} (${t.table_name})` : t.table_name;
+                opt.textContent = t.table_name;
                 if (t.id == selectedTableId) opt.selected = true;
                 tableSelect.appendChild(opt);
             }
@@ -636,6 +745,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             eventSelect.value = '';
         }
         
+        if (document.getElementById('customerCode')) document.getElementById('customerCode').value = '';
         document.getElementById('fullName').value = '';
         document.getElementById('phone').value = '';
         document.getElementById('luckyCode').value = '';
@@ -652,6 +762,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
         document.getElementById('formAction').value = 'edit';
         document.getElementById('guestId').value = data.id;
         document.getElementById('eventId').value = data.event_id;
+        if (document.getElementById('customerCode')) document.getElementById('customerCode').value = data.customer_code || '';
         document.getElementById('fullName').value = data.full_name;
         document.getElementById('phone').value = data.phone;
         document.getElementById('luckyCode').value = data.lucky_draw_code;
@@ -691,7 +802,7 @@ counter.textContent = count;
 
     let lastGuestsHash = '';
 
-    async function fetchRealtimeGuests() {
+    async function fetchRealtimeGuests(force = false) {
         try {
             const params = new URLSearchParams(window.location.search);
             params.set('ajax', '1');
@@ -701,7 +812,7 @@ counter.textContent = count;
             if (!response.ok) return;
 
             const textData = await response.text();
-            if (textData === lastGuestsHash) return;
+            if (!force && textData === lastGuestsHash) return;
             lastGuestsHash = textData;
 
             const result = JSON.parse(textData);
@@ -720,7 +831,7 @@ counter.textContent = count;
                 const hasActions = canCheckinHo || isAdminUser;
 
                 if (result.guests.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="${hasActions ? 7 : 6}" style="text-align:center; color:#777; padding:20px;">Không có dữ liệu khách hàng</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="${hasActions ? 8 : 7}" style="text-align:center; color:#777; padding:20px;">Không có dữ liệu khách hàng</td></tr>`;
                     return;
                 }
 
@@ -729,6 +840,7 @@ counter.textContent = count;
                     window.allGuestsMap[item.id] = {
                         id: item.id,
                         event_id: item.event_id,
+                        customer_code: item.customer_code,
                         full_name: item.full_name,
                         phone: item.phone,
                         organization: item.organization,
@@ -740,7 +852,11 @@ counter.textContent = count;
                     const isCheckedIn = item.status === 'checked_in';
                     const rowClass = isCheckedIn ? 'row-checked-in' : '';
 
-                    const tableNameStr = item.table_name ? (item.table_name + (item.table_code ? ` (${item.table_code})` : '')) : '';
+                    const customerCodeHtml = item.customer_code 
+                        ? `<strong style="color: #0284c7; font-family: monospace; font-size: 0.88rem;">${item.customer_code}</strong>`
+                        : `<span style="color: #aaa;">-</span>`;
+
+                    const tableNameStr = item.table_name || '';
                     const tableHtml = tableNameStr 
                         ? `<span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">${tableNameStr}</span>`
                         : `<span style="color: #888; font-style: italic;">Chưa xếp</span>`;
@@ -788,6 +904,7 @@ counter.textContent = count;
 
                     html += `
                         <tr class="${rowClass}">
+                            <td>${customerCodeHtml}</td>
                             <td><strong>${item.full_name}</strong></td>
                             <td>${item.phone}</td>
                             <td>${item.organization || '-'}</td>
@@ -825,7 +942,7 @@ counter.textContent = count;
         setInterval(fetchRealtimeGuests, 3000); // Polling dự phòng
 
         window.addEventListener('dbRealtimeChange', () => {
-            fetchRealtimeGuests();
+            fetchRealtimeGuests(true);
         });
     });
 </script>

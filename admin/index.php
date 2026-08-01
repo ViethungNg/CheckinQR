@@ -187,6 +187,7 @@ if (count($activeEvents) === 1) {
                 <table class="modern-data-table">
                     <thead>
                         <tr>
+                            <th>Mã KH</th>
                             <th>Họ và tên</th>
                             <th>Số Điện Thoại</th>
                             <th>Bàn Tiệc</th>
@@ -284,13 +285,17 @@ async function updateRealtimeStats(forceRefresh = false) {
             const tbody = document.getElementById('recent-checkins-body');
             if (result.data.recent_checkins) {
                 if (result.data.recent_checkins.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#94a3b8; padding:32px; font-size:0.95rem;">Không tìm thấy dữ liệu phù hợp với bộ lọc hiện tại</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#94a3b8; padding:32px; font-size:0.95rem;">Không tìm thấy dữ liệu phù hợp với bộ lọc hiện tại</td></tr>`;
                 } else {
                     let html = '';
                     result.data.recent_checkins.slice(0, 150).forEach(item => {
                         const isCheckedIn = item.status === 'checked_in' || item.status === 'matched';
                         const rowClass = isCheckedIn ? 'row-checked-in' : '';
                         
+                        const customerCodeHtml = item.customer_code 
+                            ? `<strong style="color: #0284c7; font-family: monospace; font-size: 0.88rem;">${item.customer_code}</strong>`
+                            : `<span style="color: #cbd5e1;">-</span>`;
+
                         let badgeText = item.status_text;
                         let badgeStyle = 'background:#f1f5f9; color:#475569; border:1px solid #e2e8f0;';
                         
@@ -320,6 +325,7 @@ async function updateRealtimeStats(forceRefresh = false) {
 
                         html += `
                             <tr class="${rowClass}">
+                                <td>${customerCodeHtml}</td>
                                 <td style="font-weight:700; color:#0f172a;">${item.full_name}</td>
                                 <td style="font-weight:600; color:#475569;">${item.phone}</td>
                                 <td>${tableNameHtml}</td>

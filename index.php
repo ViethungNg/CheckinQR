@@ -132,28 +132,15 @@ if ($slug !== '') {
         <div class="form-body">
             <div id="alert-message" class="alert"></div>
             
-            <form id="checkin-form" action="<?php echo url('api/checkin.php'); ?>" method="POST">
+            <form id="checkin-form" action="api/checkin.php" method="POST">
                 <input type="hidden" name="event_id" value="<?php echo (int)$event['id']; ?>">
+                <input type="hidden" name="action" id="form-action-type" value="lookup">
+                <input type="hidden" name="guest_id" id="form-guest-id" value="">
                 
                 <div id="form-fields">
                     <div class="form-group">
-                        <label for="full_name">Họ và tên *</label>
-                        <input type="text" id="full_name" name="full_name" class="form-control" required placeholder="Nhập họ tên của bạn" maxlength="150">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="phone">Số điện thoại *</label>
-                        <input type="tel" id="phone" name="phone" class="form-control" required placeholder="Ví dụ: 0912345678" maxlength="30">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="address">Địa chỉ/ Tên cửa hàng</label>
-                        <input type="text" id="address" name="address" class="form-control" placeholder="Nhập địa chỉ hoặc tên cửa hàng" maxlength="255">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="lucky_draw_code">Mã trúng giải (nếu nhớ)</label>
-                        <input type="text" id="lucky_draw_code" name="lucky_draw_code" class="form-control" placeholder="Nhập mã trúng giải (nếu có)" maxlength="50">
+                        <label for="customer_code">Mã Khách hàng được NPP cung cấp *</label>
+                        <input type="text" id="customer_code" name="customer_code" class="form-control" required placeholder="" maxlength="50" autocomplete="off">
                     </div>
                 </div>
                 
