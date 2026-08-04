@@ -299,7 +299,7 @@
                 🔔
                 <span class="notif-badge-count" id="notifBadgeCount" style="display:none;">0</span>
             </button>
-            <div class="notif-dropdown" id="notifDropdown">
+            <div class="notif-dropdown" id="notifDropdown" style="max-height: 290px !important;">
                 <div class="notif-dropdown-header">
                     <span>Thông báo check-in mới nhất</span>
                     <div style="display:flex; gap:8px; align-items:center;">
@@ -308,7 +308,7 @@
                         <button type="button" class="notif-close-btn" onclick="toggleNotifDropdown(event)" style="background:none; border:none; font-size:1.6rem; color:#64748b; cursor:pointer; padding:0 4px; line-height:1;" title="Đóng">&times;</button>
                     </div>
                 </div>
-                <div class="notif-dropdown-list" id="notifDropdownList">
+                <div class="notif-dropdown-list" id="notifDropdownList" style="max-height: 230px !important; overflow-y: auto !important;">
                     <div class="notif-empty-state">Chưa có lượt check-in nào</div>
                 </div>
             </div>

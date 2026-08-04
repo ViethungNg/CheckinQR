@@ -3104,3 +3104,63 @@ tr.row-new-highlight td {
     color: #64748b;
     margin-top: 4px;
 }
+
+/* ==========================================================================
+   NOTIFICATION DROPDOWN PANEL COMPACT HEIGHT CONTROL (RED-BOX REGION)
+   ========================================================================== */
+.notif-bell-container {
+    position: relative !important;
+    display: inline-block !important;
+}
+
+.notif-dropdown {
+    position: absolute !important;
+    top: calc(100% + 8px) !important;
+    right: 0 !important;
+    width: 380px !important;
+    max-width: calc(100vw - 32px) !important;
+    background: #ffffff !important;
+    border-radius: 14px !important;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+    border: 1px solid #cbd5e1 !important;
+    z-index: 99999 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    max-height: 290px !important; /* Giới hạn chiều cao vừa gọn vùng màu đỏ */
+}
+
+.notif-dropdown-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 10px 14px !important;
+    background: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    font-weight: 800 !important;
+    font-size: 0.85rem !important;
+    color: #0f172a !important;
+    flex-shrink: 0 !important;
+}
+
+.notif-dropdown-list {
+    max-height: 230px !important; /* Hiển thị gọn 1-2 thông báo, có thanh cuộn mượt */
+    overflow-y: auto !important;
+    scroll-behavior: smooth !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.notif-dropdown-list::-webkit-scrollbar {
+    width: 5px;
+}
+.notif-dropdown-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+.notif-dropdown-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+.notif-dropdown-list::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
