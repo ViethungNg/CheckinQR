@@ -299,7 +299,7 @@
                 🔔
                 <span class="notif-badge-count" id="notifBadgeCount" style="display:none;">0</span>
             </button>
-            <div class="notif-dropdown" id="notifDropdown" style="max-height: 290px !important;">
+            <div class="notif-dropdown" id="notifDropdown" style="max-height: 165px !important;">
                 <div class="notif-dropdown-header">
                     <span>Thông báo check-in mới nhất</span>
                     <div style="display:flex; gap:8px; align-items:center;">
@@ -308,7 +308,7 @@
                         <button type="button" class="notif-close-btn" onclick="toggleNotifDropdown(event)" style="background:none; border:none; font-size:1.6rem; color:#64748b; cursor:pointer; padding:0 4px; line-height:1;" title="Đóng">&times;</button>
                     </div>
                 </div>
-                <div class="notif-dropdown-list" id="notifDropdownList" style="max-height: 230px !important; overflow-y: auto !important;">
+                <div class="notif-dropdown-list" id="notifDropdownList" style="max-height: 120px !important; overflow-y: auto !important;">
                     <div class="notif-empty-state">Chưa có lượt check-in nào</div>
                 </div>
             </div>
@@ -371,19 +371,16 @@
             const lucky = item.lucky_draw_code || '';
 
             html += `
-                <div class="notif-item ${statusClass} ${item.is_new ? 'unread' : ''}" onclick="window.location.href='checkins.php?highlight=${item.id}'" style="padding: 12px 14px; border-bottom: 1px solid #e2e8f0; cursor: pointer; transition: background 0.15s ease;">
-                    <div class="notif-item-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <span class="notif-status-badge ${badgeClass}">${statusLabel}</span>
-                        <span class="notif-item-time" style="font-size: 0.78rem; color: #64748b; font-weight: 600;">${timeDisplay}</span>
+                <div class="notif-item ${statusClass} ${item.is_new ? 'unread' : ''}" onclick="window.location.href='checkins.php?highlight=${item.id}'" style="padding: 7px 10px; border-bottom: 1px solid #e2e8f0; cursor: pointer; transition: background 0.15s ease;">
+                    <div class="notif-item-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                        <span class="notif-status-badge ${badgeClass}" style="font-size: 0.72rem; padding: 1px 6px;">${statusLabel}</span>
+                        <span class="notif-item-time" style="font-size: 0.74rem; color: #64748b; font-weight: 600;">${timeDisplay}</span>
                     </div>
-                    <div style="font-size: 0.96rem; font-weight: 800; color: #0f172a; margin-bottom: 4px;">
-                        Khách hàng: <span style="color: #1e293b;">${name}</span>
+                    <div style="font-size: 0.88rem; font-weight: 800; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        Khách hàng: <span style="color: #1e293b;">${name}</span> ${custCode ? `<strong style="color:#0284c7; font-size:0.8rem;">(${custCode})</strong>` : ''}
                     </div>
-                    <div style="font-size: 0.84rem; color: #475569; display: flex; flex-direction: column; gap: 3px; border-left: 3px solid ${isWalkIn ? '#f59e0b' : '#22c55e'}; padding-left: 8px; margin-top: 4px;">
-                        ${custCode ? `<div><span style="color:#64748b; font-weight:600;">Mã KH:</span> <strong style="color:#0284c7;">${custCode}</strong></div>` : ''}
-                        ${org ? `<div><span style="color:#64748b; font-weight:600;">Đơn vị / Đại lý:</span> <strong>${org}</strong></div>` : ''}
-                        <div><span style="color:#64748b; font-weight:600;">Bàn ngồi:</span> <strong>${table}</strong></div>
-                        ${lucky ? `<div><span style="color:#64748b; font-weight:600;">Mã trúng thưởng:</span> <strong style="color:#7b1fa2;">${lucky}</strong></div>` : ''}
+                    <div style="font-size: 0.78rem; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px;">
+                        <strong style="color:${isWalkIn ? '#d97706' : '#047857'};">${table}</strong> ${org ? `• ${org}` : ''} ${lucky ? `• Mã: ${lucky}` : ''}
                     </div>
                 </div>
             `;
