@@ -542,8 +542,14 @@
         unlockAudio();
         const dropdown = document.getElementById('notifDropdown');
         if (dropdown) {
-            const isVisible = getComputedStyle(dropdown).display !== 'none';
-            dropdown.style.display = isVisible ? 'none' : 'flex';
+            const isVisible = dropdown.classList.contains('active') || (getComputedStyle(dropdown).display !== 'none' && dropdown.style.display !== 'none');
+            if (isVisible) {
+                dropdown.classList.remove('active');
+                dropdown.style.setProperty('display', 'none', 'important');
+            } else {
+                dropdown.classList.add('active');
+                dropdown.style.setProperty('display', 'flex', 'important');
+            }
         }
     };
 
@@ -551,16 +557,18 @@
         unlockAudio();
         const dropdown = document.getElementById('notifDropdown');
         if (dropdown) {
-            dropdown.style.display = 'flex';
+            dropdown.classList.add('active');
+            dropdown.style.setProperty('display', 'flex', 'important');
         }
     };
 
     document.addEventListener('click', function (e) {
         const dropdown = document.getElementById('notifDropdown');
         const bellBtn = document.getElementById('notifBellBtn');
-        if (dropdown && getComputedStyle(dropdown).display !== 'none') {
+        if (dropdown && (dropdown.classList.contains('active') || getComputedStyle(dropdown).display !== 'none')) {
             if (!dropdown.contains(e.target) && (!bellBtn || !bellBtn.contains(e.target))) {
-                dropdown.style.display = 'none';
+                dropdown.classList.remove('active');
+                dropdown.style.setProperty('display', 'none', 'important');
             }
         }
     });
