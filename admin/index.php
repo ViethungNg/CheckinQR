@@ -47,6 +47,7 @@ if (count($activeEvents) === 1) {
     <title>PMT - Checkin - Dashboard Quản trị</title>
     <link rel="icon" href="../img/logo pmt.png" type="image/png">
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -54,99 +55,87 @@ if (count($activeEvents) === 1) {
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
     
     <div class="main-content">
-        <!-- Role-Specific Hero Banner -->
-        <?php if (isAdmin()): ?>
-            <div class="dashboard-hero-banner hero-role-admin">
-                <div class="hero-text-content">
-                    <div class="hero-role-badge">Admin / Quản trị viên</div>
-                    <h2>Xin chào, <?php echo esc($_SESSION['admin_name'] ?? 'Admin'); ?>!</h2>
-                    <p>Tổng quan hệ thống điều hành check-in sự kiện real-time & quản lý bàn tiệc.</p>
-                </div>
-                <div class="hero-quick-actions">
-                    <a href="events.php" class="btn-hero-action btn-hero-primary">Quản lý Sự kiện</a>
-                    <a href="guests.php" class="btn-hero-action btn-hero-outline">Danh sách Khách</a>
-                    <a href="<?php echo $qrCheckinUrl; ?>" target="_blank" class="btn-hero-action btn-hero-outline">Màn Hình Quét QR</a>
+        <!-- Dashboard Header Bar -->
+        <div class="dash-header-bar">
+            <div class="dash-page-title">
+                📊 <span>Thống kê hiệu suất check-in & tham gia sự kiện</span>
+            </div>
+            <div class="dash-header-actions">
+                <div class="dash-date-picker-box">
+                    📅 <input type="text" value="<?php echo date('01/m/Y'); ?>" readonly> &rarr; <input type="text" value="<?php echo date('t/m/Y'); ?>" readonly>
                 </div>
             </div>
-        <?php elseif (isLeTan()): ?>
-            <div class="dashboard-hero-banner hero-role-letan">
-                <div class="hero-text-content">
-                    <div class="hero-role-badge">Nhân viên Lễ Tân</div>
-                    <h2>Chào mừng Lễ Tân, <?php echo esc($_SESSION['admin_name'] ?? 'Lễ Tân'); ?>!</h2>
-                    <p>Trung tâm tiếp đón khách hàng & vận hành check-in tốc độ cao tại sảnh.</p>
-                </div>
-                <div class="hero-quick-actions">
-                    <a href="<?php echo $qrCheckinUrl; ?>" target="_blank" class="btn-hero-action btn-hero-primary">Quét QR Khách</a>
-                    <a href="guests.php" class="btn-hero-action btn-hero-outline">Tìm Khách Hàng</a>
-                    <a href="checkins.php" class="btn-hero-action btn-hero-outline">Lịch sử Check-in</a>
-                </div>
-            </div>
-        <?php else: ?>
-            <div class="dashboard-hero-banner hero-role-kinhdoanh">
-                <div class="hero-text-content">
-                    <div class="hero-role-badge">Nhân viên Kinh Doanh</div>
-                    <h2>Bàn Phụ Trách - <?php echo esc($_SESSION['admin_name'] ?? 'Kinh Doanh'); ?></h2>
-                    <p>Theo dõi tiến độ khách dự tiệc & thông tin các bàn bạn trực tiếp phụ trách.</p>
-                </div>
-                <div class="hero-quick-actions">
-                    <a href="guests.php" class="btn-hero-action btn-hero-primary">Khách Mời Của Tôi</a>
-                    <a href="tables.php" class="btn-hero-action btn-hero-outline">Danh Sách Bàn Phụ Trách</a>
-                </div>
-            </div>
-        <?php endif; ?>
-        
-        <!-- Modern Stats Cards Grid -->
-        <div class="dashboard-cards-grid">
-            <?php if (!isKinhDoanh()): ?>
-            <div class="stat-card-modern card-accent-events active-card" id="card-all" onclick="setFilter('all')" title="Bấm để xem tất cả">
-                <div class="stat-card-header">
-                    <span class="stat-card-title">Tổng Sự Kiện</span>
-                </div>
-                <div class="stat-card-value" id="val-events"><?php echo $stats['events']; ?></div>
-                <div class="stat-card-subtitle">Đang diễn ra</div>
-            </div>
-            <?php endif; ?>
+        </div>
 
-            <div class="stat-card-modern card-accent-guests <?php echo isKinhDoanh() ? 'active-card' : ''; ?>" id="card-guests" onclick="setFilter('guests')" title="Bấm để lọc tất cả khách dự kiến">
-                <div class="stat-card-header">
-                    <span class="stat-card-title">Khách Dự Kiến <?php echo isKinhDoanh() ? '(Phụ trách)' : ''; ?></span>
-                </div>
-                <div class="stat-card-value" id="val-guests"><?php echo $stats['guests']; ?></div>
-                <div class="stat-card-subtitle">Danh sách mới nhất</div>
+        <!-- 6 Pastel Metric Cards Grid -->
+        <div class="pastel-cards-grid-6">
+            <!-- Card 1: Purple (Tổng lượt khách mời) -->
+            <div class="stat-card-pastel card-pastel-purple" id="card-guests" onclick="setFilter('guests')" title="Bấm để xem tất cả khách dự kiến">
+                <div class="pastel-card-title">Tổng số khách mời</div>
+                <div class="pastel-card-value" id="val-guests"><?php echo $stats['guests']; ?></div>
+                <div class="pastel-card-subtitle">Khách dự kiến tham gia</div>
             </div>
 
-            <div class="stat-card-modern card-accent-matched" id="card-matched" onclick="setFilter('matched')" title="Bấm để lọc khách đã Check-in hợp lệ">
-                <div class="stat-card-header">
-                    <span class="stat-card-title">Đã Check-in (Khớp)</span>
-                </div>
-                <div class="stat-card-value" style="color: #10b981;" id="val-checked-in"><?php echo $stats['checked_in']; ?></div>
-                <div class="stat-card-subtitle">Hợp lệ thành công</div>
+            <!-- Card 2: Green (Đã check-in) -->
+            <div class="stat-card-pastel card-pastel-green" id="card-matched" onclick="setFilter('matched')" title="Bấm để xem khách đã check-in">
+                <div class="pastel-card-title">Đã Check-in (Khớp)</div>
+                <div class="pastel-card-value" id="val-checked-in"><?php echo $stats['checked_in']; ?></div>
+                <div class="pastel-card-subtitle" id="val-attendance-rate-sub">Tỷ lệ có mặt: <?php echo $checkinRate; ?>%</div>
             </div>
 
-            <?php if (!isKinhDoanh()): ?>
-            <div class="stat-card-modern card-accent-walkin" id="card-walk_in" onclick="setFilter('walk_in')" title="Bấm để lọc khách phát sinh">
-                <div class="stat-card-header">
-                    <span class="stat-card-title">Khách Phát Sinh</span>
-                </div>
-                <div class="stat-card-value" style="color: #f59e0b;" id="val-walk-in"><?php echo $stats['walk_in']; ?></div>
-                <div class="stat-card-subtitle">Walk-in tại sảnh</div>
+            <!-- Card 3: Yellow (Bàn đã lấp đầy) -->
+            <div class="stat-card-pastel card-pastel-yellow" onclick="scrollToFloorplan()" title="Số lượng bàn tiệc đã đạt 100% người tới">
+                <div class="pastel-card-title">Bàn tiệc lấp đầy (100%)</div>
+                <div class="pastel-card-value" id="val-full-tables">0 Bàn</div>
+                <div class="pastel-card-subtitle">Đã đủ số người xếp bàn</div>
             </div>
 
-            <div class="stat-card-modern card-accent-unassigned" id="card-unassigned" onclick="setFilter('unassigned')" title="Bấm để lọc khách chưa xếp bàn">
-                <div class="stat-card-header">
-                    <span class="stat-card-title">Chưa Xếp Bàn</span>
-                </div>
-                <div class="stat-card-value" style="color: #ef4444;" id="val-unassigned"><?php echo $stats['unassigned']; ?></div>
-                <div class="stat-card-subtitle">Cần phân chỗ</div>
+            <!-- Card 4: Pink (Bàn đông khách nhất) -->
+            <div class="stat-card-pastel card-pastel-pink" title="Bàn tiệc có lượt khách có mặt đông nhất">
+                <div class="pastel-card-title">Bàn đông khách nhất</div>
+                <div class="pastel-card-value" style="font-size: 1.25rem;" id="val-top-table">Chưa có</div>
+                <div class="pastel-card-subtitle">Có lượt check-in cao nhất</div>
             </div>
-            <?php endif; ?>
 
-            <div class="stat-card-modern card-accent-notarrived" id="card-not_arrived" onclick="setFilter('not_arrived')" title="Bấm để lọc khách dự kiến chưa tới">
-                <div class="stat-card-header">
-                    <span class="stat-card-title">Khách Chưa Tới</span>
+            <!-- Card 5: Cyan (Khách chưa tới) -->
+            <div class="stat-card-pastel card-pastel-cyan" id="card-not_arrived" onclick="setFilter('not_arrived')" title="Bấm để xem khách chưa tới">
+                <div class="pastel-card-title">Khách chưa tới</div>
+                <div class="pastel-card-value" id="val-not-arrived"><?php echo $stats['not_arrived']; ?></div>
+                <div class="pastel-card-subtitle">Đang chờ tiếp đón tại sảnh</div>
+            </div>
+
+            <!-- Card 6: Coral (Khách phát sinh Walk-in) -->
+            <div class="stat-card-pastel card-pastel-coral" id="card-walk_in" onclick="setFilter('walk_in')" title="Bấm để xem khách phát sinh">
+                <div class="pastel-card-title">Khách phát sinh (Walk-in)</div>
+                <div class="pastel-card-value" id="val-walk-in"><?php echo $stats['walk_in']; ?></div>
+                <div class="pastel-card-subtitle">Đăng ký mới tại sự kiện</div>
+            </div>
+        </div>
+
+        <!-- Combined Dashboard Charts Section -->
+        <div class="dashboard-charts-grid">
+            <!-- Left Chart: Column Bar Chart per Table -->
+            <div class="chart-card-modern">
+                <div class="chart-card-header">
+                    <div class="chart-card-title">📊 Tiến độ có mặt theo từng Bàn tiệc</div>
                 </div>
-                <div class="stat-card-value" style="color: #6366f1;" id="val-not-arrived"><?php echo $stats['not_arrived']; ?></div>
-                <div class="stat-card-subtitle">Đang chờ tiếp đón</div>
+                <div class="chart-canvas-wrapper">
+                    <canvas id="chart-table-occupancy"></canvas>
+                </div>
+            </div>
+
+            <!-- Right Chart: Donut Chart combining Table Statuses -->
+            <div class="chart-card-modern">
+                <div class="chart-card-header">
+                    <div class="chart-card-title">🍩 Trạng thái lấp đầy các Bàn tiệc</div>
+                </div>
+                <div class="chart-canvas-wrapper">
+                    <canvas id="chart-status-distribution"></canvas>
+                    <div class="donut-center-badge">
+                        <div class="donut-center-pct" id="donut-center-pct"><?php echo $checkinRate; ?>%</div>
+                        <div class="donut-center-label">Tỷ lệ có mặt</div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -252,6 +241,114 @@ function handleSearchInput(val) {
     }, 300);
 }
 
+function scrollToFloorplan() {
+    const sec = document.querySelector('.table-floorplan-section');
+    if (sec) sec.scrollIntoView({ behavior: 'smooth' });
+}
+
+let occupancyChartInstance = null;
+let tableStatusDistChartInstance = null;
+
+function renderCharts(charts) {
+    if (!window.Chart) return;
+
+    // 1. Column Bar Chart for Table Occupancy
+    const occCanvas = document.getElementById('chart-table-occupancy');
+    if (occCanvas && charts.table_occupancy) {
+        const labels = charts.table_occupancy.map(item => item.name);
+        const arrivedData = charts.table_occupancy.map(item => item.arrived);
+        const totalData = charts.table_occupancy.map(item => item.total);
+
+        if (occupancyChartInstance) {
+            occupancyChartInstance.data.labels = labels;
+            occupancyChartInstance.data.datasets[0].data = arrivedData;
+            occupancyChartInstance.data.datasets[1].data = totalData;
+            occupancyChartInstance.update();
+        } else {
+            const ctx = occCanvas.getContext('2d');
+            occupancyChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Khách đã check-in',
+                            data: arrivedData,
+                            backgroundColor: '#10B981',
+                            borderRadius: 6,
+                            barPercentage: 0.6
+                        },
+                        {
+                            label: 'Tổng số xếp bàn',
+                            data: totalData,
+                            backgroundColor: '#CBD5E1',
+                            borderRadius: 6,
+                            barPercentage: 0.6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } }
+                    }
+                }
+            });
+        }
+    }
+
+    // 2. Donut Chart for Table Status Distribution (Combined with Floorplan)
+    const distCanvas = document.getElementById('chart-status-distribution');
+    if (distCanvas && charts.table_status_dist) {
+        const dist = charts.table_status_dist;
+        const labels = [
+            '🟢 Bàn đủ 100% khách (' + (dist.full || 0) + ')',
+            '🔵 Bàn đang đón khách (' + (dist.partial || 0) + ')',
+            '🟡 Bàn chưa có khách (' + (dist.empty || 0) + ')',
+            '🔴 Khách chưa xếp bàn (' + (dist.unassigned || 0) + ')'
+        ];
+        const values = [dist.full || 0, dist.partial || 0, dist.empty || 0, dist.unassigned || 0];
+
+        if (tableStatusDistChartInstance) {
+            tableStatusDistChartInstance.data.labels = labels;
+            tableStatusDistChartInstance.data.datasets[0].data = values;
+            tableStatusDistChartInstance.update();
+        } else {
+            const ctx = distCanvas.getContext('2d');
+            tableStatusDistChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: ['#10B981', '#3B82F6', '#F59E0B', '#EF4444'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff',
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    onClick: (evt, activeEls) => {
+                        if (activeEls && activeEls.length > 0) {
+                            scrollToFloorplan();
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'right' }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+    }
+}
+
 async function updateRealtimeStats(forceRefresh = false) {
     try {
         const queryUrl = `../api/stats.php?filter=${encodeURIComponent(currentFilter)}&table_id=${encodeURIComponent(selectedTableId)}&search=${encodeURIComponent(currentSearch)}&_t=${Date.now()}`;
@@ -267,13 +364,29 @@ async function updateRealtimeStats(forceRefresh = false) {
         if (result.status === 'success') {
             const data = result.data.stats;
             
-            // Cập nhật số liệu trên thẻ thống kê
+            // Cập nhật số liệu trên 6 thẻ thống kê Pastel
             if (document.getElementById('val-events')) document.getElementById('val-events').textContent = data.events;
             if (document.getElementById('val-guests')) document.getElementById('val-guests').textContent = data.guests;
             if (document.getElementById('val-checked-in')) document.getElementById('val-checked-in').textContent = data.checked_in;
             if (document.getElementById('val-walk-in')) document.getElementById('val-walk-in').textContent = data.walk_in;
             if (document.getElementById('val-unassigned')) document.getElementById('val-unassigned').textContent = data.unassigned;
             if (document.getElementById('val-not-arrived')) document.getElementById('val-not-arrived').textContent = data.not_arrived;
+            
+            if (data.full_tables_str && document.getElementById('val-full-tables')) {
+                document.getElementById('val-full-tables').textContent = data.full_tables_str;
+            }
+            if (data.top_table && document.getElementById('val-top-table')) {
+                document.getElementById('val-top-table').textContent = data.top_table;
+            }
+            if (data.attendance_rate !== undefined) {
+                if (document.getElementById('donut-center-pct')) document.getElementById('donut-center-pct').textContent = data.attendance_rate + '%';
+                if (document.getElementById('val-attendance-rate-sub')) document.getElementById('val-attendance-rate-sub').textContent = 'Tỷ lệ có mặt: ' + data.attendance_rate + '%';
+            }
+
+            // Vẽ & Cập nhật Biểu đồ Chart.js Realtime (Cột & Tròn)
+            if (result.data.charts) {
+                renderCharts(result.data.charts);
+            }
             
             // Render Sơ đồ trạng thái từng Bàn
             if (result.data.tables) {
