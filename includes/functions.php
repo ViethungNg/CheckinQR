@@ -80,6 +80,7 @@ function getDefaultTableColumns(string $tableName): array {
                 ['key' => 'table_name',      'label' => 'Bàn ngồi',         'visible' => true],
                 ['key' => 'lucky_draw_code', 'label' => 'Mã trúng thưởng',  'visible' => true],
                 ['key' => 'checkin_time',    'label' => 'Thời gian checkin','visible' => true],
+                ['key' => 'status',          'label' => 'Trạng thái',       'visible' => true],
             ];
         case 'guests':
             return [

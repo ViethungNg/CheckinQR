@@ -1,9 +1,9 @@
 /**
  * Admin Mobile UX Helper
- * - Tự động tạo Nút ☰ Menu đẳng cấp trên Mobile
+ * - Tự động tạo & gán sự kiện Nút ☰ Menu trên Mobile
  * - Tự động bọc Bảng dữ liệu trong khung vuốt ngang mượt mà + Hiện gợi ý "Vuốt sang trái 👈"
  */
-document.addEventListener('DOMContentLoaded', function() {
+function initAdminMobileUX() {
     // 1. Xử lý Sidebar Mobile Menu Toggle
     const sidebar = document.querySelector('.sidebar');
     let toggleBtn = document.getElementById('mobileMenuBtn');
@@ -21,7 +21,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
 
-        if (toggleBtn) {
+        if (toggleBtn && !toggleBtn._mobileBound) {
+            toggleBtn._mobileBound = true;
+            
             toggleBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 const isOpen = sidebar.classList.toggle('mobile-open');
@@ -37,31 +39,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // 2. Xử lý Bọc Bảng và Gợi Ý Vuốt Ngang cho Mobile
+    // 2. Xử lý Bọc Bảng 100% Khung hình cho Mobile
     if (window.innerWidth <= 768) {
         const tables = document.querySelectorAll('table');
         tables.forEach(function(table) {
-            // Nếu chưa được bọc trong table-responsive
             if (!table.parentElement.classList.contains('table-responsive')) {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'table-responsive';
-                
-                // Thêm gợi ý vuốt sang trái
-                const hint = document.createElement('div');
-                hint.className = 'mobile-swipe-hint';
-                hint.style.cssText = 'font-size: 0.78rem; color: #666; margin-bottom: 8px; display: flex; align-items: center; gap: 4px; font-weight: 500;';
-                hint.innerHTML = '👈 <span>Vuốt sang trái để xem toàn bộ cột & thao tác</span>';
-
-                table.parentNode.insertBefore(hint, table);
                 table.parentNode.insertBefore(wrapper, table);
                 wrapper.appendChild(table);
             }
         });
     }
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAdminMobileUX);
+} else {
+    initAdminMobileUX();
+}
 
 /**
- * Tự động cuộn xuống khu vực bảng dữ liệu trên tất cả thiết bị (Desktop, Tablet, Mobile) khi chọn bộ lọc
+ * Tự động cuộn xuống khu vực bảng dữ liệu trên tất cả thiết bị khi chọn bộ lọc
  */
 window.scrollToTableSectionOnMobile = function() {
     setTimeout(function() {

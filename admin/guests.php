@@ -398,7 +398,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             <!-- Thanh Lọc & Sắp Xếp Thông Minh (Live Typing Search) -->
             <form method="GET" action="" id="search-form" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; background: #f8f9fa; padding: 12px 15px; border-radius: 8px; border: 1px solid #e0e0e0;">
                 <div style="flex: 1; min-width: 240px; position: relative;">
-                    <input type="text" id="search-input" name="search" value="<?php echo esc($search); ?>" placeholder="Tìm theo SĐT, Bàn, Mã dự thưởng, Họ tên..." class="form-control" oninput="liveSearchGuests(this.value)" autocomplete="off">
+                    <input type="text" id="search-input" name="search" value="<?php echo esc($search); ?>" placeholder="Tìm theo SĐT, Bàn, Mã dự thưởng, Họ tên..." class="form-control" autocomplete="off">
                 </div>
                 
                 <div style="min-width: 220px;">
@@ -494,7 +494,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                                 <?php if (!empty($c['visible'])): ?>
                                     <?php switch($c['key']):
                                         case 'customer_code': ?>
-                                            <td>
+                                            <td data-label="<?php echo esc($c['label']); ?>">
                                                 <?php if (!empty($guest['customer_code'])): ?>
                                                     <strong style="color: #0284c7; font-weight:700; font-size: 0.88rem;"><?php echo esc($guest['customer_code']); ?></strong>
                                                 <?php else: ?>
@@ -503,16 +503,16 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                                             </td>
                                             <?php break;
                                         case 'full_name': ?>
-                                            <td><strong><?php echo esc($guest['full_name']); ?></strong></td>
+                                            <td data-label="<?php echo esc($c['label']); ?>"><strong><?php echo esc($guest['full_name']); ?></strong></td>
                                             <?php break;
                                         case 'phone': ?>
-                                            <td><?php echo esc($guest['phone']); ?></td>
+                                            <td data-label="<?php echo esc($c['label']); ?>"><?php echo esc($guest['phone']); ?></td>
                                             <?php break;
                                         case 'organization': ?>
-                                            <td><?php echo esc($guest['organization'] ?? '-'); ?></td>
+                                            <td data-label="<?php echo esc($c['label']); ?>"><?php echo esc($guest['organization'] ?? '-'); ?></td>
                                             <?php break;
                                         case 'table_name': ?>
-                                            <td>
+                                            <td data-label="<?php echo esc($c['label']); ?>">
                                                 <?php if (!empty($guest['table_name'])): ?>
                                                     <span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">
                                                         <?php echo esc($guest['table_name']); ?>
@@ -523,7 +523,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                                             </td>
                                             <?php break;
                                         case 'lucky_draw_code': ?>
-                                            <td>
+                                            <td data-label="<?php echo esc($c['label']); ?>">
                                                 <?php if (!empty($guest['lucky_draw_code'])): ?>
                                                     <span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">
                                                         <?php echo esc($guest['lucky_draw_code']); ?>
@@ -534,7 +534,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                                             </td>
                                             <?php break;
                                         case 'status': ?>
-                                            <td>
+                                            <td data-label="<?php echo esc($c['label']); ?>">
                                                 <span class="badge <?php echo esc($guest['status']); ?>">
                                                     <?php echo $guest['status'] === 'checked_in' ? 'Đã checkin' : 'Chưa tới'; ?>
                                                 </span>
@@ -544,7 +544,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                                             <?php if (isAdmin() || isLeTan()): ?>
                                                 <td style="text-align: center;">
                                                     <div class="action-btns-wrapper" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-                                                        <div style="width: 105px; display: inline-flex; align-items: center;">
+                                                        <div style="width: 105px; display: inline-flex; justify-content: center; align-items: center; flex-shrink: 0;">
                                                             <?php if ($guest['status'] === 'invited'): ?>
                                                                 <button type="button" class="btn btn-action-checkin" onclick='checkinHoGuest(<?php echo (int)$guest["id"]; ?>, <?php echo json_encode($guest["full_name"]); ?>)'>Check-in hộ</button>
                                                             <?php else: ?>
@@ -929,20 +929,18 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     }
     window.attachSearchAndSortToForm = attachSearchAndSortToForm;
 
-    function liveSearchGuests(val, skipUrlSync = false) {
-        const query = (val || '').toLowerCase().trim();
-        if (!skipUrlSync) {
-            updateUrlSearchParam(val);
-        }
+    let liveSearchUrlTimer = null;
 
+    function filterGuestsDOM(val) {
+        const query = (val || '').toLowerCase().trim();
         const tbody = document.getElementById('guests-table-body');
         if (!tbody) return;
-        
+
         const rows = tbody.querySelectorAll('tr');
         let count = 0;
-        
+
         rows.forEach(row => {
-            const text = row.innerText.toLowerCase();
+            const text = (row.textContent || '').toLowerCase();
             if (query === '' || text.includes(query)) {
                 row.style.display = '';
                 count++;
@@ -953,6 +951,17 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 
         const counter = document.getElementById('guest-count-title');
         if (counter) counter.textContent = count;
+    }
+
+    function liveSearchGuests(val, skipUrlSync = false) {
+        filterGuestsDOM(val);
+
+        if (!skipUrlSync) {
+            clearTimeout(liveSearchUrlTimer);
+            liveSearchUrlTimer = setTimeout(() => {
+                updateUrlSearchParam(val);
+            }, 250);
+        }
     }
 
     let lastGuestsHash = '';
@@ -1060,30 +1069,31 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                     html += `<tr class="${rowClass}">`;
                     guestColsConfig.forEach(col => {
                         if (!col.visible) return;
+                        const labelAttr = `data-label="${col.label}"`;
                         switch(col.key) {
                             case 'customer_code':
-                                html += `<td>${customerCodeHtml}</td>`;
+                                html += `<td ${labelAttr}>${customerCodeHtml}</td>`;
                                 break;
                             case 'full_name':
-                                html += `<td><strong>${item.full_name}</strong></td>`;
+                                html += `<td ${labelAttr}><strong>${item.full_name}</strong></td>`;
                                 break;
                             case 'phone':
-                                html += `<td>${item.phone}</td>`;
+                                html += `<td ${labelAttr}>${item.phone}</td>`;
                                 break;
                             case 'organization':
-                                html += `<td>${item.organization || '-'}</td>`;
+                                html += `<td ${labelAttr}>${item.organization || '-'}</td>`;
                                 break;
                             case 'table_name':
-                                html += `<td>${tableHtml}</td>`;
+                                html += `<td ${labelAttr}>${tableHtml}</td>`;
                                 break;
                             case 'lucky_draw_code':
-                                html += `<td>${luckyHtml}</td>`;
+                                html += `<td ${labelAttr}>${luckyHtml}</td>`;
                                 break;
                             case 'status':
-                                html += `<td>${statusHtml}</td>`;
+                                html += `<td ${labelAttr}>${statusHtml}</td>`;
                                 break;
                             case 'actions':
-                                if (hasActions) html += actionsHtml;
+                                if (hasActions) html += `<td style="text-align: center;"><div class="action-btns-wrapper" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;"><div style="width: 105px; display: inline-flex; justify-content: center; align-items: center; flex-shrink: 0;">${checkinSlot}</div> ${adminBtns}</div></td>`;
                                 break;
                         }
                     });
@@ -1110,13 +1120,17 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     document.addEventListener('DOMContentLoaded', function() {
         const input = document.getElementById('search-input');
         if (input) {
-            ['input', 'keyup', 'change', 'search', 'paste'].forEach(evt => {
-                input.addEventListener(evt, function() {
-                    liveSearchGuests(this.value);
-                });
+            let debounceTimer = null;
+            input.addEventListener('input', function() {
+                const val = this.value;
+                filterGuestsDOM(val);
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    updateUrlSearchParam(val);
+                }, 250);
             });
             if (input.value) {
-                liveSearchGuests(input.value);
+                filterGuestsDOM(input.value);
             }
         }
         setInterval(fetchRealtimeGuests, 3000); // Polling dự phòng

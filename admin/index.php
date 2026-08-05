@@ -60,11 +60,6 @@ if (count($activeEvents) === 1) {
             <div class="dash-page-title">
                 📊 <span>Thống kê hiệu suất check-in & tham gia sự kiện</span>
             </div>
-            <div class="dash-header-actions">
-                <div class="dash-date-picker-box">
-                    📅 <input type="text" value="<?php echo date('01/m/Y'); ?>" readonly> &rarr; <input type="text" value="<?php echo date('t/m/Y'); ?>" readonly>
-                </div>
-            </div>
         </div>
 
         <!-- 6 Pastel Metric Cards Grid -->

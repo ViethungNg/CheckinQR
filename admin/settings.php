@@ -582,6 +582,7 @@ async function resetTableConfiguration() {
     }
 }
 </script>
+<script src="../assets/js/admin-mobile.js?v=<?php echo time(); ?>"></script>
 
 </body>
 </html>

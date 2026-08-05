@@ -126,15 +126,21 @@ try {
 
         $limitSql = "LIMIT 150";
         $stmtGuests = $db->prepare("
-            SELECT g.*, t.table_name 
+            SELECT g.*, t.table_name, c.checkin_time 
             FROM guests g 
             LEFT JOIN event_tables t ON g.table_id = t.id 
+            LEFT JOIN checkins c ON g.id = c.guest_id
             {$whereClause}
             ORDER BY g.id DESC {$limitSql}
         ");
         $stmtGuests->execute($params);
 
         while ($row = $stmtGuests->fetch()) {
+            $formattedTime = '-';
+            if ($row['status'] === 'checked_in' && !empty($row['checkin_time'])) {
+                $formattedTime = date('d/m/Y H:i:s', strtotime($row['checkin_time']));
+            }
+
             $recentCheckins[] = [
                 'id'              => $row['id'],
                 'customer_code'   => esc($row['customer_code'] ?? ''),
@@ -143,8 +149,8 @@ try {
                 'organization'    => esc($row['organization'] ?? ''),
                 'lucky_draw_code' => esc($row['lucky_draw_code'] ?? ''),
                 'table_name'      => esc($row['table_name'] ?? 'Chưa xếp bàn'),
-                'time'            => $row['status'] === 'checked_in' ? '✅ Đã checkin' : '⏳ Chưa tới',
-                'status'          => $row['status'],
+                'time'            => $formattedTime,
+                'status'          => esc($row['status']),
                 'status_text'     => $row['status'] === 'checked_in' ? 'Đã checkin' : 'Chưa tới',
             ];
         }

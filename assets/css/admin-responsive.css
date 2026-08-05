@@ -50,23 +50,56 @@ tr.row-highlighted > td {
     }
 }
 
-/* ===== BULLETPROOF UNBREAKABLE RESPONSIVE TABLE CELL & BADGE RULES ===== */
+/* ===== BULLETPROOF AUTO-FITTING RESPONSIVE TABLE & CELL RULES ===== */
+table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: auto !important;
+    border-collapse: collapse !important;
+}
+
 table th {
     text-align: center !important;
     vertical-align: middle !important;
+    padding: 10px 6px !important;
+    font-size: 0.86rem !important;
     white-space: nowrap !important;
 }
 
 table td {
     text-align: center !important;
     vertical-align: middle !important;
-    white-space: nowrap !important;
+    padding: 8px 6px !important;
+    font-size: 0.84rem !important;
+    white-space: normal !important;
+    word-break: break-word !important;
 }
 
-.table-responsive,
-.card-body {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
+.table-responsive {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+@media screen and (min-width: 769px) {
+    .table-responsive {
+        overflow-x: hidden !important;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .table-responsive {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+}
+
+.action-btns-wrapper {
+    display: inline-flex !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    justify-content: center !important;
+    align-items: center !important;
 }
 
 .table-badge,
@@ -74,6 +107,34 @@ table td {
 .code-badge,
 .badge-code,
 .badge,
+.btn-action-checkin,
+.btn-action-edit,
+.btn-action-delete,
+span[style*="border-radius"] {
+    white-space: nowrap !important;
+    word-break: keep-all !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+}
+
+.action-btns-wrapper {
+    display: inline-flex !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+.table-badge,
+.badge-table,
+.code-badge,
+.badge-code,
+.badge,
+.btn-action-checkin,
+.btn-action-edit,
+.btn-action-delete,
 span[style*="border-radius"] {
     white-space: nowrap !important;
     word-break: keep-all !important;
