@@ -136,14 +136,16 @@ try {
 
         while ($row = $stmtGuests->fetch()) {
             $recentCheckins[] = [
-                'id'            => $row['id'],
-                'customer_code' => esc($row['customer_code'] ?? ''),
-                'full_name'     => esc($row['full_name']),
-                'phone'         => esc($row['phone']),
-                'table_name'    => esc($row['table_name'] ?? 'Chưa xếp bàn'),
-                'time'          => $row['status'] === 'checked_in' ? '✅ Đã checkin' : '⏳ Chưa tới',
-                'status'        => $row['status'],
-                'status_text'   => $row['status'] === 'checked_in' ? 'Đã checkin' : 'Chưa tới',
+                'id'              => $row['id'],
+                'customer_code'   => esc($row['customer_code'] ?? ''),
+                'full_name'       => esc($row['full_name']),
+                'phone'           => esc($row['phone']),
+                'organization'    => esc($row['organization'] ?? ''),
+                'lucky_draw_code' => esc($row['lucky_draw_code'] ?? ''),
+                'table_name'      => esc($row['table_name'] ?? 'Chưa xếp bàn'),
+                'time'            => $row['status'] === 'checked_in' ? '✅ Đã checkin' : '⏳ Chưa tới',
+                'status'          => $row['status'],
+                'status_text'     => $row['status'] === 'checked_in' ? 'Đã checkin' : 'Chưa tới',
             ];
         }
     } else {
@@ -208,6 +210,8 @@ try {
             }
 
             $custCode = !empty($row['customer_code']) ? $row['customer_code'] : ($row['guest_customer_code'] ?? '');
+            $luckyCode = !empty($row['lucky_draw_code']) ? $row['lucky_draw_code'] : ($row['guest_lucky_code'] ?? '');
+            $orgName = !empty($row['guest_organization']) ? $row['guest_organization'] : ($row['address_entered'] ?? '');
 
             $recentCheckins[] = [
                 'id'                  => (int)$row['id'],
@@ -215,9 +219,10 @@ try {
                 'table_id'            => $row['table_id'] ? (int)$row['table_id'] : null,
                 'guest_id'            => $row['guest_id'] ? (int)$row['guest_id'] : null,
                 'customer_code'       => esc($custCode),
-                'lucky_draw_code'     => esc($row['lucky_draw_code'] ?? ''),
+                'lucky_draw_code'     => esc($luckyCode),
                 'full_name'           => esc($row['full_name_entered']),
                 'phone'               => esc($row['phone_entered']),
+                'organization'        => esc($orgName),
                 'address_entered'     => esc($row['address_entered'] ?? ''),
                 'table_name'          => esc($row['table_name'] ?? 'Chưa xếp bàn'),
                 'time'                => date('d/m/Y H:i:s', strtotime($row['checkin_time'])),

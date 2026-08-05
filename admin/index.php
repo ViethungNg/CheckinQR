@@ -448,7 +448,10 @@ async function updateRealtimeStats(forceRefresh = false) {
                                     html += `<td>${tableNameHtml}</td>`;
                                     break;
                                 case 'lucky_draw_code':
-                                    html += `<td>${item.lucky_draw_code || '-'}</td>`;
+                                    const luckyCodeHtml = item.lucky_draw_code 
+                                        ? `<span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">${item.lucky_draw_code}</span>`
+                                        : `<span style="color: #cbd5e1;">-</span>`;
+                                    html += `<td>${luckyCodeHtml}</td>`;
                                     break;
                                 case 'checkin_time':
                                     html += `<td style="font-size:0.85rem; color:#64748b;">${item.time}</td>`;
