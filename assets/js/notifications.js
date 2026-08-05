@@ -2,23 +2,7 @@
  * Global Real-time QR Check-in Notification System with Dual Audio Engine
  */
 
-// Vô hiệu hóa tính năng nhấp 2 - 3 lần (double/triple-tap) phóng to màn hình trên Mobile
-// Vẫn giữ nguyên khả năng kéo/thu bằng 2 ngón tay (Pinch-to-zoom)
-(function disableDoubleTapZoom() {
-    let lastTouchEnd = 0;
-    document.addEventListener('touchend', function (event) {
-        if (event.touches && event.touches.length > 0) return;
-        const now = Date.now();
-        if (now - lastTouchEnd <= 300) {
-            const tag = (event.target && event.target.tagName) ? event.target.tagName.toUpperCase() : '';
-            if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
-                event.preventDefault();
-            }
-        }
-        lastTouchEnd = now;
-    }, { passive: false });
-})();
-
+// Touch event helper & Notification Engine
 (function () {
     let clientLastCheckinId = 0;
     let audioCtx = null;
@@ -291,7 +275,7 @@
         if (isNew) {
             notifBox = document.createElement('div');
             notifBox.id = 'headerNotifBox';
-            notifBox.className = 'notif-bell-container';
+            notifBox.className = 'header-notif-box notif-bell-container';
         }
 
         notifBox.innerHTML = `
@@ -299,7 +283,7 @@
                 🔔
                 <span class="notif-badge-count" id="notifBadgeCount" style="display:none;">0</span>
             </button>
-            <div class="notif-dropdown" id="notifDropdown" style="max-height: 165px !important;">
+            <div class="notif-dropdown" id="notifDropdown">
                 <div class="notif-dropdown-header">
                     <span>Thông báo check-in mới nhất</span>
                     <div style="display:flex; gap:8px; align-items:center;">
@@ -308,7 +292,7 @@
                         <button type="button" class="notif-close-btn" onclick="toggleNotifDropdown(event)" style="background:none; border:none; font-size:1.6rem; color:#64748b; cursor:pointer; padding:0 4px; line-height:1;" title="Đóng">&times;</button>
                     </div>
                 </div>
-                <div class="notif-dropdown-list" id="notifDropdownList" style="max-height: 120px !important; overflow-y: auto !important;">
+                <div class="notif-dropdown-list" id="notifDropdownList">
                     <div class="notif-empty-state">Chưa có lượt check-in nào</div>
                 </div>
             </div>
@@ -538,11 +522,16 @@
     };
 
     window.toggleNotifDropdown = function (e) {
-        if (e) e.stopPropagation();
+        if (e) {
+            if (typeof e.stopPropagation === 'function') e.stopPropagation();
+            if (e.cancelable && (e.type === 'touchend' || e.type === 'click')) {
+                // Prevent duplicate event triggers if touch & click fire sequentially
+            }
+        }
         unlockAudio();
         const dropdown = document.getElementById('notifDropdown');
         if (dropdown) {
-            const isVisible = dropdown.classList.contains('active') || (getComputedStyle(dropdown).display !== 'none' && dropdown.style.display !== 'none');
+            const isVisible = dropdown.classList.contains('active') || (dropdown.style.display === 'flex' || (getComputedStyle(dropdown).display !== 'none' && dropdown.style.display !== 'none'));
             if (isVisible) {
                 dropdown.classList.remove('active');
                 dropdown.style.setProperty('display', 'none', 'important');
