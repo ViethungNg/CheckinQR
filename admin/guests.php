@@ -550,7 +550,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                                             <?php if (isAdmin() || isLeTan()): ?>
                                                 <td style="text-align: center;">
                                                     <div class="action-btns-wrapper" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-                                                        <div style="width: 105px; display: inline-flex; justify-content: center; align-items: center; flex-shrink: 0;">
+                                                        <div style="display: inline-flex; justify-content: center; align-items: center;">
                                                             <?php if ($guest['status'] === 'invited'): ?>
                                                                 <button type="button" class="btn btn-action-checkin" onclick='checkinHoGuest(<?php echo (int)$guest["id"]; ?>, <?php echo json_encode($guest["full_name"]); ?>)'>Check-in hộ</button>
                                                             <?php else: ?>
@@ -1100,7 +1100,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                                 html += `<td ${labelAttr}>${statusHtml}</td>`;
                                 break;
                             case 'actions':
-                                if (hasActions) html += `<td style="text-align: center;"><div class="action-btns-wrapper" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;"><div style="width: 105px; display: inline-flex; justify-content: center; align-items: center; flex-shrink: 0;">${checkinSlot}</div> ${adminBtns}</div></td>`;
+                                if (hasActions) html += `<td style="text-align: center;"><div class="action-btns-wrapper" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px;"><div style="display: inline-flex; justify-content: center; align-items: center;">${checkinSlot}</div> ${adminBtns}</div></td>`;
                                 break;
                         }
                     });

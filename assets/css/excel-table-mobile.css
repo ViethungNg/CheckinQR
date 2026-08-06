@@ -139,13 +139,13 @@ html body .excel-table-container table th {
   font-size: 10.5px !important;
   text-align: center !important;
   vertical-align: middle !important;
-  padding: 5px 3px !important;
+  padding: 5px 4px !important;
   border: 1px solid #cbd5e1 !important;
   white-space: normal !important; /* Mở Wrap text (ngắt dòng) cho tiêu đề cột kiểu Excel */
-  word-break: break-word !important;
-  word-wrap: break-word !important;
+  word-break: normal !important; /* CHỈ ngắt dòng tại khoảng trắng, KHÔNG ngắt giữa ký tự chữ */
+  overflow-wrap: normal !important;
+  word-wrap: normal !important;
   line-height: 1.15 !important;
-  max-width: 90px !important;
   position: sticky !important;
   top: 0 !important;
   z-index: 10 !important;
@@ -168,7 +168,46 @@ html body .excel-table-container table td {
   line-height: 1.2 !important;
 }
 
-/* Đảm bảo toàn bộ badge và button trong ô bảng Excel giữ 1 dòng siêu gọn */
+/* Đè hoàn toàn quy tắc min-width 270px và xếp dọc của cột Thao tác trên mobile */
+html body table.excel-table th:last-child,
+html body table.excel-table td:last-child,
+html body .excel-table-container table th:last-child,
+html body .excel-table-container table td:last-child {
+  min-width: auto !important;
+  width: auto !important;
+  max-width: none !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+}
+
+html body table.excel-table td .action-btns-wrapper,
+html body .excel-table-container table td .action-btns-wrapper {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  width: auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+}
+
+html body table.excel-table td .action-btns-wrapper form,
+html body .excel-table-container table td .action-btns-wrapper form {
+  display: inline-flex !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+html body table.excel-table td .action-btns-wrapper > div,
+html body .excel-table-container table td .action-btns-wrapper > div {
+  width: auto !important;
+  min-width: 0 !important;
+  display: inline-flex !important;
+}
+
+/* Đảm bảo toàn bộ badge và button trong ô bảng Excel giữ 1 dòng siêu gọn nằm ngang */
 html body table.excel-table td .badge,
 html body table.excel-table td span,
 html body table.excel-table td strong,
@@ -176,13 +215,15 @@ html body table.excel-table td a,
 html body table.excel-table td button {
   white-space: nowrap !important;
   word-break: keep-all !important;
-  padding: 2px 6px !important;
-  font-size: 10.5px !important;
+  padding: 2px 5px !important;
+  font-size: 10px !important;
   line-height: 1.2 !important;
   margin: 0 !important;
+  height: 24px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+  box-sizing: border-box !important;
 }
 
 /* Tự động ngắt dòng cho cột Họ và tên nếu cần */
