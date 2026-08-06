@@ -481,7 +481,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                                     ?>
                                     <?php if (!empty($nextSort)): ?>
                                         <th style="cursor: pointer; user-select: none; transition: background 0.2s; <?php echo $isCurrentSort ? 'background: #fee2e2; color: #991b1b;' : ''; ?>" onclick="sortTableByKey('<?php echo $nextSort; ?>')" title="Bấm để sắp xếp Tăng dần / Giảm dần">
-                                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px;">
+                                            <div style="display: flex; align-items: center; justify-content: center; text-align: center; gap: 4px;">
                                                 <span><?php echo str_replace(' / ', ' /<br>', esc($c['label'])); ?></span>
                                                 <?php echo $sortIcon; ?>
                                             </div>
