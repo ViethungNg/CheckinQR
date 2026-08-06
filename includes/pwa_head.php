@@ -3,6 +3,9 @@
  * Thẻ Meta & CSS/JS cho Mobile Web App Standalone (PWA) & Excel Table Zoom
  */
 ?>
+<!-- Viewport Fit Cover cho màn hình iPhone 15 Pro Max & viền bo cong -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.5, user-scalable=yes, viewport-fit=cover">
+
 <!-- PWA & Mobile Web App Standalone Meta Tags -->
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">

@@ -43,7 +43,7 @@ if ($slug !== '') {
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.5, user-scalable=yes, viewport-fit=cover">
     <title><?php echo $event ? esc($event['event_name']) . ' - PMT Checkin' : ($showEventPicker ? 'PMT - Checkin - Chọn Sự Kiện' : 'PMT - Checkin'); ?></title>
     <link rel="icon" href="<?php echo url('img/logo pmt.png'); ?>" type="image/png">
     <?php require_once __DIR__ . '/includes/pwa_head.php'; ?>

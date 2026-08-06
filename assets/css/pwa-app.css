@@ -6,12 +6,14 @@
 /* 1. Tối ưu hóa viền Safe Area (Tai thỏ / Dynamic Island & Home Bar iOS) */
 :root {
   --sat: env(safe-area-inset-top, 0px);
-  --sab: env(safe-area-inset-bottom, 0px);
+  --sab: env(safe-area-inset-bottom, 20px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
   --pmt-primary: #2563eb;
   --pmt-primary-light: #eff6ff;
   --pmt-text-dark: #1e293b;
   --pmt-text-muted: #64748b;
-  --nav-height: 62px;
+  --nav-height: 56px;
 }
 
 html, body {
@@ -19,14 +21,16 @@ html, body {
   -webkit-touch-callout: none;
 }
 
-/* Đảm bảo nội dung không bị đè bởi Bottom Nav Bar trên Mobile */
+/* Đảm bảo nội dung không bị đè bởi Bottom Nav Bar và Home Bar iOS trên màn hình bo cong */
 @media (max-width: 768px) {
   body {
-    padding-bottom: calc(var(--nav-height) + var(--sab) + 12px) !important;
+    padding-bottom: calc(var(--nav-height) + max(18px, var(--sab)) + 20px) !important;
+    padding-left: var(--sal) !important;
+    padding-right: var(--sar) !important;
   }
 }
 
-/* 2. Thanh Điều Hướng Đáy (Bottom Navigation Bar) Chuẩn App */
+/* 2. Thanh Điều Hướng Đáy (Bottom Navigation Bar) Chuẩn App Native */
 .pmt-bottom-nav {
   display: none; /* Mặc định ẩn trên màn hình lớn */
 }
@@ -38,13 +42,17 @@ html, body {
     bottom: 0;
     left: 0;
     right: 0;
-    height: calc(var(--nav-height) + var(--sab));
-    padding-bottom: var(--sab);
-    background: rgba(255, 255, 255, 0.96);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-top: 1px solid rgba(226, 232, 240, 0.8);
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+    height: auto;
+    min-height: calc(var(--nav-height) + max(12px, var(--sab)));
+    padding-bottom: max(12px, var(--sab));
+    padding-top: 6px;
+    padding-left: max(8px, var(--sal));
+    padding-right: max(8px, var(--sar));
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(226, 232, 240, 0.85);
+    box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.07);
     z-index: 9990;
     align-items: center;
     justify-content: space-around;

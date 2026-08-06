@@ -64,7 +64,7 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.5, user-scalable=yes, viewport-fit=cover">
     <title>PMT - Checkin - Quản lý sự kiện</title>
     <link rel="icon" href="../img/logo pmt.png" type="image/png">
     <?php require_once __DIR__ . '/../includes/pwa_head.php'; ?>
