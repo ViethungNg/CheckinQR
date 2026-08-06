@@ -21,12 +21,24 @@ html, body {
   -webkit-touch-callout: none;
 }
 
-/* Đảm bảo nội dung không bị đè bởi Bottom Nav Bar và Home Bar iOS trên màn hình bo cong */
+/* Đảm bảo toàn bộ nội dung (main-content, form, settings, content-box) KHÔNG BAO GIỜ bị đè bởi Bottom Nav Bar */
 @media (max-width: 768px) {
-  body {
-    padding-bottom: calc(var(--nav-height) + max(18px, var(--sab)) + 20px) !important;
-    padding-left: var(--sal) !important;
-    padding-right: var(--sar) !important;
+  body,
+  .wrapper,
+  .main-content,
+  .content-box,
+  .settings-container,
+  .dashboard-table-card {
+    padding-bottom: calc(var(--nav-height) + max(24px, var(--sab)) + 50px) !important;
+    padding-left: max(10px, var(--sal)) !important;
+    padding-right: max(10px, var(--sar)) !important;
+  }
+
+  /* Tạo khoảng trống cuộn an toàn bên dưới các nút submit/form ở cuối trang */
+  form button[type="submit"],
+  .settings-container button[type="submit"],
+  .content-box form {
+    margin-bottom: 20px !important;
   }
 }
 

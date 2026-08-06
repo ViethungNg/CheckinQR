@@ -643,7 +643,7 @@ button, input, select, textarea {
         margin-left: 0 !important;
         width: 100vw !important;
         max-width: 100vw !important;
-        padding: 12px 10px !important;
+        padding: 12px 10px 125px 10px !important;
         box-sizing: border-box !important;
     }
 
