@@ -128,12 +128,16 @@ table.excel-table th {
   background-color: #f1f5f9 !important;
   color: #334155 !important;
   font-weight: 700 !important;
-  font-size: 11px !important;
+  font-size: 10.5px !important;
   text-align: center !important;
   vertical-align: middle !important;
-  padding: 6px 4px !important;
+  padding: 5px 3px !important;
   border: 1px solid #cbd5e1 !important;
-  white-space: nowrap !important;
+  white-space: normal !important; /* Mở Wrap text (ngắt dòng) cho tiêu đề cột kiểu Excel */
+  word-break: break-word !important;
+  word-wrap: break-word !important;
+  line-height: 1.15 !important;
+  max-width: 90px !important;
   position: sticky !important;
   top: 0 !important;
   z-index: 10 !important;

@@ -306,7 +306,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                             <?php foreach ($checkinCols as $c): ?>
                                 <?php if (!empty($c['visible'])): ?>
                                     <?php if ($c['key'] === 'actions' && isKinhDoanh()) continue; ?>
-                                    <th><?php echo esc($c['label']); ?></th>
+                                     <th><?php echo str_replace(' / ', ' /<br>', esc($c['label'])); ?></th>
                                 <?php endif; ?>
                             <?php endforeach; ?>
                         </tr>

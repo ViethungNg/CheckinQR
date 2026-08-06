@@ -180,7 +180,7 @@ if (count($activeEvents) === 1) {
                         <tr>
                             <?php foreach ($dashCols as $c): ?>
                                 <?php if (!empty($c['visible'])): ?>
-                                    <th><?php echo esc($c['label']); ?></th>
+                                     <th><?php echo str_replace(' / ', ' /<br>', esc($c['label'])); ?></th>
                                 <?php endif; ?>
                             <?php endforeach; ?>
                         </tr>
