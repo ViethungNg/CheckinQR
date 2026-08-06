@@ -46,6 +46,7 @@ if ($slug !== '') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title><?php echo $event ? esc($event['event_name']) . ' - PMT Checkin' : ($showEventPicker ? 'PMT - Checkin - Chọn Sự Kiện' : 'PMT - Checkin'); ?></title>
     <link rel="icon" href="<?php echo url('img/logo pmt.png'); ?>" type="image/png">
+    <?php require_once __DIR__ . '/includes/pwa_head.php'; ?>
     <link rel="stylesheet" href="<?php echo url('assets/css/frontend.css'); ?>">
     <style>
         .event-picker-list {
@@ -153,6 +154,7 @@ if ($slug !== '') {
     <?php endif; ?>
 </div>
 
+<?php require_once __DIR__ . '/includes/bottom_nav.php'; ?>
 <script src="<?php echo url('assets/js/frontend.js?v=' . time()); ?>"></script>
 </body>
 </html>

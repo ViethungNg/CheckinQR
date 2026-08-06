@@ -1,0 +1,19 @@
+{
+  "name": "PMT - Checkin QR",
+  "short_name": "PMT Checkin",
+  "description": "Ứng dụng Check-in QR & Quản lý Sự kiện PMT",
+  "start_url": "index.php",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "img/logo pmt.png",
+      "sizes": "192x192 512x512 180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

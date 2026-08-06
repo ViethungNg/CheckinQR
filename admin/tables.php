@@ -101,9 +101,10 @@ if (isset($_GET['ajax'])) {
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PMT - Checkin - Quản lý bàn</title>
     <link rel="icon" href="../img/logo pmt.png" type="image/png">
+    <?php require_once __DIR__ . '/../includes/pwa_head.php'; ?>
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
     <style>
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
@@ -157,8 +158,13 @@ if (isset($_GET['ajax'])) {
                 <button class="btn btn-primary" onclick="openAddModal()">+ Thêm bàn mới</button>
             </div>
             <?php endif; ?>
-            <div class="table-responsive">
-                <table>
+            <?php 
+            $tableTitle = 'Sơ Đồ Bàn Tiệc & Sức Chứa (' . count($tables) . ')';
+            require __DIR__ . '/../includes/table_toolbar.php';
+            ?>
+            <div class="table-responsive excel-table-container">
+                <div class="excel-zoom-wrapper">
+                    <table class="excel-table">
                     <thead>
                         <tr>
                             <th style="width: 80px; text-align: center;">Thứ tự</th>
@@ -219,6 +225,7 @@ if (isset($_GET['ajax'])) {
                     </tbody>
                 </table>
             </div>
+        </div>
         </div>
     </div>
 </div>

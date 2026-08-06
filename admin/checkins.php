@@ -205,9 +205,10 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PMT - Checkin - Lịch sử Check-in</title>
     <link rel="icon" href="../img/logo pmt.png" type="image/png">
+    <?php require_once __DIR__ . '/../includes/pwa_head.php'; ?>
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
     <style>
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
@@ -292,9 +293,14 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                 <?php endif; ?>
             </form>
 
-            <?php $checkinCols = getTableColumnsConfig('checkins'); ?>
-            <div class="table-responsive">
-                <table>
+            <?php 
+            $checkinCols = getTableColumnsConfig('checkins'); 
+            $tableTitle = 'Bảng Lịch Sử Check-in (' . count($checkins) . ')';
+            require __DIR__ . '/../includes/table_toolbar.php';
+            ?>
+            <div class="table-responsive excel-table-container">
+                <div class="excel-zoom-wrapper">
+                    <table class="excel-table">
                     <thead>
                         <tr>
                             <?php foreach ($checkinCols as $c): ?>
@@ -407,6 +413,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                     </tbody>
                 </table>
             </div>
+        </div>
         </div>
     </div>
 </div>

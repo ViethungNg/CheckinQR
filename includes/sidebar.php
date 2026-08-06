@@ -198,5 +198,5 @@ $firstChar = mb_strtoupper(mb_substr($adminName, 0, 1, 'UTF-8'));
     }
 </script>
 <script src="../assets/js/notifications.js?v=<?php echo time(); ?>"></script>
-
+<?php require_once __DIR__ . '/bottom_nav.php'; ?>
 

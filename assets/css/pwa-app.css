@@ -1,0 +1,141 @@
+/* ==========================================
+   PWA & MOBILE WEB APP NATIVE STYLESHEET
+   PMT Checkin QR
+   ========================================== */
+
+/* 1. Tối ưu hóa viền Safe Area (Tai thỏ / Dynamic Island & Home Bar iOS) */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --pmt-primary: #2563eb;
+  --pmt-primary-light: #eff6ff;
+  --pmt-text-dark: #1e293b;
+  --pmt-text-muted: #64748b;
+  --nav-height: 62px;
+}
+
+html, body {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/* Đảm bảo nội dung không bị đè bởi Bottom Nav Bar trên Mobile */
+@media (max-width: 768px) {
+  body {
+    padding-bottom: calc(var(--nav-height) + var(--sab) + 12px) !important;
+  }
+}
+
+/* 2. Thanh Điều Hướng Đáy (Bottom Navigation Bar) Chuẩn App */
+.pmt-bottom-nav {
+  display: none; /* Mặc định ẩn trên màn hình lớn */
+}
+
+@media (max-width: 768px) {
+  .pmt-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(var(--nav-height) + var(--sab));
+    padding-bottom: var(--sab);
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+    z-index: 9990;
+    align-items: center;
+    justify-content: space-around;
+    user-select: none;
+  }
+
+  .pmt-bottom-nav .nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--pmt-text-muted);
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    position: relative;
+    padding: 4px 0;
+  }
+
+  .pmt-bottom-nav .nav-item .nav-icon {
+    font-size: 20px;
+    margin-bottom: 2px;
+    transition: transform 0.2s ease, color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+  }
+
+  .pmt-bottom-nav .nav-item .nav-label {
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  /* Trạng thái Active */
+  .pmt-bottom-nav .nav-item.active {
+    color: var(--pmt-primary);
+    font-weight: 700;
+  }
+
+  .pmt-bottom-nav .nav-item.active .nav-icon {
+    transform: translateY(-2px) scale(1.1);
+    color: var(--pmt-primary);
+  }
+
+  .pmt-bottom-nav .nav-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 3px;
+    background: var(--pmt-primary);
+    border-radius: 0 0 3px 3px;
+  }
+
+  /* Nút thao tác chính (VD: Nút Scan QR nổi ở giữa nếu có) */
+  .pmt-bottom-nav .nav-item.nav-item-featured {
+    position: relative;
+  }
+
+  .pmt-bottom-nav .nav-item.nav-item-featured .nav-icon-bg {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    border-radius: 50%;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+    margin-bottom: 2px;
+    margin-top: -14px;
+    border: 3px solid #ffffff;
+  }
+
+  .pmt-bottom-nav .nav-item.nav-item-featured.active .nav-icon-bg {
+    transform: scale(1.08);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.5);
+  }
+}
+
+/* 3. Phản hồi cảm ứng mượt trên Mobile */
+@media (max-width: 768px) {
+  .pmt-bottom-nav .nav-item:active {
+    opacity: 0.7;
+    transform: scale(0.95);
+  }
+}

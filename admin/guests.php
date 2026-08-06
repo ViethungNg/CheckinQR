@@ -331,9 +331,10 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PMT - Checkin - Danh sách khách hàng</title>
     <link rel="icon" href="../img/logo pmt.png" type="image/png">
+    <?php require_once __DIR__ . '/../includes/pwa_head.php'; ?>
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
     <style>
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
@@ -425,9 +426,14 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 <?php endif; ?>
             </form>
 
-            <?php $guestCols = getTableColumnsConfig('guests'); ?>
-            <div class="table-responsive">
-                <table>
+            <?php 
+            $guestCols = getTableColumnsConfig('guests'); 
+            $tableTitle = 'Bảng Khách Mời (' . count($guests) . ')';
+            require __DIR__ . '/../includes/table_toolbar.php';
+            ?>
+            <div class="table-responsive excel-table-container">
+                <div class="excel-zoom-wrapper">
+                    <table class="excel-table">
                     <thead>
                         <tr>
                             <?php foreach ($guestCols as $c): ?>
@@ -573,6 +579,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                     </tbody>
                 </table>
             </div>
+        </div>
         </div>
     </div>
 </div>

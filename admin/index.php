@@ -43,9 +43,10 @@ if (count($activeEvents) === 1) {
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PMT - Checkin - Dashboard Quản trị</title>
     <link rel="icon" href="../img/logo pmt.png" type="image/png">
+    <?php require_once __DIR__ . '/../includes/pwa_head.php'; ?>
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -167,9 +168,14 @@ if (count($activeEvents) === 1) {
                 </div>
             </div>
 
-            <?php $dashCols = getTableColumnsConfig('dashboard'); ?>
-            <div class="table-responsive">
-                <table class="modern-data-table">
+            <?php 
+            $dashCols = getTableColumnsConfig('dashboard'); 
+            $tableTitle = 'Bảng Thống Kê Realtime Dashboard';
+            require __DIR__ . '/../includes/table_toolbar.php';
+            ?>
+            <div class="table-responsive excel-table-container">
+                <div class="excel-zoom-wrapper">
+                    <table class="excel-table modern-data-table">
                     <thead>
                         <tr>
                             <?php foreach ($dashCols as $c): ?>
@@ -184,6 +190,7 @@ if (count($activeEvents) === 1) {
                     </tbody>
                 </table>
             </div>
+        </div>
         </div>
     </div>
 </div>
