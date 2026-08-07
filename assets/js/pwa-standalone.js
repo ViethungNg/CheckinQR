@@ -57,13 +57,18 @@
       if (currentPath === navUrl.pathname || (currentPath.endsWith('/') && navUrl.pathname.includes('index.php'))) {
         item.classList.add('active');
       } else {
-        // Kiểm tra khớp từ tương đối
         var cleanCurrent = currentPath.split('/').pop();
         var cleanNav = href.split('/').pop().split('?')[0];
         if (cleanCurrent && cleanNav && cleanCurrent === cleanNav) {
           item.classList.add('active');
         }
       }
+
+      // Phản hồi cảm ứng tức thì (Instant 0ms Feedback) khi chạm/click tab navigation
+      item.addEventListener('click', function () {
+        navItems.forEach(function (nav) { nav.classList.remove('active'); });
+        item.classList.add('active');
+      });
     });
   });
 

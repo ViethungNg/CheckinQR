@@ -15,6 +15,12 @@ $firstChar = mb_strtoupper(mb_substr($adminName, 0, 1, 'UTF-8'));
         <div class="mobile-brand-controls">
             <?php $roleLabelText = getRoleLabel($adminRole); ?>
             <span class="mobile-user-greeting" title="<?php echo esc($roleLabelText); ?>"><?php echo esc($roleLabelText); ?></span>
+            <div class="header-notif-box notif-bell-container" id="headerNotifBoxMobile">
+                <button type="button" class="notif-bell-btn-icon" id="notifBellBtnMobile" onclick="toggleNotifDropdown(event)" title="Thông báo check-in">
+                    🔔
+                    <span class="notif-badge-count" style="display:none;">0</span>
+                </button>
+            </div>
             <button type="button" class="mobile-menu-btn" id="mobileMenuBtn"><span>☰</span> Menu</button>
         </div>
     </div>

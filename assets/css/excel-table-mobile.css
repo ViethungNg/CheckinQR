@@ -97,7 +97,13 @@
 /* 2. Container Bảng Excel Thu Phóng */
 .excel-table-container {
   width: 100%;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
   overflow-x: auto;
+  overflow-y: visible !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
   -webkit-overflow-scrolling: touch;
   background: #ffffff;
   border: 1px solid #cbd5e1;
@@ -107,9 +113,13 @@
 }
 
 .excel-zoom-wrapper {
-  transform-origin: top left;
-  transition: transform 0.15s ease-out;
-  width: 100%;
+  transform: none !important;
+  width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  padding-bottom: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 /* 3. Bảng Dữ Liệu Dạng Excel Sheet Compact */
@@ -118,8 +128,8 @@ html body .excel-table-container table {
   width: 100% !important;
   max-width: none !important;
   border-collapse: collapse !important;
-  font-size: 11px !important;
-  line-height: 1.2 !important;
+  font-size: 12.5px !important;
+  line-height: 1.3 !important;
   color: #1e293b !important;
   background: #ffffff !important;
   table-layout: auto !important;
@@ -127,8 +137,15 @@ html body .excel-table-container table {
 
 html body table.excel-table tr,
 html body .excel-table-container table tr {
-  height: 32px !important;
-  max-height: 36px !important;
+  height: 36px !important;
+}
+
+html body table.excel-table td,
+html body .excel-table-container table td {
+  padding: 6px 10px !important;
+  font-size: 12.5px !important;
+  vertical-align: middle !important;
+  border: 1px solid #e2e8f0 !important;
 }
 
 html body table.excel-table th,
@@ -136,16 +153,16 @@ html body .excel-table-container table th {
   background-color: #f1f5f9 !important;
   color: #334155 !important;
   font-weight: 700 !important;
-  font-size: 10.5px !important;
+  font-size: 11.5px !important;
   text-align: center !important;
   vertical-align: middle !important;
-  padding: 6px 4px !important;
+  padding: 8px 6px !important;
   border: 1px solid #cbd5e1 !important;
   white-space: normal !important; /* Mở Wrap text (ngắt dòng) cho tiêu đề cột kiểu Excel */
   word-break: normal !important; /* CHỈ ngắt dòng tại khoảng trắng, KHÔNG ngắt giữa ký tự chữ */
   overflow-wrap: normal !important;
   word-wrap: normal !important;
-  line-height: 1.15 !important;
+  line-height: 1.2 !important;
   position: sticky !important;
   top: 0 !important;
   z-index: 10 !important;
@@ -160,7 +177,7 @@ html body .excel-table-container table th div {
   justify-content: center !important;
   text-align: center !important;
   width: 100% !important;
-  gap: 3px !important;
+  gap: 4px !important;
   margin: 0 auto !important;
 }
 
@@ -170,13 +187,88 @@ html body .excel-table-container table th span {
   display: inline-block !important;
 }
 
-/* Quy tắc cột Thao tác: Bố trí layout phân biệt rộng rãi (min-width 145px), không bị chèn ép */
+/* Tối ưu hóa tỉ lệ phân bổ cột hài hòa vừa vặn (Desktop & Mobile) */
+html body table.excel-table th.col-customer_code,
+html body table.excel-table td.col-customer_code {
+  width: 9% !important;
+  min-width: 75px !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+html body table.excel-table th.col-full_name,
+html body table.excel-table td.col-full_name {
+  width: 22% !important;
+  min-width: 140px !important;
+  text-align: left !important;
+  word-break: break-word !important;
+}
+
+html body table.excel-table th.col-phone,
+html body table.excel-table td.col-phone {
+  width: 12% !important;
+  min-width: 95px !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+html body table.excel-table th.col-organization,
+html body table.excel-table td.col-organization {
+  width: 22% !important;
+  min-width: 140px !important;
+  text-align: left !important;
+  word-break: break-word !important;
+}
+
+html body table.excel-table th.col-table_name,
+html body table.excel-table td.col-table_name {
+  width: 10% !important;
+  min-width: 85px !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+html body table.excel-table th.col-lucky_draw_code,
+html body table.excel-table td.col-lucky_draw_code {
+  width: 10% !important;
+  min-width: 85px !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+html body table.excel-table th.col-checkin_time,
+html body table.excel-table td.col-checkin_time {
+  width: 10% !important;
+  min-width: 85px !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+html body table.excel-table th.col-status,
+html body table.excel-table td.col-status {
+  width: 10% !important;
+  min-width: 90px !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+html body table.excel-table th.col-method,
+html body table.excel-table td.col-method {
+  width: 10% !important;
+  min-width: 90px !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+/* Quy tắc cột Thao tác siêu gọn phân biệt */
+html body table.excel-table th.col-actions,
+html body table.excel-table td.col-actions,
 html body table.excel-table th:last-child,
 html body table.excel-table td:last-child,
 html body .excel-table-container table th:last-child,
 html body .excel-table-container table td:last-child {
-  min-width: 145px !important;
-  width: 145px !important;
+  width: 130px !important;
+  max-width: 140px !important;
   white-space: nowrap !important;
   text-align: center !important;
 }
@@ -367,9 +459,126 @@ table.excel-table tbody tr:hover {
   font-weight: 600;
 }
 
-/* Áp dụng ưu tiên phông chữ nhỏ trên màn hình mobile */
+/* Áp dụng giao diện Mobile chuẩn rộng rãi, phông chữ 11.5px rõ nét & vuốt ngang siêu mượt */
 @media (max-width: 768px) {
-  .excel-table-container {
-    border-radius: 0 0 8px 8px;
+  /* 1. Ẩn thanh thu phóng thừa */
+  .table-toolbar-right,
+  .zoom-btn-group {
+    display: none !important;
+  }
+
+  .table-toolbar {
+    padding: 8px 12px !important;
+    font-size: 11.5px !important;
+  }
+
+  /* 2. Container cuộn vuốt ngang mượt mà (Smooth Touch Scrolling & Mouse Wheel Scroll) */
+  .excel-table-container,
+  .table-responsive {
+    width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    touch-action: pan-x pan-y !important;
+    overscroll-behavior: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    border-radius: 8px !important;
+    border: 1px solid #cbd5e1 !important;
+    background: #ffffff !important;
+  }
+
+  /* 3. Bảng rộng thoải mái 680px không co rúm ép chữ */
+  html body table.excel-table,
+  html body .excel-table-container table {
+    min-width: 680px !important;
+    width: max-content !important;
+    border-collapse: collapse !important;
+    font-size: 11.5px !important;
+  }
+
+  /* 4. Tối ưu phông chữ & khoảng cách ô rõ ràng, dễ đọc */
+  html body table.excel-table th,
+  html body .excel-table-container table th {
+    padding: 7px 6px !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    font-weight: 700 !important;
+  }
+
+  html body table.excel-table td,
+  html body .excel-table-container table td {
+    padding: 6px 8px !important;
+    font-size: 11.5px !important;
+    line-height: 1.25 !important;
+    vertical-align: middle !important;
+  }
+
+  /* Kích thước vừa vặn cho từng cột trên Mobile */
+  html body table.excel-table th.col-customer_code,
+  html body table.excel-table td.col-customer_code {
+    min-width: 75px !important;
+    width: 75px !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+  }
+
+  html body table.excel-table th.col-full_name,
+  html body table.excel-table td.col-full_name {
+    min-width: 130px !important;
+    width: 130px !important;
+    text-align: left !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  html body table.excel-table th.col-phone,
+  html body table.excel-table td.col-phone {
+    min-width: 100px !important;
+    width: 100px !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+  }
+
+  html body table.excel-table th.col-organization,
+  html body table.excel-table td.col-organization {
+    min-width: 140px !important;
+    width: 140px !important;
+    text-align: left !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  html body table.excel-table th.col-table_name,
+  html body table.excel-table td.col-table_name {
+    min-width: 85px !important;
+    width: 85px !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+  }
+
+  html body table.excel-table th.col-lucky_draw_code,
+  html body table.excel-table td.col-lucky_draw_code {
+    min-width: 85px !important;
+    width: 85px !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+  }
+
+  html body table.excel-table th.col-status,
+  html body table.excel-table td.col-status {
+    min-width: 90px !important;
+    width: 90px !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+  }
+
+  html body table.excel-table th.col-actions,
+  html body table.excel-table td.col-actions {
+    min-width: 120px !important;
+    width: 120px !important;
+    text-align: center !important;
+    white-space: nowrap !important;
   }
 }

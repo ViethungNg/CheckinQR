@@ -57,7 +57,7 @@ if (count($activeEvents) === 1) {
     
     <div class="main-content">
         <!-- Dashboard Header Bar -->
-        <div class="dash-header-bar">
+        <div class="header dash-header-bar">
             <div class="dash-page-title">
                 📊 <span>Thống kê hiệu suất check-in & tham gia sự kiện</span>
             </div>
@@ -180,7 +180,7 @@ if (count($activeEvents) === 1) {
                         <tr>
                             <?php foreach ($dashCols as $c): ?>
                                 <?php if (!empty($c['visible'])): ?>
-                                     <th><?php echo str_replace(' / ', ' /<br>', esc($c['label'])); ?></th>
+                                     <th class="col-<?php echo esc($c['key']); ?>"><?php echo str_replace(' / ', ' /<br>', esc($c['label'])); ?></th>
                                 <?php endif; ?>
                             <?php endforeach; ?>
                         </tr>
@@ -435,31 +435,31 @@ async function updateRealtimeStats(forceRefresh = false) {
                             if (!col.visible) return;
                             switch(col.key) {
                                 case 'customer_code':
-                                    html += `<td>${customerCodeHtml}</td>`;
+                                    html += `<td class="col-customer_code">${customerCodeHtml}</td>`;
                                     break;
                                 case 'full_name':
-                                    html += `<td style="font-weight:700; color:#0f172a;">${item.full_name}</td>`;
+                                    html += `<td class="col-full_name" style="font-weight:700; color:#0f172a;">${item.full_name}</td>`;
                                     break;
                                 case 'phone':
-                                    html += `<td style="font-weight:600; color:#475569;">${item.phone}</td>`;
+                                    html += `<td class="col-phone" style="font-weight:600; color:#475569;">${item.phone}</td>`;
                                     break;
                                 case 'organization':
-                                    html += `<td>${item.organization || '-'}</td>`;
+                                    html += `<td class="col-organization">${item.organization || '-'}</td>`;
                                     break;
                                 case 'table_name':
-                                    html += `<td>${tableNameHtml}</td>`;
+                                    html += `<td class="col-table_name">${tableNameHtml}</td>`;
                                     break;
                                 case 'lucky_draw_code':
                                     const luckyCodeHtml = item.lucky_draw_code 
                                         ? `<span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">${item.lucky_draw_code}</span>`
                                         : `<span style="color: #cbd5e1;">-</span>`;
-                                    html += `<td>${luckyCodeHtml}</td>`;
+                                    html += `<td class="col-lucky_draw_code">${luckyCodeHtml}</td>`;
                                     break;
                                 case 'checkin_time':
-                                    html += `<td style="font-size:0.85rem; color:#64748b;">${item.time}</td>`;
+                                    html += `<td class="col-checkin_time" style="font-size:0.85rem; color:#64748b;">${item.time}</td>`;
                                     break;
                                 case 'status':
-                                    html += `<td><span style="display:inline-block; padding:4px 10px; border-radius:20px; font-size:0.78rem; font-weight:700; ${badgeStyle}">${badgeText}</span></td>`;
+                                    html += `<td class="col-status"><span style="display:inline-block; padding:4px 10px; border-radius:20px; font-size:0.78rem; font-weight:700; ${badgeStyle}">${badgeText}</span></td>`;
                                     break;
                             }
                         });

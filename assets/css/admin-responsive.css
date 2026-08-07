@@ -15,7 +15,8 @@
 }
 
 html, body {
-    touch-action: manipulation;
+    touch-action: auto !important;
+    overscroll-behavior-y: auto !important;
 }
 
 body {
@@ -24,6 +25,7 @@ body {
     color: var(--text-color);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior-y: auto !important;
 }
 
 /* ===== NOTIFICATION CLICK HIGHLIGHT ROW STYLE ===== */
@@ -397,6 +399,90 @@ button, input, select, textarea {
     }
 }
 
+/* ===== GLOBAL NOTIFICATION BELL & DROPDOWN STYLING ===== */
+#headerNotifBoxDesktop {
+    position: relative !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    margin-left: auto !important;
+}
+
+#headerNotifBoxMobile {
+    display: none !important;
+}
+
+.notif-bell-btn-icon {
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 1.15rem !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 50% !important;
+    cursor: pointer !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+.notif-bell-btn-icon:hover {
+    background: #f1f5f9 !important;
+    transform: scale(1.05) !important;
+}
+
+.notif-badge-count {
+    position: absolute !important;
+    top: -3px !important;
+    right: -3px !important;
+    background: #dc2626 !important;
+    color: #ffffff !important;
+    font-size: 0.68rem !important;
+    font-weight: 800 !important;
+    padding: 2px 6px !important;
+    border-radius: 10px !important;
+    border: 2px solid #ffffff !important;
+    line-height: 1 !important;
+}
+
+.notif-dropdown {
+    display: none;
+    position: absolute !important;
+    top: 48px !important;
+    right: 0 !important;
+    width: 360px !important;
+    max-height: 480px !important;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18) !important;
+    z-index: 999999 !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+
+.notif-dropdown.active {
+    display: flex !important;
+}
+
+.notif-dropdown-header {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 10px 14px !important;
+    background: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    font-weight: 700 !important;
+    font-size: 0.88rem !important;
+    color: #1e293b !important;
+}
+
+.notif-dropdown-list {
+    max-height: 400px !important;
+    overflow-y: auto !important;
+}
+
 /* ===== MOBILE STYLING (TOUCH FRIENDLY APP NAV) ===== */
 @media screen and (max-width: 768px) {
 
@@ -523,9 +609,15 @@ button, input, select, textarea {
         box-shadow: 0 3px 8px rgba(211, 47, 47, 0.3) !important;
     }
 
-    .mobile-brand-controls .header-notif-box {
+    /* Phân định hiển thị quả chuông trên Desktop & Mobile riêng biệt */
+    #headerNotifBoxMobile {
+        display: inline-flex !important;
         margin-left: 0 !important;
         position: relative !important;
+    }
+
+    #headerNotifBoxDesktop {
+        display: none !important;
     }
 
     .mobile-brand-controls .notif-bell-btn-icon {
@@ -643,7 +735,7 @@ button, input, select, textarea {
         margin-left: 0 !important;
         width: 100vw !important;
         max-width: 100vw !important;
-        padding: 12px 10px 125px 10px !important;
+        padding: 12px 10px calc(var(--nav-height) + max(16px, var(--sab)) + 15px) 10px !important;
         box-sizing: border-box !important;
     }
 
@@ -740,12 +832,52 @@ button, input, select, textarea {
 
     .search-toolbar .btn,
     .toolbar .btn,
-    .content-box .btn,
-    .action-bar .btn {
+    .action-bar .btn,
+    .btn-block-mobile {
         width: 100% !important;
         justify-content: center !important;
-        padding: 10px 14px !important;
+        padding: 9px 12px !important;
         font-size: 0.88rem !important;
+    }
+
+    /* Thanh Thao Tác Ngang Siêu Gọn Cho Mobile (Guest Action Bar) */
+    .guest-action-bar {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        gap: 6px !important;
+        margin-bottom: 12px !important;
+        width: 100% !important;
+    }
+
+    .guest-action-bar .btn,
+    .btn-sm-mobile {
+        flex: 1 !important;
+        min-width: 0 !important;
+        width: auto !important;
+        padding: 7px 8px !important;
+        font-size: 0.76rem !important;
+        font-weight: 700 !important;
+        white-space: nowrap !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 6px !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    .btn-inline-header {
+        width: auto !important;
+        display: inline-flex !important;
+        padding: 6px 12px !important;
+        font-size: 0.8rem !important;
+        font-weight: 600 !important;
+    }
+
+    /* Ẩn thẻ select sắp xếp dư thừa trên mobile nếu đang để mặc định Mới nhất trước */
+    .sort-select-mobile-hide {
+        display: none !important;
     }
 
     /* 3. Content Boxes & Section Containers */
@@ -763,16 +895,58 @@ button, input, select, textarea {
         font-size: 0.95rem !important;
     }
 
-    /* 4. Table Formatting for Mobile */
-    .table-responsive {
+    /* Ngăn tuyệt đối trang web cuộn lệch ngang và không cho cuộn thừa xuống khoảng trắng rác */
+    html, body, .wrapper, .main-content, .content-box {
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+        overscroll-behavior-y: contain !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 4. Table Formatting for Mobile (Mở rộng tràn màn hình vút chỉ, không để khoảng trắng rác) */
+    .table-responsive,
+    .excel-table-container {
         width: 100% !important;
-        max-height: 72vh !important;
-        overflow: auto !important;
+        max-width: 100% !important;
+        max-height: none !important;
+        height: auto !important;
+        overflow-x: auto !important;
+        overflow-y: visible !important;
+        overscroll-behavior-y: contain !important;
         -webkit-overflow-scrolling: touch !important;
         border-radius: 8px !important;
         border: 1px solid #eeeeee !important;
         margin-top: 8px !important;
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
         position: relative !important;
+        box-sizing: border-box !important;
+    }
+
+    .excel-zoom-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+        transform: none !important;
+    }
+
+    /* Thu gọn Notif Dropdown Popup trên mobile thành popover vừa vặn gọn gàng */
+    .notif-dropdown {
+        position: fixed !important;
+        top: 60px !important;
+        right: 12px !important;
+        width: 340px !important;
+        max-width: calc(100vw - 24px) !important;
+        max-height: 420px !important;
+        height: auto !important;
+        border-radius: 12px !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25) !important;
+        z-index: 99999 !important;
+        border: 1px solid #cbd5e1 !important;
+    }
+
+    .notif-dropdown-list {
+        max-height: 320px !important;
+        overflow-y: auto !important;
     }
 
     table th, table td {
@@ -1153,15 +1327,20 @@ button, input, select, textarea {
     font-size: 0.85rem;
 }
 
-/* ===== STICKY TABLE HEADERS & SMART SCROLLING ===== */
-.table-responsive {
-    max-height: calc(100vh - 200px) !important;
-    overflow-y: auto !important;
+/* ===== STICKY TABLE HEADERS & SMART NATURAL SCROLLING ===== */
+.table-responsive,
+.excel-table-container {
+    max-height: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow-y: visible !important;
     overflow-x: auto !important;
-    border-radius: 12px !important;
+    border-radius: 8px !important;
     border: 1px solid #e2e8f0 !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
     background: #ffffff !important;
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
 }
 
 .table-responsive table,

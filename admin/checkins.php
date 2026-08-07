@@ -147,13 +147,41 @@ $whereCheckin = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereCon
 
 $orderSql = "ORDER BY c.checkin_time DESC";
 if ($sort === 'table_asc') {
-    $orderSql = "ORDER BY t.table_name ASC, c.id DESC";
+    $orderSql = "ORDER BY (CASE WHEN c.table_id IS NULL OR c.table_id = 0 THEN 1 ELSE 0 END) ASC, t.sort_order ASC, t.table_name ASC, c.id DESC";
 } elseif ($sort === 'table_desc') {
-    $orderSql = "ORDER BY t.table_name DESC, c.id DESC";
+    $orderSql = "ORDER BY (CASE WHEN c.table_id IS NULL OR c.table_id = 0 THEN 1 ELSE 0 END) ASC, t.sort_order DESC, t.table_name DESC, c.id DESC";
 } elseif ($sort === 'code_asc') {
-    $orderSql = "ORDER BY c.lucky_draw_code ASC, c.id DESC";
+    $orderSql = "ORDER BY (CASE WHEN c.lucky_draw_code IS NULL OR c.lucky_draw_code = '' THEN 1 ELSE 0 END) ASC, CAST(c.lucky_draw_code AS UNSIGNED) ASC, c.lucky_draw_code ASC, c.id DESC";
 } elseif ($sort === 'code_desc') {
-    $orderSql = "ORDER BY c.lucky_draw_code DESC, c.id DESC";
+    $orderSql = "ORDER BY (CASE WHEN c.lucky_draw_code IS NULL OR c.lucky_draw_code = '' THEN 1 ELSE 0 END) ASC, CAST(c.lucky_draw_code AS UNSIGNED) DESC, c.lucky_draw_code DESC, c.id DESC";
+} elseif ($sort === 'customer_asc') {
+    $orderSql = "ORDER BY (CASE WHEN c.customer_code IS NULL OR c.customer_code = '' THEN 1 ELSE 0 END) ASC, c.customer_code ASC, c.id DESC";
+} elseif ($sort === 'customer_desc') {
+    $orderSql = "ORDER BY (CASE WHEN c.customer_code IS NULL OR c.customer_code = '' THEN 1 ELSE 0 END) ASC, c.customer_code DESC, c.id DESC";
+} elseif ($sort === 'name_asc') {
+    $orderSql = "ORDER BY c.full_name_entered ASC, c.id DESC";
+} elseif ($sort === 'name_desc') {
+    $orderSql = "ORDER BY c.full_name_entered DESC, c.id DESC";
+} elseif ($sort === 'phone_asc') {
+    $orderSql = "ORDER BY c.phone_entered ASC, c.id DESC";
+} elseif ($sort === 'phone_desc') {
+    $orderSql = "ORDER BY c.phone_entered DESC, c.id DESC";
+} elseif ($sort === 'org_asc') {
+    $orderSql = "ORDER BY (CASE WHEN c.address_entered IS NULL OR c.address_entered = '' THEN 1 ELSE 0 END) ASC, c.address_entered ASC, c.id DESC";
+} elseif ($sort === 'org_desc') {
+    $orderSql = "ORDER BY (CASE WHEN c.address_entered IS NULL OR c.address_entered = '' THEN 1 ELSE 0 END) ASC, c.address_entered DESC, c.id DESC";
+} elseif ($sort === 'time_asc') {
+    $orderSql = "ORDER BY c.checkin_time ASC, c.id ASC";
+} elseif ($sort === 'time_desc') {
+    $orderSql = "ORDER BY c.checkin_time DESC, c.id DESC";
+} elseif ($sort === 'status_asc') {
+    $orderSql = "ORDER BY (CASE WHEN c.match_status = 'matched' THEN 0 ELSE 1 END) ASC, c.id DESC";
+} elseif ($sort === 'status_desc') {
+    $orderSql = "ORDER BY (CASE WHEN c.match_status = 'matched' THEN 0 ELSE 1 END) DESC, c.id DESC";
+} elseif ($sort === 'method_asc') {
+    $orderSql = "ORDER BY c.checkin_method ASC, c.id DESC";
+} elseif ($sort === 'method_desc') {
+    $orderSql = "ORDER BY c.checkin_method DESC, c.id DESC";
 }
 
 $stmtCheckins = $db->prepare("
@@ -270,7 +298,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                 </div>
                 
                 <div style="min-width: 170px;">
-                    <select id="checkin-match-filter" name="match_status" class="form-control" onchange="applyCheckinFilter()" style="cursor: pointer; background: #fff; font-weight: 500;">
+                    <select id="checkin-match-filter" name="match_status" class="form-control" onchange="window.saveAdminTableScrollPosition(); applyCheckinFilter();" style="cursor: pointer; background: #fff; font-weight: 500;">
                         <option value="all" <?php echo $matchStatus === 'all' ? 'selected' : ''; ?>>Tất cả hình thức</option>
                         <option value="matched" <?php echo $matchStatus === 'matched' ? 'selected' : ''; ?>>Khách hợp lệ (Khớp)</option>
                         <option value="walk_in" <?php echo $matchStatus === 'walk_in' ? 'selected' : ''; ?>>Khách phát sinh (Walk-in)</option>
@@ -278,7 +306,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                 </div>
 
                 <div style="min-width: 190px;">
-                    <select id="checkin-sort-filter" name="sort" class="form-control" onchange="applyCheckinFilter()" style="cursor: pointer; background: #fff; font-weight: 500;">
+                    <select id="checkin-sort-filter" name="sort" class="form-control" onchange="window.saveAdminTableScrollPosition(); applyCheckinFilter();" style="cursor: pointer; background: #fff; font-weight: 500;">
                         <option value="time_desc" <?php echo $sort === 'time_desc' ? 'selected' : ''; ?>>Mới nhất trước</option>
                         <option value="table_asc" <?php echo $sort === 'table_asc' ? 'selected' : ''; ?>>Thứ tự Bàn: Tăng dần (1 ➔ N)</option>
                         <option value="table_desc" <?php echo $sort === 'table_desc' ? 'selected' : ''; ?>>Thứ tự Bàn: Giảm dần (N ➔ 1)</option>
@@ -305,8 +333,71 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                         <tr>
                             <?php foreach ($checkinCols as $c): ?>
                                 <?php if (!empty($c['visible'])): ?>
-                                    <?php if ($c['key'] === 'actions' && isKinhDoanh()) continue; ?>
-                                     <th><?php echo str_replace(' / ', ' /<br>', esc($c['label'])); ?></th>
+                                    <?php 
+                                    if ($c['key'] === 'actions' && isKinhDoanh()) continue; 
+                                    $key = $c['key'];
+                                    $nextSort = '';
+                                    $sortIcon = '<span style="color: #cbd5e1; margin-left: 4px; font-size: 0.82rem;">↕</span>';
+                                    $isCurrentSort = false;
+
+                                    switch($key) {
+                                        case 'customer_code':
+                                            $isCurrentSort = ($sort === 'customer_asc' || $sort === 'customer_desc');
+                                            $nextSort = ($sort === 'customer_asc') ? 'customer_desc' : 'customer_asc';
+                                            $sortIcon = ($sort === 'customer_asc') ? ' <span style="color: #d32f2f; font-weight: 800;">▲</span>' : (($sort === 'customer_desc') ? ' <span style="color: #d32f2f; font-weight: 800;">▼</span>' : ' <span style="color: #94a3b8; font-size: 0.82rem;">↕</span>');
+                                            break;
+                                        case 'full_name':
+                                            $isCurrentSort = ($sort === 'name_asc' || $sort === 'name_desc');
+                                            $nextSort = ($sort === 'name_asc') ? 'name_desc' : 'name_asc';
+                                            $sortIcon = ($sort === 'name_asc') ? ' <span style="color: #d32f2f; font-weight: 800;">▲</span>' : (($sort === 'name_desc') ? ' <span style="color: #d32f2f; font-weight: 800;">▼</span>' : ' <span style="color: #94a3b8; font-size: 0.82rem;">↕</span>');
+                                            break;
+                                        case 'phone':
+                                            $isCurrentSort = ($sort === 'phone_asc' || $sort === 'phone_desc');
+                                            $nextSort = ($sort === 'phone_asc') ? 'phone_desc' : 'phone_asc';
+                                            $sortIcon = ($sort === 'phone_asc') ? ' <span style="color: #d32f2f; font-weight: 800;">▲</span>' : (($sort === 'phone_desc') ? ' <span style="color: #d32f2f; font-weight: 800;">▼</span>' : ' <span style="color: #94a3b8; font-size: 0.82rem;">↕</span>');
+                                            break;
+                                        case 'organization':
+                                            $isCurrentSort = ($sort === 'org_asc' || $sort === 'org_desc');
+                                            $nextSort = ($sort === 'org_asc') ? 'org_desc' : 'org_asc';
+                                            $sortIcon = ($sort === 'org_asc') ? ' <span style="color: #d32f2f; font-weight: 800;">▲</span>' : (($sort === 'org_desc') ? ' <span style="color: #d32f2f; font-weight: 800;">▼</span>' : ' <span style="color: #94a3b8; font-size: 0.82rem;">↕</span>');
+                                            break;
+                                        case 'table_name':
+                                            $isCurrentSort = ($sort === 'table_asc' || $sort === 'table_desc');
+                                            $nextSort = ($sort === 'table_asc') ? 'table_desc' : 'table_asc';
+                                            $sortIcon = ($sort === 'table_asc') ? ' <span style="color: #d32f2f; font-weight: 800;">▲</span>' : (($sort === 'table_desc') ? ' <span style="color: #d32f2f; font-weight: 800;">▼</span>' : ' <span style="color: #94a3b8; font-size: 0.82rem;">↕</span>');
+                                            break;
+                                        case 'lucky_draw_code':
+                                            $isCurrentSort = ($sort === 'code_asc' || $sort === 'code_desc');
+                                            $nextSort = ($sort === 'code_asc') ? 'code_desc' : 'code_asc';
+                                            $sortIcon = ($sort === 'code_asc') ? ' <span style="color: #d32f2f; font-weight: 800;">▲</span>' : (($sort === 'code_desc') ? ' <span style="color: #d32f2f; font-weight: 800;">▼</span>' : ' <span style="color: #94a3b8; font-size: 0.82rem;">↕</span>');
+                                            break;
+                                        case 'checkin_time':
+                                            $isCurrentSort = ($sort === 'time_asc' || $sort === 'time_desc');
+                                            $nextSort = ($sort === 'time_desc') ? 'time_asc' : 'time_desc';
+                                            $sortIcon = ($sort === 'time_desc') ? ' <span style="color: #d32f2f; font-weight: 800;">▼</span>' : (($sort === 'time_asc') ? ' <span style="color: #d32f2f; font-weight: 800;">▲</span>' : ' <span style="color: #94a3b8; font-size: 0.82rem;">↕</span>');
+                                            break;
+                                        case 'status':
+                                            $isCurrentSort = ($sort === 'status_asc' || $sort === 'status_desc');
+                                            $nextSort = ($sort === 'status_asc') ? 'status_desc' : 'status_asc';
+                                            $sortIcon = ($sort === 'status_asc') ? ' <span style="color: #d32f2f; font-weight: 800;">▲</span>' : (($sort === 'status_desc') ? ' <span style="color: #d32f2f; font-weight: 800;">▼</span>' : ' <span style="color: #94a3b8; font-size: 0.82rem;">↕</span>');
+                                            break;
+                                        case 'method':
+                                            $isCurrentSort = ($sort === 'method_asc' || $sort === 'method_desc');
+                                            $nextSort = ($sort === 'method_asc') ? 'method_desc' : 'method_asc';
+                                            $sortIcon = ($sort === 'method_asc') ? ' <span style="color: #d32f2f; font-weight: 800;">▲</span>' : (($sort === 'method_desc') ? ' <span style="color: #d32f2f; font-weight: 800;">▼</span>' : ' <span style="color: #94a3b8; font-size: 0.82rem;">↕</span>');
+                                            break;
+                                    }
+                                    ?>
+                                    <?php if (!empty($nextSort)): ?>
+                                        <th class="col-<?php echo esc($key); ?>" style="cursor: pointer; user-select: none; transition: background 0.2s; <?php echo $isCurrentSort ? 'background: #fee2e2; color: #991b1b;' : ''; ?>" onclick="sortTableByKey('<?php echo $nextSort; ?>')" title="Bấm để nhóm & sắp xếp theo <?php echo esc($c['label']); ?>">
+                                            <div style="display: flex; align-items: center; justify-content: center; text-align: center; gap: 4px;">
+                                                <span><?php echo str_replace(' / ', ' /<br>', esc($c['label'])); ?></span>
+                                                <?php echo $sortIcon; ?>
+                                            </div>
+                                        </th>
+                                    <?php else: ?>
+                                        <th class="col-<?php echo esc($key); ?>"><?php echo esc($c['label']); ?></th>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             <?php endforeach; ?>
                         </tr>
@@ -321,7 +412,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                                 <?php if (!empty($col['visible'])): ?>
                                     <?php switch($col['key']):
                                         case 'customer_code': ?>
-                                            <td>
+                                            <td class="col-customer_code">
                                                 <?php if (!empty($custCode)): ?>
                                                     <strong style="color: #0284c7; font-weight:700; font-size: 0.88rem;"><?php echo esc($custCode); ?></strong>
                                                 <?php else: ?>
@@ -330,16 +421,16 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                                             </td>
                                             <?php break;
                                         case 'full_name': ?>
-                                            <td><strong><?php echo esc($c['full_name_entered']); ?></strong></td>
+                                            <td class="col-full_name"><strong><?php echo esc($c['full_name_entered']); ?></strong></td>
                                             <?php break;
                                         case 'phone': ?>
-                                            <td><?php echo esc($c['phone_entered']); ?></td>
+                                            <td class="col-phone"><?php echo esc($c['phone_entered']); ?></td>
                                             <?php break;
                                         case 'organization': ?>
-                                            <td><?php echo esc($c['address_entered'] ?? '-'); ?></td>
+                                            <td class="col-organization"><?php echo esc($c['address_entered'] ?? '-'); ?></td>
                                             <?php break;
                                         case 'table_name': ?>
-                                            <td>
+                                            <td class="col-table_name">
                                                 <?php if (!empty($c['table_name'])): ?>
                                                     <span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 4px 10px; border-radius: 8px; font-size: 0.85rem; white-space: nowrap; display: inline-flex; align-items: center;">
                                                         <?php echo esc($c['table_name']); ?>
@@ -350,7 +441,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                                             </td>
                                             <?php break;
                                         case 'lucky_draw_code': ?>
-                                            <td>
+                                            <td class="col-lucky_draw_code">
                                                 <?php if (!empty($c['lucky_draw_code'])): ?>
                                                     <span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 4px 10px; border-radius: 8px; font-size: 0.85rem;">
                                                         <?php echo esc($c['lucky_draw_code']); ?>
@@ -361,10 +452,10 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                                             </td>
                                             <?php break;
                                         case 'checkin_time': ?>
-                                            <td><?php echo date('d/m/Y H:i:s', strtotime($c['checkin_time'])); ?></td>
+                                            <td class="col-checkin_time"><?php echo date('d/m/Y H:i:s', strtotime($c['checkin_time'])); ?></td>
                                             <?php break;
                                         case 'method': ?>
-                                            <td>
+                                            <td class="col-method">
                                                 <?php if ($c['match_status'] === 'walk_in'): ?>
                                                     <span style="background: #fff3e0; color: #ef6c00; border: 1px solid #ffcc80; padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8rem;">
                                                         Khách phát sinh
@@ -381,7 +472,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                                             </td>
                                             <?php break;
                                         case 'status': ?>
-                                            <td>
+                                            <td class="col-status">
                                                 <span class="badge <?php echo esc($c['match_status']); ?>">
                                                     <?php echo $c['match_status'] === 'matched' ? 'Khách hợp lệ' : 'Khách phát sinh'; ?>
                                                 </span>
@@ -389,7 +480,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                                             <?php break;
                                         case 'actions': ?>
                                             <?php if(!isKinhDoanh()): ?>
-                                                <td style="text-align: center;">
+                                                <td class="col-actions" style="text-align: center;">
                                                     <div class="action-btns-wrapper">
                                                         <button type="button" class="btn btn-action-primary" onclick="openCompareModal(<?php echo (int)$c['id']; ?>)">Đối chiếu</button>
                                                         <?php if(isAdmin()): ?>
@@ -848,6 +939,12 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
             console.error('Realtime checkins update error:', e);
         }
     }
+
+    window.sortTableByKey = function(sortVal) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('sort', sortVal);
+        window.location.href = url.toString();
+    };
 
     let isHighlightAttached = false;
     function applyCheckinHighlightFromUrl() {

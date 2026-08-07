@@ -154,8 +154,8 @@ if (isset($_GET['ajax'])) {
 
         <div class="content-box">
             <?php if(isAdmin()): ?>
-            <div style="margin-bottom: 15px;">
-                <button class="btn btn-primary" onclick="openAddModal()">+ Thêm bàn mới</button>
+            <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: flex-start;">
+                <button class="btn btn-primary btn-inline-header" onclick="openAddModal()">+ Thêm bàn mới</button>
             </div>
             <?php endif; ?>
             <?php 

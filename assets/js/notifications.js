@@ -266,24 +266,33 @@
                 toast.style.transform = 'translateY(-15px)';
                 setTimeout(() => toast.remove(), 350);
             }
-        }, 8000);
+        }, 4500);
     }
 
     function injectHeaderNotifBell() {
-        let notifBox = document.getElementById('headerNotifBox');
-        const isNew = !notifBox;
-        if (isNew) {
-            notifBox = document.createElement('div');
-            notifBox.id = 'headerNotifBox';
-            notifBox.className = 'header-notif-box notif-bell-container';
+        // 1. Quả chuông trên Desktop (.header / .dash-header-bar)
+        const header = document.querySelector('.header, .dash-header-bar');
+        if (header && !document.getElementById('headerNotifBoxDesktop')) {
+            const desktopBox = document.createElement('div');
+            desktopBox.id = 'headerNotifBoxDesktop';
+            desktopBox.className = 'header-notif-box notif-bell-container';
+            desktopBox.style.cssText = 'margin-left: auto; position: relative; display: inline-flex; align-items: center;';
+            desktopBox.innerHTML = `
+                <button type="button" class="notif-bell-btn-icon" id="notifBellBtnDesktop" onclick="toggleNotifDropdown(event)" title="Thông báo check-in">
+                    🔔
+                    <span class="notif-badge-count" style="display:none;">0</span>
+                </button>
+            `;
+            header.appendChild(desktopBox);
         }
 
-        notifBox.innerHTML = `
-            <button type="button" class="notif-bell-btn-icon" id="notifBellBtn" onclick="toggleNotifDropdown(event)" title="Thông báo check-in">
-                🔔
-                <span class="notif-badge-count" id="notifBadgeCount" style="display:none;">0</span>
-            </button>
-            <div class="notif-dropdown" id="notifDropdown">
+        // 2. Đảm bảo thẻ Modal Dropdown tồn tại toàn cục trong DOM
+        let dropdown = document.getElementById('notifDropdown');
+        if (!dropdown) {
+            dropdown = document.createElement('div');
+            dropdown.className = 'notif-dropdown';
+            dropdown.id = 'notifDropdown';
+            dropdown.innerHTML = `
                 <div class="notif-dropdown-header">
                     <span>Thông báo check-in mới nhất</span>
                     <div style="display:flex; gap:8px; align-items:center;">
@@ -295,42 +304,24 @@
                 <div class="notif-dropdown-list" id="notifDropdownList">
                     <div class="notif-empty-state">Chưa có lượt check-in nào</div>
                 </div>
-            </div>
-        `;
-
-        if (isNew) {
-            const mobileControls = document.querySelector('.mobile-brand-controls');
-            const header = document.querySelector('.header');
-
-            if (mobileControls && window.innerWidth <= 768) {
-                const menuBtn = document.getElementById('mobileMenuBtn');
-                if (menuBtn) {
-                    mobileControls.insertBefore(notifBox, menuBtn);
-                } else {
-                    mobileControls.appendChild(notifBox);
-                }
-            } else if (header) {
-                header.appendChild(notifBox);
-            } else {
-                notifBox.style.position = 'fixed';
-                notifBox.style.top = '15px';
-                notifBox.style.right = '20px';
-                notifBox.style.zIndex = '9999';
-                document.body.appendChild(notifBox);
-            }
+            `;
+            const desktopBox = document.getElementById('headerNotifBoxDesktop');
+            const mobileBox = document.getElementById('headerNotifBoxMobile');
+            const container = desktopBox || mobileBox || document.body;
+            container.appendChild(dropdown);
         }
     }
 
     function renderNotifDropdown(checkins, unreadCount) {
-        const badge = document.getElementById('notifBadgeCount');
-        if (badge) {
+        const badges = document.querySelectorAll('.notif-badge-count');
+        badges.forEach(badge => {
             if (unreadCount > 0) {
                 badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
                 badge.style.display = 'inline-block';
             } else {
                 badge.style.display = 'none';
             }
-        }
+        });
 
         const listContainer = document.getElementById('notifDropdownList');
         if (!listContainer) return;
@@ -445,7 +436,6 @@
 
                 if (itemsToNotify.length > 0) {
                     try { playNotifChime(); } catch(e) {}
-                    try { openNotifDropdown(); } catch(e) {}
 
                     itemsToNotify.reverse().forEach(item => {
                         if (!shownToastIds.has(item.id)) {
@@ -524,13 +514,19 @@
     window.toggleNotifDropdown = function (e) {
         if (e) {
             if (typeof e.stopPropagation === 'function') e.stopPropagation();
-            if (e.cancelable && (e.type === 'touchend' || e.type === 'click')) {
-                // Prevent duplicate event triggers if touch & click fire sequentially
-            }
         }
         unlockAudio();
         const dropdown = document.getElementById('notifDropdown');
         if (dropdown) {
+            const targetContainer = (e && e.target) ? e.target.closest('.notif-bell-container') : null;
+            const desktopBox = document.getElementById('headerNotifBoxDesktop');
+            const mobileBox = document.getElementById('headerNotifBoxMobile');
+            const container = targetContainer || (window.innerWidth > 768 ? desktopBox : mobileBox) || document.body;
+
+            if (container && dropdown.parentNode !== container) {
+                container.appendChild(dropdown);
+            }
+
             const isVisible = dropdown.classList.contains('active') || (dropdown.style.display === 'flex' || (getComputedStyle(dropdown).display !== 'none' && dropdown.style.display !== 'none'));
             if (isVisible) {
                 dropdown.classList.remove('active');
@@ -553,9 +549,10 @@
 
     document.addEventListener('click', function (e) {
         const dropdown = document.getElementById('notifDropdown');
-        const bellBtn = document.getElementById('notifBellBtn');
         if (dropdown && (dropdown.classList.contains('active') || getComputedStyle(dropdown).display !== 'none')) {
-            if (!dropdown.contains(e.target) && (!bellBtn || !bellBtn.contains(e.target))) {
+            const isClickInsideDropdown = dropdown.contains(e.target);
+            const isClickOnBell = e.target.closest && (e.target.closest('.notif-bell-btn-icon') || e.target.closest('.notif-bell-container'));
+            if (!isClickInsideDropdown && !isClickOnBell) {
                 dropdown.classList.remove('active');
                 dropdown.style.setProperty('display', 'none', 'important');
             }

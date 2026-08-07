@@ -21,25 +21,51 @@ html, body {
   -webkit-touch-callout: none;
 }
 
-/* Đảm bảo toàn bộ nội dung (main-content, form, settings, content-box) KHÔNG BAO GIỜ bị đè bởi Bottom Nav Bar */
+/* 1. Đảm bảo nội dung chính không bị đè bởi Bottom Nav Bar (Chỉ áp dụng 1 lần duy nhất trên .main-content) */
 @media (max-width: 768px) {
   body,
-  .wrapper,
-  .main-content,
-  .content-box,
-  .settings-container,
-  .dashboard-table-card {
-    padding-bottom: calc(var(--nav-height) + max(24px, var(--sab)) + 50px) !important;
+  .wrapper {
+    padding-bottom: 0 !important;
+  }
+
+  .main-content {
+    padding-bottom: calc(var(--nav-height) + max(16px, var(--sab)) + 24px) !important;
     padding-left: max(10px, var(--sal)) !important;
     padding-right: max(10px, var(--sar)) !important;
+  }
+
+  /* Khóa triệt để các thẻ con bên trong KHÔNG cộng dồn padding-bottom dư thừa gây ra khoảng trắng rác */
+  .content-box,
+  .settings-container,
+  .dashboard-table-card,
+  .excel-table-container,
+  .table-responsive {
+    padding-bottom: 0 !important;
+    margin-bottom: 12px !important;
   }
 
   /* Tạo khoảng trống cuộn an toàn bên dưới các nút submit/form ở cuối trang */
   form button[type="submit"],
   .settings-container button[type="submit"],
   .content-box form {
-    margin-bottom: 20px !important;
+    margin-bottom: 15px !important;
   }
+}
+
+/* Hiệu ứng chuyển trang mượt mà (Smooth Page Transition) */
+@keyframes pageFadeIn {
+  0% {
+    opacity: 0.3;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.main-content {
+  animation: pageFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* 2. Thanh Điều Hướng Đáy (Bottom Navigation Bar) Chuẩn App Native */
