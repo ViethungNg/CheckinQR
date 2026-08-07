@@ -44,7 +44,7 @@
     }, false);
   }
 
-  // 3. Highlight tab đang active ở Bottom Navigation Bar
+  // 3. Highlight tab active & Phản hồi cảm ứng 0ms siêu tốc ở Bottom Navigation Bar
   document.addEventListener('DOMContentLoaded', function () {
     var currentPath = window.location.pathname;
     var navItems = document.querySelectorAll('.pmt-bottom-nav .nav-item');
@@ -64,11 +64,24 @@
         }
       }
 
-      // Phản hồi cảm ứng tức thì (Instant 0ms Feedback) khi chạm/click tab navigation
-      item.addEventListener('click', function () {
+      // Hàm chuyển hướng tức thì 0ms (Xóa bỏ 300ms tap delay trên mobile)
+      var handleFastNav = function (e) {
+        if (item._navTriggered) return;
+        item._navTriggered = true;
+
         navItems.forEach(function (nav) { nav.classList.remove('active'); });
         item.classList.add('active');
-      });
+
+        var targetUrl = item.href || href;
+        if (targetUrl && targetUrl !== window.location.href) {
+          window.location.href = targetUrl;
+        }
+
+        setTimeout(function() { item._navTriggered = false; }, 500);
+      };
+
+      item.addEventListener('touchstart', handleFastNav, { passive: true });
+      item.addEventListener('click', handleFastNav);
     });
   });
 
