@@ -143,6 +143,9 @@ window.restoreAdminTableScrollPosition = function() {
  */
 window.sortTableByKey = function(sortVal) {
     window.saveAdminTableScrollPosition();
+    if (window.showGlobalSpinner) {
+        window.showGlobalSpinner('Đang sắp xếp...');
+    }
     const url = new URL(window.location.href);
     url.searchParams.set('sort', sortVal);
     window.location.href = url.toString();

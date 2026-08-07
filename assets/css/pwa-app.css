@@ -173,3 +173,62 @@ html, body {
     transform: scale(0.95);
   }
 }
+
+/* 4. Hiệu ứng Loading Spinner xoay tròn mượt mà khi chuyển trang / tải dữ liệu */
+#pmtGlobalSpinner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 999999;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.18s ease, visibility 0.18s ease;
+  pointer-events: none;
+}
+
+#pmtGlobalSpinner.show {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.pmt-spinner-card {
+  background: #ffffff;
+  padding: 16px 24px;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.pmt-spinner-ring {
+  width: 36px;
+  height: 36px;
+  border: 3.5px solid #e2e8f0;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: pmtSpin 0.65s linear infinite;
+}
+
+.pmt-spinner-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  letter-spacing: 0.2px;
+}
+
+@keyframes pmtSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

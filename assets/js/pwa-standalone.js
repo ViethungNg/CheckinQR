@@ -64,7 +64,7 @@
         }
       }
 
-      // Hàm chuyển hướng tức thì 0ms (Xóa bỏ 300ms tap delay trên mobile)
+      // Hàm chuyển hướng tức thì 0ms (Xóa bỏ 300ms tap delay trên mobile + Hiện Spinner xoay tròn)
       var handleFastNav = function (e) {
         if (item._navTriggered) return;
         item._navTriggered = true;
@@ -74,6 +74,9 @@
 
         var targetUrl = item.href || href;
         if (targetUrl && targetUrl !== window.location.href) {
+          if (window.showGlobalSpinner) {
+            window.showGlobalSpinner('Đang nạp dữ liệu...');
+          }
           window.location.href = targetUrl;
         }
 
@@ -83,6 +86,52 @@
       item.addEventListener('touchstart', handleFastNav, { passive: true });
       item.addEventListener('click', handleFastNav);
     });
+  });
+
+  // 4. Quản lý Hiệu ứng Loading Spinner xoay tròn toàn cục
+  function createGlobalSpinner() {
+    if (document.getElementById('pmtGlobalSpinner')) return;
+    
+    var spinnerEl = document.createElement('div');
+    spinnerEl.id = 'pmtGlobalSpinner';
+    spinnerEl.innerHTML = '<div class="pmt-spinner-card">' +
+                          '  <div class="pmt-spinner-ring"></div>' +
+                          '  <div class="pmt-spinner-text">Đang tải...</div>' +
+                          '</div>';
+    document.body.appendChild(spinnerEl);
+  }
+
+  window.showGlobalSpinner = function (msg) {
+    createGlobalSpinner();
+    var spinner = document.getElementById('pmtGlobalSpinner');
+    if (spinner) {
+      var textEl = spinner.querySelector('.pmt-spinner-text');
+      if (textEl) textEl.textContent = msg || 'Đang tải...';
+      spinner.classList.add('show');
+    }
+  };
+
+  window.hideGlobalSpinner = function () {
+    var spinner = document.getElementById('pmtGlobalSpinner');
+    if (spinner) {
+      spinner.classList.remove('show');
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', function () {
+    createGlobalSpinner();
+    window.hideGlobalSpinner();
+
+    var filterForms = document.querySelectorAll('form');
+    filterForms.forEach(function (form) {
+      form.addEventListener('submit', function () {
+        if (window.showGlobalSpinner) window.showGlobalSpinner('Đang xử lý...');
+      });
+    });
+  });
+
+  window.addEventListener('pageshow', function () {
+    window.hideGlobalSpinner();
   });
 
 })();
