@@ -153,6 +153,17 @@
         activeEl.blur();
       }
     }
-  });
+  // 6. Disable double-tap auto-zoom on mobile while preserving native 2-finger pinch zoom
+  var lastTouchEnd = 0;
+  document.addEventListener('touchend', function (e) {
+    var now = Date.now();
+    if (now - lastTouchEnd <= 300) {
+      var target = e.target;
+      if (target && !target.closest('input, textarea, select')) {
+        e.preventDefault();
+      }
+    }
+    lastTouchEnd = now;
+  }, false);
 
 })();

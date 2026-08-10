@@ -15,7 +15,7 @@
 }
 
 html, body {
-    touch-action: auto !important;
+    touch-action: manipulation !important;
     overscroll-behavior-y: auto !important;
 }
 
