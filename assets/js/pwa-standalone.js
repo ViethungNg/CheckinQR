@@ -122,6 +122,30 @@
     createGlobalSpinner();
     window.hideGlobalSpinner();
 
+    // Attach global spinner to ALL internal link clicks (sidebar nav, bottom nav, page links)
+    document.addEventListener('click', function (e) {
+      var anchor = e.target.closest('a[href]');
+      if (!anchor) return;
+
+      var href = anchor.getAttribute('href');
+      var target = anchor.getAttribute('target');
+
+      if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('tel:') || href.startsWith('mailto:') || target === '_blank') {
+        return;
+      }
+
+      try {
+        var dest = new URL(anchor.href, window.location.origin);
+        if (dest.origin === window.location.origin) {
+          if (dest.pathname !== window.location.pathname || dest.search !== window.location.search) {
+            if (window.showGlobalSpinner) {
+              window.showGlobalSpinner('Đang nạp dữ liệu...');
+            }
+          }
+        }
+      } catch (err) {}
+    }, true);
+
     var filterForms = document.querySelectorAll('form');
     filterForms.forEach(function (form) {
       form.addEventListener('submit', function () {
