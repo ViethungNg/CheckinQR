@@ -206,8 +206,9 @@ foreach ($usersList as $u) {
         <div class="content-box">
             <!-- Search & Actions Bar -->
             <div class="search-toolbar">
-                <div class="search-box">
-                    <input type="text" id="user-search" class="search-input" placeholder="Tìm theo Username, Họ tên, Vai trò..." oninput="liveFilterUsers(this.value)" autocomplete="off">
+                <div class="search-box" style="position: relative;">
+                    <input type="text" id="user-search" class="search-input" placeholder="Tìm theo Username, Họ tên, Vai trò..." oninput="liveFilterUsers(this.value)" autocomplete="off" style="padding-right: 65px;">
+                    <span class="kbd-badge" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none;">Ctrl K</span>
                 </div>
                 <button class="btn btn-primary" onclick="openAddModal()">
                     Tạo tài khoản mới

@@ -114,8 +114,12 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
         <?php endif; ?>
 
         <div class="content-box">
-            <div style="margin-bottom: 15px;">
+            <div style="margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
                 <button class="btn btn-primary" onclick="openAddModal()">+ Thêm sự kiện mới</button>
+                <div style="position: relative; flex: 1; max-width: 320px;">
+                    <input type="text" id="event-search-input" placeholder="Tìm theo tên sự kiện, mã sự kiện..." class="form-control" style="padding-right: 65px;" oninput="filterEventsDOM(this.value)">
+                    <span class="kbd-badge" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none;">Ctrl K</span>
+                </div>
             </div>
             <div class="table-responsive">
                 <table>
@@ -249,11 +253,14 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
         modal.style.display = 'none';
     }
     
-    // window.onclick = function(event) {
-    //     if (event.target == modal) {
-    //         closeModal();
-    //     }
-    // }
+    function filterEventsDOM(query) {
+        const q = (query || '').toLowerCase().trim();
+        const rows = document.querySelectorAll('.table-responsive tbody tr');
+        rows.forEach(tr => {
+            const text = tr.textContent.toLowerCase();
+            tr.style.display = text.includes(q) ? '' : 'none';
+        });
+    }
 </script>
 <script src="../assets/js/notifications.js?v=<?php echo time(); ?>"></script>
 <script src="../assets/js/admin-mobile.js?v=<?php echo time(); ?>"></script>

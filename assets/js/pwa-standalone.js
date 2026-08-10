@@ -134,4 +134,25 @@
     window.hideGlobalSpinner();
   });
 
+  // 5. System-wide Ctrl + K Shortcut to auto-focus Search/Filter inputs
+  document.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      
+      // Find the primary search/filter input on current page
+      var filterInput = document.querySelector('#dashboard-search-input, #search-input, #checkin-search-input, #table-search-input, #event-search-input, #user-search, input[name="search"], input[type="text"][placeholder*="Tìm"], input[type="search"]');
+      
+      if (filterInput) {
+        filterInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        filterInput.focus();
+        if (typeof filterInput.select === 'function') filterInput.select();
+      }
+    } else if (e.key === 'Escape') {
+      var activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'SELECT')) {
+        activeEl.blur();
+      }
+    }
+  });
+
 })();

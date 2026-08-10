@@ -20,3 +20,4 @@
 <link rel="stylesheet" href="<?php echo url('assets/css/excel-table-mobile.css'); ?>">
 <script src="<?php echo url('assets/js/pwa-standalone.js'); ?>" defer></script>
 <script src="<?php echo url('assets/js/excel-table-zoom.js'); ?>" defer></script>
+<script src="<?php echo url('assets/js/excel-col-resizable.js'); ?>" defer></script>

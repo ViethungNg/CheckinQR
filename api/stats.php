@@ -117,9 +117,9 @@ try {
         }
 
         if ($searchKeyword !== '') {
-            $whereConditions[] = "(g.full_name LIKE ? OR g.phone LIKE ? OR g.customer_code LIKE ? OR t.table_name LIKE ?)";
+            $whereConditions[] = "(g.full_name LIKE ? OR g.phone LIKE ? OR g.customer_code LIKE ? OR g.organization LIKE ? OR g.lucky_draw_code LIKE ? OR t.table_name LIKE ?)";
             $likeStr = '%' . $searchKeyword . '%';
-            $params = [$likeStr, $likeStr, $likeStr, $likeStr];
+            $params = [$likeStr, $likeStr, $likeStr, $likeStr, $likeStr, $likeStr];
         }
 
         $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
@@ -173,9 +173,9 @@ try {
         }
 
         if ($searchKeyword !== '') {
-            $whereConditions[] = "(c.full_name_entered LIKE ? OR c.phone_entered LIKE ? OR t.table_name LIKE ? OR c.lucky_draw_code LIKE ? OR g.customer_code LIKE ?)";
+            $whereConditions[] = "(c.full_name_entered LIKE ? OR c.phone_entered LIKE ? OR g.organization LIKE ? OR t.table_name LIKE ? OR c.lucky_draw_code LIKE ? OR g.customer_code LIKE ?)";
             $likeStr = '%' . $searchKeyword . '%';
-            $params = [$likeStr, $likeStr, $likeStr, $likeStr, $likeStr];
+            $params = [$likeStr, $likeStr, $likeStr, $likeStr, $likeStr, $likeStr];
         }
 
         $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";

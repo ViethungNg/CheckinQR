@@ -80,7 +80,7 @@ if (count($activeEvents) === 1) {
             </div>
 
             <!-- Card 3: Yellow (Bàn đã lấp đầy) -->
-            <div class="stat-card-pastel card-pastel-yellow" onclick="scrollToFloorplan()" title="Số lượng bàn tiệc đã đạt 100% người tới">
+            <div class="stat-card-pastel card-pastel-yellow" onclick="location.href='tables.php#floorplan'" title="Bấm để tới Sơ đồ trạng thái bàn tiệc">
                 <div class="pastel-card-title">Bàn tiệc lấp đầy (100%)</div>
                 <div class="pastel-card-value" id="val-full-tables">0 Bàn</div>
                 <div class="pastel-card-subtitle">Đã đủ số người xếp bàn</div>
@@ -135,27 +135,13 @@ if (count($activeEvents) === 1) {
             </div>
         </div>
 
-        <!-- Real-Time Floorplan Table Cards Grid -->
-        <div class="table-floorplan-section">
-            <div class="floorplan-header">
-                <div class="floorplan-title">
-                    Sơ Đồ Trạng Thái Bàn (Real-time) <?php echo isKinhDoanh() ? '(Bàn Phụ Trách)' : ''; ?>
-                </div>
-                <div class="floorplan-hint">
-                    Bấm vào thẻ Bàn để xem danh sách chi tiết
-                </div>
-            </div>
-            <div id="tables-cards-container" class="tables-grid-cards">
-                <!-- Dynamically rendered via Javascript -->
-            </div>
-        </div>
-
         <!-- Smart Filter Toolbar & Guest Checkin Table Section -->
         <div class="dashboard-table-card">
             <div class="table-filter-toolbar">
                 <div class="table-toolbar-left">
-                    <div class="dashboard-search-box">
-                        <input type="text" id="dashboard-search-input" placeholder="Tìm theo tên, SĐT hoặc tên bàn..." oninput="handleSearchInput(this.value)">
+                    <div class="dashboard-search-box" style="position: relative;">
+                        <input type="text" id="dashboard-search-input" placeholder="Tìm theo tên, SĐT hoặc tên bàn..." oninput="handleSearchInput(this.value)" style="padding-right: 65px;" autocomplete="off">
+                        <span class="kbd-badge" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none;">Ctrl K</span>
                     </div>
                 </div>
                 <div class="table-toolbar-right">
@@ -236,11 +222,25 @@ function setTableFilter(tableId) {
 }
 
 function handleSearchInput(val) {
+    // 1. Instant 0ms DOM filtering as you type
+    filterDashboardTableDOM(val);
+
+    // 2. Debounced server update for full dataset
     clearTimeout(searchDebounceTimer);
-    searchDebounceTimer = setTimeout(() => {
+    searchDebounceTimer = setTimeout(async () => {
         currentSearch = val.trim();
-        updateRealtimeStats(true);
-    }, 300);
+        await updateRealtimeStats(true);
+        filterDashboardTableDOM(val);
+    }, 400);
+}
+
+function filterDashboardTableDOM(query) {
+    const q = (query || '').toLowerCase().trim();
+    const rows = document.querySelectorAll('#recent-checkins-body tr');
+    rows.forEach(tr => {
+        const text = tr.textContent.toLowerCase();
+        tr.style.display = text.includes(q) ? '' : 'none';
+    });
 }
 
 function scrollToFloorplan() {
@@ -396,9 +396,12 @@ async function updateRealtimeStats(forceRefresh = false) {
                 populateTableSelectOptions(result.data.tables);
             }
 
-            // Cập nhật danh sách khách hàng / check-in
+            // Cập nhật danh sách khách hàng / check-in (Skip replacement if user is actively typing to prevent UI stutter)
+            const searchInput = document.getElementById('dashboard-search-input');
+            const isUserTyping = searchInput && document.activeElement === searchInput;
+
             const tbody = document.getElementById('recent-checkins-body');
-            if (result.data.recent_checkins) {
+            if (result.data.recent_checkins && (!isUserTyping || forceRefresh)) {
                 const visibleCount = dashColsConfig.filter(c => c.visible).length || 1;
                 if (result.data.recent_checkins.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="${visibleCount}" style="text-align:center; color:#94a3b8; padding:32px; font-size:0.95rem;">Không tìm thấy dữ liệu phù hợp với bộ lọc hiện tại</td></tr>`;
@@ -553,6 +556,24 @@ window.addEventListener('dbRealtimeChange', (e) => {
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
         updateRealtimeStats();
+    }
+});
+
+// Shortcut Ctrl + K to focus search box
+document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        const searchInput = document.getElementById('dashboard-search-input');
+        if (searchInput) {
+            searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            searchInput.focus();
+            if (typeof searchInput.select === 'function') searchInput.select();
+        }
+    } else if (e.key === 'Escape') {
+        const searchInput = document.getElementById('dashboard-search-input');
+        if (searchInput && document.activeElement === searchInput) {
+            searchInput.blur();
+        }
     }
 });
 </script>

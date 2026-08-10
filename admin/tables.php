@@ -102,7 +102,7 @@ if (isset($_GET['ajax'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=0.5, user-scalable=yes, viewport-fit=cover">
-    <title>PMT - Checkin - Quản lý bàn</title>
+    <title>PMT - Checkin - Quản lý bàn sự kiện</title>
     <link rel="icon" href="../img/logo pmt.png" type="image/png">
     <?php require_once __DIR__ . '/../includes/pwa_head.php'; ?>
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
@@ -132,13 +132,62 @@ if (isset($_GET['ajax'])) {
         .alert { padding: 10px; border-radius: 4px; margin-bottom: 15px; }
         .alert.success { background: #e8f5e9; color: #2e7d32; }
         .alert.error { background: #ffebee; color: #c62828; }
+
+        /* 2-Tab Switcher Navigation */
+        .tables-tabs-nav {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0;
+            flex-wrap: wrap;
+        }
+
+        .tables-tab-btn {
+            padding: 11px 22px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #64748b;
+            background: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-bottom: none;
+            border-radius: 10px 10px 0 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tables-tab-btn:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+        }
+
+        .tables-tab-btn.active {
+            background: #ffffff;
+            color: #d32f2f;
+            border-color: #cbd5e1;
+            border-top: 3px solid #d32f2f;
+            border-bottom: 2px solid #ffffff;
+            margin-bottom: -2px;
+            box-shadow: 0 -3px 8px rgba(0,0,0,0.04);
+        }
+
+        .tables-tab-content {
+            display: none;
+        }
+
+        .tables-tab-content.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
 <div class="wrapper">
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
     <div class="main-content">
-        <div class="header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+        <div class="header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
             <h1>Quản lý Bàn Sự kiện <?php echo isKinhDoanh() ? '(Đang phụ trách)' : ''; ?></h1>
             <span id="realtime-status" style="font-size: 0.85rem; color: #2e7d32; font-weight: 500;">
                 🟢 Real-time (Mỗi 2s)
@@ -152,81 +201,161 @@ if (isset($_GET['ajax'])) {
             <script>document.addEventListener('DOMContentLoaded', function() { window.showAppToast && window.showAppToast(<?php echo json_encode($error, JSON_UNESCAPED_UNICODE); ?>, 'error'); });</script>
         <?php endif; ?>
 
-        <div class="content-box">
-            <?php if(isAdmin()): ?>
-            <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: flex-start;">
-                <button class="btn btn-primary btn-inline-header" onclick="openAddModal()">+ Thêm bàn mới</button>
+        <!-- Tab Navigation Bar -->
+        <div class="tables-tabs-nav">
+            <button type="button" class="tables-tab-btn active" id="tab-btn-floorplan" onclick="switchTablesTab('floorplan')">
+                📊 Sơ Đồ Trạng Thái Bàn & Bộ Lọc
+            </button>
+            <button type="button" class="tables-tab-btn" id="tab-btn-config" onclick="switchTablesTab('config')">
+                ⚙️ Cấu Hình Thông Tin Bàn
+            </button>
+        </div>
+
+        <!-- TAB 1: Sơ Đồ Trạng Thái Bàn & Bộ Lọc Thống Kê Realtime -->
+        <div id="tab-content-floorplan" class="tables-tab-content active">
+            <!-- Real-time Floorplan Grid Cards -->
+            <div class="table-floorplan-section" style="margin-bottom: 20px;">
+                <div class="floorplan-header">
+                    <div class="floorplan-title">
+                        Sơ Đồ Trạng Thái Bàn (Real-time) <?php echo isKinhDoanh() ? '(Bàn Phụ Trách)' : ''; ?>
+                    </div>
+                    <div class="floorplan-hint">
+                        Bấm vào thẻ Bàn để lọc xem danh sách chi tiết
+                    </div>
+                </div>
+                <div id="tables-cards-container" class="tables-grid-cards">
+                    <!-- Dynamically rendered via Javascript -->
+                </div>
             </div>
-            <?php endif; ?>
-            <?php 
-            $tableTitle = 'Sơ Đồ Bàn Tiệc & Sức Chứa (' . count($tables) . ')';
-            require __DIR__ . '/../includes/table_toolbar.php';
-            ?>
-            <div class="table-responsive excel-table-container">
-                <div class="excel-zoom-wrapper">
-                    <table class="excel-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 80px; text-align: center;">Thứ tự</th>
-                            <th>Tên bàn</th>
-                            <th>Mã bàn</th>
-                            <th>Sự kiện</th>
-                            <th>Người phụ trách</th>
-                            <th>Sức chứa</th>
-                            <th>Đã xếp (Dự kiến)</th>
-                            <th>Đã vào bàn (Thực tế)</th>
-                            <th>Vị trí</th>
-                            <?php if(isAdmin()): ?><th>Thao tác</th><?php endif; ?>
-                        </tr>
-                    </thead>
-                    <tbody id="tablesTableBody">
-                        <?php foreach($tables as $t): ?>
-                        <tr>
-                            <td style="text-align: center;">
-                                <span style="font-weight: bold; color: #d32f2f; background: #ffebee; padding: 3px 10px; border-radius: 6px;">
-                                    <?php echo esc($t['sort_order']); ?>
-                                </span>
-                            </td>
-                            <td><strong><?php echo esc($t['table_name']); ?></strong></td>
-                            <td><?php echo esc($t['table_code']); ?></td>
-                            <td><?php echo esc($t['event_name']); ?></td>
-                            <td>
-                                <?php if(!empty($t['assigned_user_name'])): ?>
-                                    <span style="background: #fff3e0; color: #e65100; padding: 3px 8px; border-radius: 4px; font-weight: 500;">
-                                        💼 <?php echo esc($t['assigned_user_name']); ?>
+
+            <!-- Smart Filter Toolbar & Guest Checkin Table Section -->
+            <div class="dashboard-table-card">
+                <div class="table-filter-toolbar">
+                    <div class="table-toolbar-left">
+                        <div class="dashboard-search-box" style="position: relative;">
+                            <input type="text" id="dashboard-search-input" placeholder="Tìm theo tên, SĐT, đơn vị hoặc tên bàn..." oninput="handleSearchInput(this.value)" style="padding-right: 65px;" autocomplete="off">
+                            <span class="kbd-badge" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none;">Ctrl K</span>
+                        </div>
+                    </div>
+                    <div class="table-toolbar-right">
+                        <select id="table-select-filter" class="table-select-custom" onchange="setTableFilter(this.value)">
+                            <option value="all">Tất cả các Bàn</option>
+                        </select>
+                        <div class="realtime-pill-badge">
+                            <div class="pulse-dot"></div> Real-time (2s)
+                        </div>
+                    </div>
+                </div>
+
+                <?php 
+                $dashCols = getTableColumnsConfig('dashboard'); 
+                $tableTitle = 'Bảng Thống Kê Realtime Bàn Tiệc & Khách Mời';
+                require __DIR__ . '/../includes/table_toolbar.php';
+                ?>
+                <div class="table-responsive excel-table-container">
+                    <div class="excel-zoom-wrapper">
+                        <table class="excel-table modern-data-table">
+                        <thead>
+                            <tr>
+                                <?php foreach ($dashCols as $c): ?>
+                                    <?php if (!empty($c['visible'])): ?>
+                                         <th class="col-<?php echo esc($c['key']); ?>"><?php echo str_replace(' / ', ' /<br>', esc($c['label'])); ?></th>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </tr>
+                        </thead>
+                        <tbody id="recent-checkins-body">
+                            <!-- Loaded dynamically via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: Cấu Hình Thông Tin Bàn (CRUD Table - Ảnh 1) -->
+        <div id="tab-content-config" class="tables-tab-content">
+            <div class="content-box">
+                <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                    <?php if(isAdmin()): ?>
+                        <button class="btn btn-primary btn-inline-header" onclick="openAddModal()">+ Thêm bàn mới</button>
+                    <?php endif; ?>
+                    <div style="position: relative; flex: 1; max-width: 320px;">
+                        <input type="text" id="table-search-input" placeholder="Tìm theo tên bàn, mã bàn, người phụ trách..." class="form-control" style="padding-right: 65px;" oninput="filterTablesDOM(this.value)">
+                        <span class="kbd-badge" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none;">Ctrl K</span>
+                    </div>
+                </div>
+                <?php 
+                $tableTitle = 'Sơ Đồ Bàn Tiệc & Sức Chứa (' . count($tables) . ')';
+                require __DIR__ . '/../includes/table_toolbar.php';
+                ?>
+                <div class="table-responsive excel-table-container">
+                    <div class="excel-zoom-wrapper">
+                        <table class="excel-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 80px; text-align: center;">Thứ tự</th>
+                                <th>Tên bàn</th>
+                                <th>Mã bàn</th>
+                                <th>Sự kiện</th>
+                                <th>Người phụ trách</th>
+                                <th>Sức chứa</th>
+                                <th>Đã xếp (Dự kiến)</th>
+                                <th>Đã vào bàn (Thực tế)</th>
+                                <th>Vị trí</th>
+                                <?php if(isAdmin()): ?><th>Thao tác</th><?php endif; ?>
+                            </tr>
+                        </thead>
+                        <tbody id="tablesTableBody">
+                            <?php foreach($tables as $t): ?>
+                            <tr>
+                                <td style="text-align: center;">
+                                    <span style="font-weight: bold; color: #d32f2f; background: #ffebee; padding: 3px 10px; border-radius: 6px;">
+                                        <?php echo esc($t['sort_order']); ?>
                                     </span>
-                                <?php else: ?>
-                                    <span style="color: #aaa;">Chưa phân công</span>
+                                </td>
+                                <td><strong><?php echo esc($t['table_name']); ?></strong></td>
+                                <td><?php echo esc($t['table_code']); ?></td>
+                                <td><?php echo esc($t['event_name']); ?></td>
+                                <td>
+                                    <?php if(!empty($t['assigned_user_name'])): ?>
+                                        <span style="background: #fff3e0; color: #e65100; padding: 3px 8px; border-radius: 4px; font-weight: 500;">
+                                            💼 <?php echo esc($t['assigned_user_name']); ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span style="color: #aaa;">Chưa phân công</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo esc($t['capacity']); ?> người</td>
+                                <td style="color: <?php echo $t['current_guests'] > $t['capacity'] ? 'red' : '#1565c0'; ?>; font-weight: bold;">
+                                    <?php echo esc($t['current_guests']); ?> / <?php echo esc($t['capacity']); ?>
+                                </td>
+                                <td style="color: <?php echo $t['actual_checkins'] > $t['capacity'] ? 'red' : '#2e7d32'; ?>; font-weight: bold;">
+                                    <?php echo esc($t['actual_checkins']); ?> / <?php echo esc($t['capacity']); ?>
+                                </td>
+                                <td><?php echo esc($t['location'] ?? '-'); ?></td>
+                                <?php if(isAdmin()): ?>
+                                <td>
+                                    <div class="action-btns-wrapper">
+                                        <button type="button" class="btn btn-action-edit" onclick='openEditModal(<?php echo json_encode($t); ?>)'>Sửa</button>
+                                        <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa bàn này? Khách trong bàn sẽ bị mất vị trí.');">
+                                            <?php echo csrfField(); ?>
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="id" value="<?php echo $t['id']; ?>">
+                                            <button type="submit" class="btn btn-action-delete">Xóa</button>
+                                        </form>
+                                    </div>
+                                </td>
                                 <?php endif; ?>
-                            </td>
-                            <td><?php echo esc($t['capacity']); ?> người</td>
-                            <td style="color: <?php echo $t['current_guests'] > $t['capacity'] ? 'red' : '#1565c0'; ?>; font-weight: bold;">
-                                <?php echo esc($t['current_guests']); ?> / <?php echo esc($t['capacity']); ?>
-                            </td>
-                            <td style="color: <?php echo $t['actual_checkins'] > $t['capacity'] ? 'red' : '#2e7d32'; ?>; font-weight: bold;">
-                                <?php echo esc($t['actual_checkins']); ?> / <?php echo esc($t['capacity']); ?>
-                            </td>
-                            <td><?php echo esc($t['location'] ?? '-'); ?></td>
-                            <?php if(isAdmin()): ?>
-                            <td>
-                                <div class="action-btns-wrapper">
-                                    <button type="button" class="btn btn-action-edit" onclick='openEditModal(<?php echo json_encode($t); ?>)'>Sửa</button>
-                                    <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa bàn này? Khách trong bàn sẽ bị mất vị trí.');">
-                                        <?php echo csrfField(); ?>
-                                        <input type="hidden" name="action" value="delete">
-                                        <input type="hidden" name="id" value="<?php echo $t['id']; ?>">
-                                        <button type="submit" class="btn btn-action-delete">Xóa</button>
-                                    </form>
-                                </div>
-                            </td>
-                            <?php endif; ?>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
             </div>
         </div>
-        </div>
+
     </div>
 </div>
 
@@ -294,6 +423,245 @@ if (isset($_GET['ajax'])) {
 </div>
 
 <script>
+    let currentFilter = 'all';
+    let selectedTableId = 'all';
+    let currentSearch = '';
+    let searchDebounceTimer = null;
+    let lastIndexDataHash = '';
+    const dashColsConfig = <?php echo json_encode($dashCols); ?>;
+
+    // Switch Tables Tab
+    function switchTablesTab(tabName) {
+        const btnFloorplan = document.getElementById('tab-btn-floorplan');
+        const btnConfig = document.getElementById('tab-btn-config');
+        const contentFloorplan = document.getElementById('tab-content-floorplan');
+        const contentConfig = document.getElementById('tab-content-config');
+
+        if (tabName === 'config') {
+            btnFloorplan.classList.remove('active');
+            btnConfig.classList.add('active');
+            contentFloorplan.classList.remove('active');
+            contentConfig.classList.add('active');
+            contentFloorplan.style.display = 'none';
+            contentConfig.style.display = 'block';
+            location.hash = '#config';
+        } else {
+            btnConfig.classList.remove('active');
+            btnFloorplan.classList.add('active');
+            contentConfig.classList.remove('active');
+            contentFloorplan.classList.add('active');
+            contentConfig.style.display = 'none';
+            contentFloorplan.style.display = 'block';
+            location.hash = '#floorplan';
+        }
+
+        if (window.initTableColumnResizers) {
+            setTimeout(window.initTableColumnResizers, 100);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (location.hash === '#config') {
+            switchTablesTab('config');
+        } else {
+            switchTablesTab('floorplan');
+        }
+    });
+
+    // Realtime Floorplan & Table Stats Fetcher
+    async function updateRealtimeStats(forceRefresh = false) {
+        try {
+            const queryUrl = `../api/stats.php?filter=${encodeURIComponent(currentFilter)}&table_id=${encodeURIComponent(selectedTableId)}&search=${encodeURIComponent(currentSearch)}&_t=${Date.now()}`;
+            const response = await fetch(queryUrl, { cache: 'no-store' });
+            if (!response.ok) return;
+            const textData = await response.text();
+
+            if (!forceRefresh && textData === lastIndexDataHash) return;
+            lastIndexDataHash = textData;
+
+            const result = JSON.parse(textData);
+            
+            if (result.status === 'success') {
+                if (result.data.tables) {
+                    renderTableCards(result.data.tables);
+                    populateTableSelectOptions(result.data.tables);
+                }
+
+                const searchInput = document.getElementById('dashboard-search-input');
+                const isUserTyping = searchInput && document.activeElement === searchInput;
+
+                const tbody = document.getElementById('recent-checkins-body');
+                if (tbody && result.data.recent_checkins && (!isUserTyping || forceRefresh)) {
+                    const visibleCount = dashColsConfig.filter(c => c.visible).length || 1;
+                    if (result.data.recent_checkins.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="${visibleCount}" style="text-align:center; color:#94a3b8; padding:32px; font-size:0.95rem;">Không tìm thấy dữ liệu phù hợp với bộ lọc hiện tại</td></tr>`;
+                    } else {
+                        let html = '';
+                        result.data.recent_checkins.slice(0, 150).forEach(item => {
+                            const isCheckedIn = item.status === 'checked_in' || item.status === 'matched';
+                            const rowClass = isCheckedIn ? 'row-checked-in' : '';
+                            
+                            const customerCodeHtml = item.customer_code 
+                                ? `<strong style="color: #0284c7; font-weight:700; font-size: 0.88rem;">${item.customer_code}</strong>`
+                                : `<span style="color: #cbd5e1;">-</span>`;
+
+                            let badgeText = item.status_text;
+                            let badgeStyle = 'background:#f1f5f9; color:#475569; border:1px solid #e2e8f0;';
+                            
+                            if (isCheckedIn) {
+                                badgeText = 'Đã checkin';
+                                badgeStyle = 'background:#dcfce7; color:#15803d; border:1px solid #bbf7d0;';
+                            } else if (item.status === 'walk_in') {
+                                badgeText = 'Khách phát sinh';
+                                badgeStyle = 'background:#fef3c7; color:#b45309; border:1px solid #fde68a;';
+                            } else if (item.status === 'invited') {
+                                badgeText = 'Chưa tới';
+                                badgeStyle = 'background:#eef2ff; color:#4338ca; border:1px solid #c7d2fe;';
+                            }
+
+                            const tableNameHtml = item.table_name && item.table_name !== 'Chưa xếp bàn'
+                                ? `<span style="font-weight:700; color:#047857; background:#ecfdf5; border:1px solid #a7f3d0; padding:4px 10px; border-radius:8px; font-size:0.82rem;">${item.table_name}</span>`
+                                : `<span style="color:#94a3b8; font-style:italic; font-size:0.85rem;">Chưa xếp</span>`;
+
+                            html += `<tr class="${rowClass}">`;
+                            dashColsConfig.forEach(col => {
+                                if (!col.visible) return;
+                                switch(col.key) {
+                                    case 'customer_code':
+                                        html += `<td class="col-customer_code">${customerCodeHtml}</td>`;
+                                        break;
+                                    case 'full_name':
+                                        html += `<td class="col-full_name" style="font-weight:700; color:#0f172a;">${item.full_name}</td>`;
+                                        break;
+                                    case 'phone':
+                                        html += `<td class="col-phone" style="font-weight:600; color:#475569;">${item.phone}</td>`;
+                                        break;
+                                    case 'organization':
+                                        html += `<td class="col-organization">${item.organization || '-'}</td>`;
+                                        break;
+                                    case 'table_name':
+                                        html += `<td class="col-table_name">${tableNameHtml}</td>`;
+                                        break;
+                                    case 'lucky_draw_code':
+                                        const luckyCodeHtml = item.lucky_draw_code 
+                                            ? `<span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">${item.lucky_draw_code}</span>`
+                                            : `<span style="color: #cbd5e1;">-</span>`;
+                                        html += `<td class="col-lucky_draw_code">${luckyCodeHtml}</td>`;
+                                        break;
+                                    case 'checkin_time':
+                                        html += `<td class="col-checkin_time" style="font-size:0.85rem; color:#64748b;">${item.time}</td>`;
+                                        break;
+                                    case 'status':
+                                        html += `<td class="col-status"><span style="display:inline-block; padding:4px 10px; border-radius:20px; font-size:0.78rem; font-weight:700; ${badgeStyle}">${badgeText}</span></td>`;
+                                        break;
+                                }
+                            });
+                            html += `</tr>`;
+                        });
+                        tbody.innerHTML = html;
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('Realtime update error:', e);
+        }
+    }
+
+    function renderTableCards(tables) {
+        const container = document.getElementById('tables-cards-container');
+        if (!container) return;
+        
+        let html = '';
+        const isAllActive = selectedTableId === 'all' ? 'active-table' : '';
+        html += `
+            <div class="table-card-v2 ${isAllActive}" id="table-card-all" onclick="setTableFilter('all')">
+                <div class="table-card-top">
+                    <span class="table-name-badge">Tất cả các Bàn</span>
+                </div>
+                <div style="font-size:0.78rem; color:#64748b;">Bấm để xem tổng hợp tất cả vị trí</div>
+            </div>
+        `;
+        
+        if (!tables || tables.length === 0) {
+            html += `
+                <div style="grid-column: 1 / -1; padding: 14px; background: #fffbeb; color: #b45309; border-radius: 10px; font-size: 0.88rem; border: 1px dashed #fde68a; font-weight: 600;">
+                    Hiện chưa có bàn nào được phân công phụ trách.
+                </div>
+            `;
+        } else {
+            tables.forEach(t => {
+                const isActive = String(selectedTableId) === String(t.id) ? 'active-table' : '';
+                html += `
+                    <div class="table-card-v2 ${isActive}" id="table-card-${t.id}" onclick="setTableFilter('${t.id}')">
+                        <div class="table-card-top">
+                            <span class="table-name-badge">${t.table_name}</span>
+                            <span class="table-ratio-badge">${t.arrived_guests}/${t.total_guests}</span>
+                        </div>
+                        <div class="table-staff-info">
+                            Phụ trách: ${t.assigned_user_name}
+                        </div>
+                        <div class="table-stats-row">
+                            <span style="color:#10b981;">${t.arrived_guests} Đã tới</span>
+                            <span style="color:#6366f1;">${t.not_arrived_guests} Chưa tới</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+        
+        container.innerHTML = html;
+    }
+
+    function populateTableSelectOptions(tables) {
+        const select = document.getElementById('table-select-filter');
+        if (!select || select.dataset.loaded === 'true') return;
+        
+        let options = `<option value="all">Tất cả các Bàn</option>`;
+        if (tables && tables.length > 0) {
+            tables.forEach(t => {
+                options += `<option value="${t.id}">${t.table_name} (${t.arrived_guests}/${t.total_guests} đã tới)</option>`;
+            });
+        }
+        
+        select.innerHTML = options;
+        select.value = selectedTableId;
+        select.dataset.loaded = 'true';
+    }
+
+    function setTableFilter(tableId) {
+        selectedTableId = tableId;
+        const select = document.getElementById('table-select-filter');
+        if (select && select.value !== tableId) {
+            select.value = tableId;
+        }
+        document.querySelectorAll('.table-card-v2').forEach(card => card.classList.remove('active-table'));
+        const activeTableCard = document.getElementById('table-card-' + tableId);
+        if (activeTableCard) {
+            activeTableCard.classList.add('active-table');
+        }
+        updateRealtimeStats(true);
+    }
+
+    function handleSearchInput(val) {
+        filterDashboardTableDOM(val);
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(async () => {
+            currentSearch = val.trim();
+            await updateRealtimeStats(true);
+            filterDashboardTableDOM(val);
+        }, 400);
+    }
+
+    function filterDashboardTableDOM(query) {
+        const q = (query || '').toLowerCase().trim();
+        const rows = document.querySelectorAll('#recent-checkins-body tr');
+        rows.forEach(tr => {
+            const text = tr.textContent.toLowerCase();
+            tr.style.display = text.includes(q) ? '' : 'none';
+        });
+    }
+
+    // Modal CRUD Bàn (Tab 2)
     const modal = document.getElementById('tableModal');
     let latestTablesData = <?php echo json_encode($tables); ?>;
 
@@ -454,20 +822,51 @@ if (isset($_GET['ajax'])) {
         tbody.innerHTML = html;
     }
 
-    // Lắng nghe sự kiện SSE Push (0s) khi CSDL có biến động
-    window.addEventListener('dbRealtimeChange', (e) => {
-        const data = e.detail;
-        if (data && Array.isArray(data.tables)) {
-            renderTablesRows(data.tables);
-        } else {
+    function filterTablesDOM(query) {
+        const q = (query || '').toLowerCase().trim();
+        const rows = document.querySelectorAll('#tablesTableBody tr');
+        rows.forEach(tr => {
+            const text = tr.textContent.toLowerCase();
+            tr.style.display = text.includes(q) ? '' : 'none';
+        });
+    }
+
+    // Initialize Realtime Polling
+    updateRealtimeStats();
+    setInterval(() => {
+        updateRealtimeStats();
+        fetchRealtimeTables();
+    }, 3000);
+
+    window.addEventListener('dbRealtimeChange', () => {
+        updateRealtimeStats();
+        fetchRealtimeTables();
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            updateRealtimeStats();
             fetchRealtimeTables();
         }
     });
 
-    setInterval(fetchRealtimeTables, 3000); // Polling dự phòng
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-            fetchRealtimeTables();
+    // Shortcut Ctrl + K to focus search box
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+            e.preventDefault();
+            const configTabActive = document.getElementById('tab-btn-config')?.classList.contains('active');
+            const targetInputId = configTabActive ? 'table-search-input' : 'dashboard-search-input';
+            const searchInput = document.getElementById(targetInputId);
+            if (searchInput) {
+                searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                searchInput.focus();
+                if (typeof searchInput.select === 'function') searchInput.select();
+            }
+        } else if (e.key === 'Escape') {
+            const activeEl = document.activeElement;
+            if (activeEl && (activeEl.id === 'dashboard-search-input' || activeEl.id === 'table-search-input')) {
+                activeEl.blur();
+            }
         }
     });
 </script>
