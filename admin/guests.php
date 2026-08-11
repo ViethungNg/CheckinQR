@@ -336,6 +336,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
     <link rel="icon" href="../img/logo pmt.png" type="image/png">
     <?php require_once __DIR__ . '/../includes/pwa_head.php'; ?>
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../assets/css/admin-polish.css?v=<?php echo filemtime(__DIR__ . '/../assets/css/admin-polish.css'); ?>">
     <style>
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -395,13 +396,14 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                 <a href="guests.php?action=export_excel&search=<?php echo urlencode($search); ?>&sort=<?php echo urlencode($sort); ?>" class="btn btn-sm-mobile" style="background: #2e7d32; color: white; text-decoration: none;">📤 Xuất Excel</a>
             </div>
 
-            <!-- Thanh Lọc & Sắp Xếp Thông Minh (Live Typing Search) -->
-            <form method="GET" action="" id="search-form" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; background: #f8f9fa; padding: 10px 12px; border-radius: 8px; border: 1px solid #e0e0e0;">
+            <!-- Thanh Lọc & Sắp Xếp Thông Minh (Live Typing Search - Sticky Top) -->
+            <form method="GET" action="" id="search-form" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; background: #ffffff; padding: 10px 12px; border-radius: 8px; border: 1px solid #e0e0e0;">
                 <div style="flex: 1; min-width: 200px; position: relative;">
-                    <input type="text" id="search-input" name="search" value="<?php echo esc($search); ?>" placeholder="Tìm theo SĐT, Bàn, Mã dự thưởng, Họ tên..." class="form-control" autocomplete="off">
+                    <input type="text" id="search-input" name="search" value="<?php echo esc($search); ?>" placeholder="Tìm theo SĐT, Bàn, Mã dự thưởng, Họ tên..." class="form-control" style="padding-right: 65px;" oninput="liveSearchGuests(this.value)" autocomplete="off">
+                    <span class="kbd-badge hide-mobile" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none;">Ctrl K</span>
                 </div>
                 
-                <div class="sort-select-wrapper <?php echo ($sort === 'id_desc') ? 'sort-select-mobile-hide' : ''; ?>" style="min-width: 200px;">
+                <div class="sort-select-wrapper" style="min-width: 200px;">
                     <select name="sort" class="form-control" onchange="window.saveAdminTableScrollPosition(); window.sortTableByKey(this.value);" style="cursor: pointer; background: #fff; font-weight: 500;">
                         <option value="id_desc" <?php echo $sort === 'id_desc' ? 'selected' : ''; ?>>Mới nhất trước</option>
                         <option value="table_asc" <?php echo $sort === 'table_asc' ? 'selected' : ''; ?>>Bàn ngồi: Tăng dần (A ➔ Z)</option>
@@ -430,9 +432,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             $tableTitle = 'Bảng Khách Mời (' . count($guests) . ')';
             require __DIR__ . '/../includes/table_toolbar.php';
             ?>
-            <div class="table-responsive excel-table-container">
+            <div class="table-responsive excel-table-container mobile-card-container">
                 <div class="excel-zoom-wrapper">
-                    <table class="excel-table">
+                    <table class="excel-table mobile-card-table">
                     <thead>
                         <tr>
                             <?php foreach ($guestCols as $c): ?>
@@ -547,19 +549,17 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                                             <?php break;
                                         case 'actions': ?>
                                             <?php if (isAdmin() || isLeTan()): ?>
-                                                <td style="text-align: center;">
-                                                    <div class="action-btns-wrapper" style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-                                                        <div style="display: inline-flex; justify-content: center; align-items: center;">
-                                                            <?php if ($guest['status'] === 'invited'): ?>
-                                                                <button type="button" class="btn btn-action-checkin" onclick='checkinHoGuest(<?php echo (int)$guest["id"]; ?>, <?php echo json_encode($guest["full_name"]); ?>)'>Check-in hộ</button>
-                                                            <?php else: ?>
-                                                                <span class="badge checked_in" style="margin:0; font-size: 0.78rem;">Đã checkin</span>
-                                                            <?php endif; ?>
-                                                        </div>
+                                                <td class="col-actions" data-label="<?php echo esc($c['label']); ?>" style="text-align: center;">
+                                                    <div class="action-btns-wrapper">
+                                                        <?php if ($guest['status'] === 'invited'): ?>
+                                                            <button type="button" class="btn btn-action-checkin" onclick='checkinHoGuest(<?php echo (int)$guest["id"]; ?>, <?php echo json_encode($guest["full_name"]); ?>)'>Check-in hộ</button>
+                                                        <?php else: ?>
+                                                            <span class="badge checked_in badge-action-status">Đã checkin</span>
+                                                        <?php endif; ?>
 
                                                         <?php if(isAdmin()): ?>
                                                             <button type="button" class="btn btn-action-edit" onclick='openEditModal(<?php echo json_encode($guest); ?>)'>Sửa</button>
-                                                            <form action="" method="POST" style="display:inline;" onsubmit="attachSearchAndSortToForm(this); return confirmModal(event, 'Bạn có chắc chắn muốn xóa khách này?');">
+                                                            <form action="" method="POST" style="display:inline-flex; margin:0;" onsubmit="attachSearchAndSortToForm(this); return confirmModal(event, 'Bạn có chắc chắn muốn xóa khách này?');">
                                                                 <?php echo csrfField(); ?>
                                                                 <input type="hidden" name="action" value="delete">
                                                                 <input type="hidden" name="id" value="<?php echo $guest['id']; ?>">
@@ -765,7 +765,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             if (checkinBtn) {
                 const span = document.createElement('span');
                 span.className = 'badge checked_in';
-                span.style.cssText = 'margin:0; font-size:0.78rem;';
+                span.style.cssText = 'margin:0; font-size:0.76rem; width:100%; display:inline-flex; align-items:center; justify-content:center; height:32px; box-sizing:border-box;';
                 span.textContent = 'Đã checkin';
                 if (checkinBtn.parentNode) {
                     checkinBtn.parentNode.replaceChild(span, checkinBtn);
@@ -984,9 +984,11 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
             const text = (row.textContent || '').toLowerCase();
             if (query === '' || text.includes(query)) {
                 row.style.display = '';
+                row.classList.remove('hidden-search-row');
                 count++;
             } else {
                 row.style.display = 'none';
+                row.classList.add('hidden-search-row');
             }
         });
 
@@ -1009,9 +1011,15 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
 
     async function fetchRealtimeGuests(force = false) {
         try {
+            const searchInput = document.getElementById('search-input');
+            const currentSearch = searchInput ? searchInput.value.trim() : '';
+
             const params = new URLSearchParams(window.location.search);
             params.set('ajax', '1');
             params.set('_t', Date.now());
+            if (currentSearch) {
+                params.set('search', currentSearch);
+            }
 
             const response = await fetch(`guests.php?${params.toString()}`, { cache: 'no-store' });
             if (!response.ok) return;
@@ -1078,7 +1086,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                     if (hasActions) {
                         let checkinSlot = '';
                         if (isCheckedIn) {
-                            checkinSlot = `<span class="badge checked_in" style="margin:0; font-size:0.78rem;">Đã checkin</span>`;
+                            checkinSlot = `<span class="badge checked_in badge-action-status">Đã checkin</span>`;
                         } else {
                             const escapedName = (item.full_name || '').replace(/'/g, "\\'");
                             checkinSlot = `<button type="button" class="btn btn-action-checkin" onclick="checkinHoGuest(${item.id}, '${escapedName}')">Check-in hộ</button>`;
@@ -1088,7 +1096,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                         if (isAdminUser) {
                             adminBtns = `
                                 <button type="button" class="btn btn-action-edit" onclick="openEditModal(window.allGuestsMap[${item.id}])">Sửa</button>
-                                <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa khách này?');">
+                                <form action="" method="POST" style="display:inline-flex; margin:0;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa khách này?');">
                                     <input type="hidden" name="csrf_token" value="${csrfTokenValue}">
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="${item.id}">
@@ -1098,9 +1106,9 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                         }
 
                         actionsHtml = `
-                            <td style="text-align: center;">
-                                <div style="display: inline-flex; align-items: center; justify-content: center; gap: 6px;">
-                                    <div style="width: 105px; display: inline-flex; align-items: center;">${checkinSlot}</div>
+                            <td class="col-actions" data-label="Thao tác" style="text-align: center;">
+                                <div class="action-btns-wrapper">
+                                    ${checkinSlot}
                                     ${adminBtns}
                                 </div>
                             </td>
@@ -1134,7 +1142,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] === '1') {
                                 html += `<td class="col-status" ${labelAttr}>${statusHtml}</td>`;
                                 break;
                             case 'actions':
-                                if (hasActions) html += `<td class="col-actions" style="text-align: center;"><div class="action-btns-wrapper" style="display: inline-flex; align-items: center; justify-content: center; gap: 4px;"><div style="display: inline-flex; justify-content: center; align-items: center;">${checkinSlot}</div> ${adminBtns}</div></td>`;
+                                if (hasActions) html += actionsHtml;
                                 break;
                         }
                     });

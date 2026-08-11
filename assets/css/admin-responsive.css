@@ -2589,8 +2589,8 @@ body {
     }
 
     .tables-grid-cards {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 8px !important;
+        grid-template-columns: repeat(5, 1fr) !important;
+        gap: 6px !important;
     }
 
     .table-card-v2 {

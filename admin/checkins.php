@@ -238,6 +238,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
     <link rel="icon" href="../img/logo pmt.png" type="image/png">
     <?php require_once __DIR__ . '/../includes/pwa_head.php'; ?>
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../assets/css/admin-polish.css?v=<?php echo filemtime(__DIR__ . '/../assets/css/admin-polish.css'); ?>">
     <style>
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -289,20 +290,11 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
         <?php endif; ?>
 
         <div class="content-box">
-            <p style="margin-bottom: 15px; color: #666;">Danh sách hiển thị realtime khách quét QR. Bạn có thể tìm kiếm theo SĐT, Mã dự thưởng, Họ tên hoặc Bàn tiệc.</p>
-            
             <!-- Thanh Lọc & Sắp Xếp Thông Minh (Live Typing Search) -->
-            <form method="GET" action="" id="checkin-search-form" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; background: #f8f9fa; padding: 12px 15px; border-radius: 10px; border: 1px solid #e0e0e0;">
+            <form method="GET" action="" id="checkin-search-form" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; background: #ffffff; padding: 12px 15px; border-radius: 10px; border: 1px solid #e0e0e0;">
                 <div style="flex: 1; min-width: 240px; position: relative;">
-                    <input type="text" id="checkin-search-input" name="search" value="<?php echo esc($search); ?>" placeholder="Tìm theo Họ tên, SĐT, Bàn tiệc, Mã dự thưởng..." class="form-control" oninput="liveSearchCheckins(this.value)" autocomplete="off">
-                </div>
-                
-                <div style="min-width: 170px;">
-                    <select id="checkin-match-filter" name="match_status" class="form-control" onchange="window.saveAdminTableScrollPosition(); applyCheckinFilter();" style="cursor: pointer; background: #fff; font-weight: 500;">
-                        <option value="all" <?php echo $matchStatus === 'all' ? 'selected' : ''; ?>>Tất cả hình thức</option>
-                        <option value="matched" <?php echo $matchStatus === 'matched' ? 'selected' : ''; ?>>Khách hợp lệ (Khớp)</option>
-                        <option value="walk_in" <?php echo $matchStatus === 'walk_in' ? 'selected' : ''; ?>>Khách phát sinh (Walk-in)</option>
-                    </select>
+                    <input type="text" id="checkin-search-input" name="search" value="<?php echo esc($search); ?>" placeholder="Tìm theo Họ tên, SĐT, Bàn tiệc, Mã dự thưởng..." class="form-control" style="padding-right: 65px;" oninput="liveSearchCheckins(this.value)" autocomplete="off">
+                    <span class="kbd-badge hide-mobile" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none;">Ctrl K</span>
                 </div>
 
                 <div style="min-width: 190px;">
@@ -316,7 +308,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                 </div>
                 
                 <button type="submit" class="btn btn-primary" style="padding: 8px 18px;">Tìm kiếm</button>
-                <?php if(!empty($search) || $matchStatus !== 'all' || $sort !== 'time_desc'): ?>
+                <?php if(!empty($search) || $sort !== 'time_desc'): ?>
                     <a href="checkins.php" class="btn" style="background: #757575; color: white;">Xóa lọc</a>
                 <?php endif; ?>
             </form>
@@ -326,9 +318,9 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
             $tableTitle = 'Bảng Lịch Sử Check-in (' . count($checkins) . ')';
             require __DIR__ . '/../includes/table_toolbar.php';
             ?>
-            <div class="table-responsive excel-table-container">
+            <div class="table-responsive excel-table-container mobile-card-container">
                 <div class="excel-zoom-wrapper">
-                    <table class="excel-table">
+                    <table class="excel-table mobile-card-table">
                     <thead>
                         <tr>
                             <?php foreach ($checkinCols as $c): ?>
@@ -412,7 +404,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                                 <?php if (!empty($col['visible'])): ?>
                                     <?php switch($col['key']):
                                         case 'customer_code': ?>
-                                            <td class="col-customer_code">
+                                            <td class="col-customer_code" data-label="<?php echo esc($col['label']); ?>">
                                                 <?php if (!empty($custCode)): ?>
                                                     <strong style="color: #0284c7; font-weight:700; font-size: 0.88rem;"><?php echo esc($custCode); ?></strong>
                                                 <?php else: ?>
@@ -421,16 +413,16 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                                             </td>
                                             <?php break;
                                         case 'full_name': ?>
-                                            <td class="col-full_name"><strong><?php echo esc($c['full_name_entered']); ?></strong></td>
+                                            <td class="col-full_name" data-label="<?php echo esc($col['label']); ?>"><strong><?php echo esc($c['full_name_entered']); ?></strong></td>
                                             <?php break;
                                         case 'phone': ?>
-                                            <td class="col-phone"><?php echo esc($c['phone_entered']); ?></td>
+                                            <td class="col-phone" data-label="<?php echo esc($col['label']); ?>"><?php echo esc($c['phone_entered']); ?></td>
                                             <?php break;
                                         case 'organization': ?>
-                                            <td class="col-organization"><?php echo esc($c['address_entered'] ?? '-'); ?></td>
+                                            <td class="col-organization" data-label="<?php echo esc($col['label']); ?>"><?php echo esc($c['address_entered'] ?? '-'); ?></td>
                                             <?php break;
                                         case 'table_name': ?>
-                                            <td class="col-table_name">
+                                            <td class="col-table_name" data-label="<?php echo esc($col['label']); ?>">
                                                 <?php if (!empty($c['table_name'])): ?>
                                                     <span style="font-weight: 800; color: #1b5e20; background: #e8f5e9; border: 1.5px solid #81c784; padding: 4px 10px; border-radius: 8px; font-size: 0.85rem; white-space: nowrap; display: inline-flex; align-items: center;">
                                                         <?php echo esc($c['table_name']); ?>
@@ -441,7 +433,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                                             </td>
                                             <?php break;
                                         case 'lucky_draw_code': ?>
-                                            <td class="col-lucky_draw_code">
+                                            <td class="col-lucky_draw_code" data-label="<?php echo esc($col['label']); ?>">
                                                 <?php if (!empty($c['lucky_draw_code'])): ?>
                                                     <span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 4px 10px; border-radius: 8px; font-size: 0.85rem;">
                                                         <?php echo esc($c['lucky_draw_code']); ?>
@@ -452,10 +444,10 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                                             </td>
                                             <?php break;
                                         case 'checkin_time': ?>
-                                            <td class="col-checkin_time"><?php echo date('d/m/Y H:i:s', strtotime($c['checkin_time'])); ?></td>
+                                            <td class="col-checkin_time" data-label="<?php echo esc($col['label']); ?>"><?php echo date('d/m/Y H:i:s', strtotime($c['checkin_time'])); ?></td>
                                             <?php break;
                                         case 'method': ?>
-                                            <td class="col-method">
+                                            <td class="col-method" data-label="<?php echo esc($col['label']); ?>">
                                                 <?php if ($c['match_status'] === 'walk_in'): ?>
                                                     <span style="background: #fff3e0; color: #ef6c00; border: 1px solid #ffcc80; padding: 4px 10px; border-radius: 20px; font-weight: bold; font-size: 0.8rem;">
                                                         Khách phát sinh
@@ -472,7 +464,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                                             </td>
                                             <?php break;
                                         case 'status': ?>
-                                            <td class="col-status">
+                                            <td class="col-status" data-label="<?php echo esc($col['label']); ?>">
                                                 <span class="badge <?php echo esc($c['match_status']); ?>">
                                                     <?php echo $c['match_status'] === 'matched' ? 'Khách hợp lệ' : 'Khách phát sinh'; ?>
                                                 </span>
@@ -480,16 +472,16 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                                             <?php break;
                                         case 'actions': ?>
                                             <?php if(!isKinhDoanh()): ?>
-                                                <td class="col-actions" style="text-align: center;">
+                                                <td class="col-actions" data-label="Thao tác" style="text-align: center;">
                                                     <div class="action-btns-wrapper">
                                                         <button type="button" class="btn btn-action-primary" onclick="openCompareModal(<?php echo (int)$c['id']; ?>)">Đối chiếu</button>
                                                         <?php if(isAdmin()): ?>
                                                             <button type="button" class="btn btn-action-assign" onclick="openAssignModal(<?php echo (int)$c['id']; ?>)">Xếp bàn</button>
-                                                            <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
+                                                            <form action="" method="POST" style="display:flex; flex:1 1 0; min-width:0; width:100%; margin:0;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa dòng check-in này (dữ liệu test)?');">
                                                                 <?php echo csrfField(); ?>
                                                                 <input type="hidden" name="action" value="delete">
                                                                 <input type="hidden" name="id" value="<?php echo $c['id']; ?>">
-                                                                <button type="submit" class="btn btn-action-danger">Xóa Test</button>
+                                                                <button type="submit" class="btn btn-action-danger" style="width:100%;">Xóa Test</button>
                                                             </form>
                                                         <?php endif; ?>
                                                     </div>
@@ -779,7 +771,26 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
     }
     window.attachSearchAndSortToForm = attachSearchAndSortToForm;
 
+    function filterCheckinsDOM(val) {
+        const query = (val || '').toLowerCase().trim();
+        const tbody = document.getElementById('checkins-table-body');
+        if (!tbody) return;
+
+        const rows = tbody.querySelectorAll('tr');
+        rows.forEach(row => {
+            const text = (row.textContent || '').toLowerCase();
+            if (query === '' || text.includes(query)) {
+                row.style.display = '';
+                row.classList.remove('hidden-search-row');
+            } else {
+                row.style.display = 'none';
+                row.classList.add('hidden-search-row');
+            }
+        });
+    }
+
     function liveSearchCheckins(val) {
+        filterCheckinsDOM(val);
         clearTimeout(liveSearchCheckinTimer);
         liveSearchCheckinTimer = setTimeout(() => {
             currentCheckinSearchVal = val.trim();
@@ -896,33 +907,34 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                     html += `<tr id="checkin-row-${item.id}" class="${rowClass}">`;
                     checkinColsConfig.forEach(col => {
                         if (!col.visible) return;
+                        const labelAttr = `data-label="${col.label}"`;
                         switch(col.key) {
                             case 'customer_code':
-                                html += `<td>${customerCodeHtml}</td>`;
+                                html += `<td class="col-customer_code" ${labelAttr}>${customerCodeHtml}</td>`;
                                 break;
                             case 'full_name':
-                                html += `<td><strong>${item.full_name}</strong></td>`;
+                                html += `<td class="col-full_name" ${labelAttr}><strong>${item.full_name}</strong></td>`;
                                 break;
                             case 'phone':
-                                html += `<td>${item.phone}</td>`;
+                                html += `<td class="col-phone" ${labelAttr}>${item.phone}</td>`;
                                 break;
                             case 'organization':
-                                html += `<td>${item.address_entered || '-'}</td>`;
+                                html += `<td class="col-organization" ${labelAttr}>${item.address_entered || '-'}</td>`;
                                 break;
                             case 'table_name':
-                                html += `<td>${tableNameHtml}</td>`;
+                                html += `<td class="col-table_name" ${labelAttr}>${tableNameHtml}</td>`;
                                 break;
                             case 'lucky_draw_code':
-                                html += `<td>${luckyCodeHtml}</td>`;
+                                html += `<td class="col-lucky_draw_code" ${labelAttr}>${luckyCodeHtml}</td>`;
                                 break;
                             case 'checkin_time':
-                                html += `<td>${item.time}</td>`;
+                                html += `<td class="col-checkin_time" ${labelAttr}>${item.time}</td>`;
                                 break;
                             case 'method':
-                                html += `<td>${methodBadge}</td>`;
+                                html += `<td class="col-method" ${labelAttr}>${methodBadge}</td>`;
                                 break;
                             case 'status':
-                                html += `<td>${statusBadge}</td>`;
+                                html += `<td class="col-status" ${labelAttr}>${statusBadge}</td>`;
                                 break;
                             case 'actions':
                                 if (!isKinhDoanhUser) html += actionsHtml;
@@ -933,6 +945,9 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                 });
 
                 tbody.innerHTML = html;
+                if (currentCheckinSearchVal) {
+                    filterCheckinsDOM(currentCheckinSearchVal);
+                }
                 applyCheckinHighlightFromUrl();
             }
         } catch (e) {

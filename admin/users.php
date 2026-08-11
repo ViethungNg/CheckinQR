@@ -98,6 +98,7 @@ foreach ($usersList as $u) {
     <link rel="icon" href="../img/logo pmt.png" type="image/png">
     <?php require_once __DIR__ . '/../includes/pwa_head.php'; ?>
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../assets/css/admin-polish.css?v=<?php echo filemtime(__DIR__ . '/../assets/css/admin-polish.css'); ?>">
     <style>
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -208,15 +209,15 @@ foreach ($usersList as $u) {
             <div class="search-toolbar">
                 <div class="search-box" style="position: relative;">
                     <input type="text" id="user-search" class="search-input" placeholder="Tìm theo Username, Họ tên, Vai trò..." oninput="liveFilterUsers(this.value)" autocomplete="off" style="padding-right: 65px;">
-                    <span class="kbd-badge" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none;">Ctrl K</span>
+                    <span class="kbd-badge hide-mobile" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none;">Ctrl K</span>
                 </div>
                 <button class="btn btn-primary" onclick="openAddModal()">
                     Tạo tài khoản mới
                 </button>
             </div>
 
-            <div class="table-responsive">
-                <table>
+            <div class="table-responsive mobile-card-container">
+                <table class="mobile-card-table">
                     <thead>
                         <tr>
                             <th>Tài khoản</th>
@@ -257,16 +258,16 @@ foreach ($usersList as $u) {
                                     <?php echo !empty($u['last_login_at']) ? date('d/m/Y H:i', strtotime($u['last_login_at'])) : 'Chưa đăng nhập'; ?>
                                 </span>
                             </td>
-                            <td>
+                            <td class="col-actions" data-label="Thao tác">
                                 <div class="action-btns-wrapper">
                                     <button class="btn btn-action-edit" style="padding: 5px 10px; font-size: 0.82rem;" onclick='openEditModal(<?php echo json_encode($u); ?>)'>Sửa</button>
                                     <button class="btn" style="padding: 5px 10px; font-size: 0.82rem; background: #0284c7; color: #fff; border: none; border-radius: 6px; cursor: pointer;" onclick="openVerifyAdminPassModal(<?php echo $u['id']; ?>, '<?php echo esc($u['username']); ?>')">Xem MK</button>
                                     <?php if ($u['id'] !== (int)$_SESSION['admin_id']): ?>
-                                    <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa tài khoản này?');">
+                                    <form action="" method="POST" style="display:flex; flex:1 1 0; min-width:0; width:100%; margin:0;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa tài khoản này?');">
                                         <?php echo csrfField(); ?>
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="id" value="<?php echo $u['id']; ?>">
-                                        <button type="submit" class="btn btn-action-danger" style="padding: 5px 10px; font-size: 0.82rem;">Xóa</button>
+                                        <button type="submit" class="btn btn-action-danger" style="padding: 5px 10px; font-size: 0.82rem; width: 100%;">Xóa</button>
                                     </form>
                                     <?php endif; ?>
                                 </div>

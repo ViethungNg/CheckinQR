@@ -48,53 +48,13 @@ if ($slug !== '') {
     <link rel="icon" href="<?php echo url('img/logo pmt.png'); ?>" type="image/png">
     <?php require_once __DIR__ . '/includes/pwa_head.php'; ?>
     <link rel="stylesheet" href="<?php echo url('assets/css/frontend.css'); ?>">
-    <style>
-        .event-picker-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 15px;
-        }
-        .event-picker-card {
-            background: #ffffff;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 16px 20px;
-            text-decoration: none;
-            color: #1e293b;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.2s ease;
-        }
-        .event-picker-card:hover {
-            border-color: #d32f2f;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(211, 47, 47, 0.12);
-        }
-        .event-picker-title {
-            font-size: 1.05rem;
-            font-weight: 800;
-            color: #0f172a;
-            margin-bottom: 4px;
-        }
-        .event-picker-meta {
-            font-size: 0.85rem;
-            color: #64748b;
-        }
-        .event-picker-arrow {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #d32f2f;
-        }
-    </style>
 </head>
 <body>
 
 <div class="container">
     <?php if ($showEventPicker): ?>
         <div class="event-header">
-            <h1>🎉 Danh Sách Sự Kiện Đang Diễn Ra</h1>
+            <h1>Danh sách sự kiện đang diễn ra</h1>
             <div class="event-meta">Vui lòng chọn sự kiện bạn muốn mở màn hình Check-in:</div>
         </div>
         <div class="form-body">
@@ -104,13 +64,13 @@ if ($slug !== '') {
                         <div>
                             <div class="event-picker-title"><?php echo esc($actEv['event_name']); ?></div>
                             <div class="event-picker-meta">
-                                📅 <?php echo date('d/m/Y', strtotime($actEv['event_date'])); ?> 
+                                <?php echo date('d/m/Y', strtotime($actEv['event_date'])); ?> 
                                 <?php if (!empty($actEv['location'])): ?>
-                                    | 📍 <?php echo esc($actEv['location']); ?>
+                                    | <?php echo esc($actEv['location']); ?>
                                 <?php endif; ?>
                             </div>
                         </div>
-                        <div class="event-picker-arrow">Quét QR ➔</div>
+                        <div class="event-picker-arrow">Mở check-in</div>
                     </a>
                 <?php endforeach; ?>
             </div>

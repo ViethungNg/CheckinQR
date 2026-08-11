@@ -16,8 +16,8 @@
 <link rel="apple-touch-icon" href="<?php echo url('img/logo pmt.png'); ?>">
 
 <!-- Stylesheet & Script PWA + Excel Table Zoom -->
-<link rel="stylesheet" href="<?php echo url('assets/css/pwa-app.css'); ?>">
-<link rel="stylesheet" href="<?php echo url('assets/css/excel-table-mobile.css'); ?>">
-<script src="<?php echo url('assets/js/pwa-standalone.js'); ?>" defer></script>
-<script src="<?php echo url('assets/js/excel-table-zoom.js'); ?>" defer></script>
-<script src="<?php echo url('assets/js/excel-col-resizable.js'); ?>" defer></script>
+<link rel="stylesheet" href="<?php echo url('assets/css/pwa-app.css') . '?v=' . filemtime(__DIR__ . '/../assets/css/pwa-app.css'); ?>">
+<link rel="stylesheet" href="<?php echo url('assets/css/excel-table-mobile.css') . '?v=' . filemtime(__DIR__ . '/../assets/css/excel-table-mobile.css'); ?>">
+<script src="<?php echo url('assets/js/pwa-standalone.js') . '?v=' . filemtime(__DIR__ . '/../assets/js/pwa-standalone.js'); ?>" defer></script>
+<script src="<?php echo url('assets/js/excel-table-zoom.js') . '?v=' . filemtime(__DIR__ . '/../assets/js/excel-table-zoom.js'); ?>" defer></script>
+<script src="<?php echo url('assets/js/excel-col-resizable.js') . '?v=' . filemtime(__DIR__ . '/../assets/js/excel-col-resizable.js'); ?>" defer></script>

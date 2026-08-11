@@ -106,6 +106,7 @@ if (isset($_GET['ajax'])) {
     <link rel="icon" href="../img/logo pmt.png" type="image/png">
     <?php require_once __DIR__ . '/../includes/pwa_head.php'; ?>
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../assets/css/admin-polish.css?v=<?php echo filemtime(__DIR__ . '/../assets/css/admin-polish.css'); ?>">
     <style>
         :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -230,11 +231,11 @@ if (isset($_GET['ajax'])) {
 
             <!-- Smart Filter Toolbar & Guest Checkin Table Section -->
             <div class="dashboard-table-card">
-                <div class="table-filter-toolbar">
+                <div class="table-filter-toolbar admin-filter-bar">
                     <div class="table-toolbar-left">
                         <div class="dashboard-search-box" style="position: relative;">
                             <input type="text" id="dashboard-search-input" placeholder="Tìm theo tên, SĐT, đơn vị hoặc tên bàn..." oninput="handleSearchInput(this.value)" style="padding-right: 65px;" autocomplete="off">
-                            <span class="kbd-badge" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none;">Ctrl K</span>
+                            <span class="kbd-badge hide-mobile" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none;">Ctrl K</span>
                         </div>
                     </div>
                     <div class="table-toolbar-right">
@@ -276,22 +277,22 @@ if (isset($_GET['ajax'])) {
         <!-- TAB 2: Cấu Hình Thông Tin Bàn (CRUD Table - Ảnh 1) -->
         <div id="tab-content-config" class="tables-tab-content">
             <div class="content-box">
-                <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+                <div class="admin-filter-bar tables-config-filter-bar" style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
                     <?php if(isAdmin()): ?>
                         <button class="btn btn-primary btn-inline-header" onclick="openAddModal()">+ Thêm bàn mới</button>
                     <?php endif; ?>
                     <div style="position: relative; flex: 1; max-width: 320px;">
                         <input type="text" id="table-search-input" placeholder="Tìm theo tên bàn, mã bàn, người phụ trách..." class="form-control" style="padding-right: 65px;" oninput="filterTablesDOM(this.value)">
-                        <span class="kbd-badge" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none;">Ctrl K</span>
+                        <span class="kbd-badge hide-mobile" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none;">Ctrl K</span>
                     </div>
                 </div>
                 <?php 
                 $tableTitle = 'Sơ Đồ Bàn Tiệc & Sức Chứa (' . count($tables) . ')';
                 require __DIR__ . '/../includes/table_toolbar.php';
                 ?>
-                <div class="table-responsive excel-table-container">
+                <div class="table-responsive excel-table-container mobile-card-container">
                     <div class="excel-zoom-wrapper">
-                        <table class="excel-table">
+                        <table class="excel-table mobile-card-table">
                         <thead>
                             <tr>
                                 <th style="width: 80px; text-align: center;">Thứ tự</th>
@@ -335,14 +336,14 @@ if (isset($_GET['ajax'])) {
                                 </td>
                                 <td><?php echo esc($t['location'] ?? '-'); ?></td>
                                 <?php if(isAdmin()): ?>
-                                <td>
+                                <td class="col-actions" data-label="Thao tác">
                                     <div class="action-btns-wrapper">
                                         <button type="button" class="btn btn-action-edit" onclick='openEditModal(<?php echo json_encode($t); ?>)'>Sửa</button>
-                                        <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa bàn này? Khách trong bàn sẽ bị mất vị trí.');">
+                                        <form action="" method="POST" style="display:flex; flex:1 1 0; min-width:0; width:100%; margin:0;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa bàn này? Khách trong bàn sẽ bị mất vị trí.');">
                                             <?php echo csrfField(); ?>
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id" value="<?php echo $t['id']; ?>">
-                                            <button type="submit" class="btn btn-action-delete">Xóa</button>
+                                            <button type="submit" class="btn btn-action-delete" style="width:100%;">Xóa</button>
                                         </form>
                                     </div>
                                 </td>
@@ -591,6 +592,12 @@ if (isset($_GET['ajax'])) {
         } else {
             tables.forEach(t => {
                 const isActive = String(selectedTableId) === String(t.id) ? 'active-table' : '';
+                const rawStaff = (t.assigned_user_name || '').trim();
+                const staffText = (!rawStaff || rawStaff === 'Chưa phân công') ? '' : rawStaff;
+                const staffHtml = staffText 
+                    ? `<span class="staff-prefix">Phụ trách: </span><span class="staff-name">${staffText}</span>` 
+                    : '&nbsp;';
+
                 html += `
                     <div class="table-card-v2 ${isActive}" id="table-card-${t.id}" onclick="setTableFilter('${t.id}')">
                         <div class="table-card-top">
@@ -598,7 +605,7 @@ if (isset($_GET['ajax'])) {
                             <span class="table-ratio-badge">${t.arrived_guests}/${t.total_guests}</span>
                         </div>
                         <div class="table-staff-info">
-                            Phụ trách: ${t.assigned_user_name}
+                            ${staffHtml}
                         </div>
                         <div class="table-stats-row">
                             <span style="color:#10b981;">${t.arrived_guests} Đã tới</span>

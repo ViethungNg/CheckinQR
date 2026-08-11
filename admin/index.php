@@ -48,6 +48,7 @@ if (count($activeEvents) === 1) {
     <link rel="icon" href="../img/logo pmt.png" type="image/png">
     <?php require_once __DIR__ . '/../includes/pwa_head.php'; ?>
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../assets/css/admin-polish.css?v=<?php echo filemtime(__DIR__ . '/../assets/css/admin-polish.css'); ?>">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -59,7 +60,7 @@ if (count($activeEvents) === 1) {
         <!-- Dashboard Header Bar -->
         <div class="header dash-header-bar">
             <div class="dash-page-title">
-                📊 <span>Thống kê hiệu suất check-in & tham gia sự kiện</span>
+                <span>Dashboard vận hành check-in sự kiện</span>
             </div>
         </div>
 
@@ -67,28 +68,28 @@ if (count($activeEvents) === 1) {
         <div class="pastel-cards-grid-6">
             <!-- Card 1: Purple (Tổng lượt khách mời) -->
             <div class="stat-card-pastel card-pastel-purple" id="card-guests" onclick="setFilter('guests')" title="Bấm để xem tất cả khách dự kiến">
-                <div class="pastel-card-title">Tổng số khách mời</div>
+                <div class="pastel-card-title">Tổng khách mời</div>
                 <div class="pastel-card-value" id="val-guests"><?php echo $stats['guests']; ?></div>
-                <div class="pastel-card-subtitle">Khách dự kiến tham gia</div>
+                <div class="pastel-card-subtitle">Danh sách dự kiến tham gia</div>
             </div>
 
             <!-- Card 2: Green (Đã check-in) -->
             <div class="stat-card-pastel card-pastel-green" id="card-matched" onclick="setFilter('matched')" title="Bấm để xem khách đã check-in">
-                <div class="pastel-card-title">Đã Check-in (Khớp)</div>
+                <div class="pastel-card-title">Đã check-in</div>
                 <div class="pastel-card-value" id="val-checked-in"><?php echo $stats['checked_in']; ?></div>
                 <div class="pastel-card-subtitle" id="val-attendance-rate-sub">Tỷ lệ có mặt: <?php echo $checkinRate; ?>%</div>
             </div>
 
             <!-- Card 3: Yellow (Bàn đã lấp đầy) -->
             <div class="stat-card-pastel card-pastel-yellow" onclick="location.href='tables.php#floorplan'" title="Bấm để tới Sơ đồ trạng thái bàn tiệc">
-                <div class="pastel-card-title">Bàn tiệc lấp đầy (100%)</div>
-                <div class="pastel-card-value" id="val-full-tables">0 Bàn</div>
+                <div class="pastel-card-title">Bàn đã đầy</div>
+                <div class="pastel-card-value" id="val-full-tables">0 bàn</div>
                 <div class="pastel-card-subtitle">Đã đủ số người xếp bàn</div>
             </div>
 
             <!-- Card 4: Pink (Bàn đông khách nhất) -->
             <div class="stat-card-pastel card-pastel-pink" title="Bàn tiệc có lượt khách có mặt đông nhất">
-                <div class="pastel-card-title">Bàn đông khách nhất</div>
+                <div class="pastel-card-title">Bàn đông nhất</div>
                 <div class="pastel-card-value" style="font-size: 1.25rem;" id="val-top-table">Chưa có</div>
                 <div class="pastel-card-subtitle">Có lượt check-in cao nhất</div>
             </div>
@@ -97,12 +98,12 @@ if (count($activeEvents) === 1) {
             <div class="stat-card-pastel card-pastel-cyan" id="card-not_arrived" onclick="setFilter('not_arrived')" title="Bấm để xem khách chưa tới">
                 <div class="pastel-card-title">Khách chưa tới</div>
                 <div class="pastel-card-value" id="val-not-arrived"><?php echo $stats['not_arrived']; ?></div>
-                <div class="pastel-card-subtitle">Đang chờ tiếp đón tại sảnh</div>
+                <div class="pastel-card-subtitle">Đang chờ tiếp đón</div>
             </div>
 
             <!-- Card 6: Coral (Khách phát sinh Walk-in) -->
             <div class="stat-card-pastel card-pastel-coral" id="card-walk_in" onclick="setFilter('walk_in')" title="Bấm để xem khách phát sinh">
-                <div class="pastel-card-title">Khách phát sinh (Walk-in)</div>
+                <div class="pastel-card-title">Khách phát sinh</div>
                 <div class="pastel-card-value" id="val-walk-in"><?php echo $stats['walk_in']; ?></div>
                 <div class="pastel-card-subtitle">Đăng ký mới tại sự kiện</div>
             </div>
@@ -113,7 +114,7 @@ if (count($activeEvents) === 1) {
             <!-- Left Chart: Column Bar Chart per Table -->
             <div class="chart-card-modern">
                 <div class="chart-card-header">
-                    <div class="chart-card-title">📊 Tiến độ có mặt theo từng Bàn tiệc</div>
+                    <div class="chart-card-title">Tiến độ có mặt theo từng bàn</div>
                 </div>
                 <div class="chart-canvas-wrapper">
                     <canvas id="chart-table-occupancy"></canvas>
@@ -123,7 +124,7 @@ if (count($activeEvents) === 1) {
             <!-- Right Chart: Donut Chart combining Table Statuses -->
             <div class="chart-card-modern">
                 <div class="chart-card-header">
-                    <div class="chart-card-title">🍩 Trạng thái lấp đầy các Bàn tiệc</div>
+                    <div class="chart-card-title">Trạng thái lấp đầy bàn tiệc</div>
                 </div>
                 <div class="chart-canvas-wrapper">
                     <canvas id="chart-status-distribution"></canvas>
@@ -137,16 +138,16 @@ if (count($activeEvents) === 1) {
 
         <!-- Smart Filter Toolbar & Guest Checkin Table Section -->
         <div class="dashboard-table-card">
-            <div class="table-filter-toolbar">
+            <div class="table-filter-toolbar admin-filter-bar">
                 <div class="table-toolbar-left">
                     <div class="dashboard-search-box" style="position: relative;">
                         <input type="text" id="dashboard-search-input" placeholder="Tìm theo tên, SĐT hoặc tên bàn..." oninput="handleSearchInput(this.value)" style="padding-right: 65px;" autocomplete="off">
-                        <span class="kbd-badge" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none;">Ctrl K</span>
+                        <span class="kbd-badge hide-mobile" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none;">Ctrl K</span>
                     </div>
                 </div>
                 <div class="table-toolbar-right">
                     <select id="table-select-filter" class="table-select-custom" onchange="setTableFilter(this.value)">
-                        <option value="all">Tất cả các Bàn</option>
+                        <option value="all">Tất cả các bàn</option>
                     </select>
                     <div class="realtime-pill-badge">
                         <div class="pulse-dot"></div> Real-time (2s)
@@ -156,7 +157,7 @@ if (count($activeEvents) === 1) {
 
             <?php 
             $dashCols = getTableColumnsConfig('dashboard'); 
-            $tableTitle = 'Bảng Thống Kê Realtime Dashboard';
+            $tableTitle = 'Bảng thống kê realtime';
             require __DIR__ . '/../includes/table_toolbar.php';
             ?>
             <div class="table-responsive excel-table-container">
@@ -182,7 +183,7 @@ if (count($activeEvents) === 1) {
 </div>
 
 <script>
-let currentFilter = '<?php echo isKinhDoanh() ? "guests" : "all"; ?>';
+let currentFilter = '<?php echo isKinhDoanh() ? "guests" : "matched"; ?>';
 let selectedTableId = 'all';
 let currentSearch = '';
 let searchDebounceTimer = null;
@@ -193,7 +194,7 @@ function setFilter(val) {
     currentFilter = val;
     
     // Highlight active card
-    document.querySelectorAll('.dashboard-cards-grid .stat-card-modern').forEach(card => card.classList.remove('active-card'));
+    document.querySelectorAll('.pastel-cards-grid-6 .stat-card-pastel').forEach(card => card.classList.remove('active-card'));
     const activeCard = document.getElementById('card-' + val);
     if (activeCard) activeCard.classList.add('active-card');
     
@@ -204,20 +205,18 @@ function setFilter(val) {
 function setTableFilter(tableId) {
     selectedTableId = tableId;
     
-    // Update select element
     const select = document.getElementById('table-select-filter');
     if (select && select.value !== tableId) {
         select.value = tableId;
     }
     
-    // Highlight table card
     document.querySelectorAll('.table-card-v2').forEach(card => card.classList.remove('active-table'));
     const activeTableCard = document.getElementById('table-card-' + tableId);
     if (activeTableCard) {
         activeTableCard.classList.add('active-table');
     }
     
-    updateRealtimeStats();
+    updateRealtimeStats(true);
     if (window.scrollToTableSectionOnMobile) window.scrollToTableSectionOnMobile();
 }
 
@@ -308,10 +307,10 @@ function renderCharts(charts) {
     if (distCanvas && charts.table_status_dist) {
         const dist = charts.table_status_dist;
         const labels = [
-            '🟢 Bàn đủ 100% khách (' + (dist.full || 0) + ')',
-            '🔵 Bàn đang đón khách (' + (dist.partial || 0) + ')',
-            '🟡 Bàn chưa có khách (' + (dist.empty || 0) + ')',
-            '🔴 Khách chưa xếp bàn (' + (dist.unassigned || 0) + ')'
+            'Bàn đủ 100% khách (' + (dist.full || 0) + ')',
+            'Bàn đang đón khách (' + (dist.partial || 0) + ')',
+            'Bàn chưa có khách (' + (dist.empty || 0) + ')',
+            'Khách chưa xếp bàn (' + (dist.unassigned || 0) + ')'
         ];
         const values = [dist.full || 0, dist.partial || 0, dist.empty || 0, dist.unassigned || 0];
 
@@ -385,7 +384,7 @@ async function updateRealtimeStats(forceRefresh = false) {
                 if (document.getElementById('val-attendance-rate-sub')) document.getElementById('val-attendance-rate-sub').textContent = 'Tỷ lệ có mặt: ' + data.attendance_rate + '%';
             }
 
-            // Vẽ & Cập nhật Biểu đồ Chart.js Realtime (Cột & Tròn)
+            // Vẽ & Cập nhật Biểu đồ Chart.js Realtime
             if (result.data.charts) {
                 renderCharts(result.data.charts);
             }
@@ -396,12 +395,12 @@ async function updateRealtimeStats(forceRefresh = false) {
                 populateTableSelectOptions(result.data.tables);
             }
 
-            // Cập nhật danh sách khách hàng / check-in (Skip replacement if user is actively typing to prevent UI stutter)
+            // Cập nhật danh sách khách hàng / check-in
             const searchInput = document.getElementById('dashboard-search-input');
             const isUserTyping = searchInput && document.activeElement === searchInput;
 
             const tbody = document.getElementById('recent-checkins-body');
-            if (result.data.recent_checkins && (!isUserTyping || forceRefresh)) {
+            if (tbody && result.data.recent_checkins && (!isUserTyping || forceRefresh)) {
                 const visibleCount = dashColsConfig.filter(c => c.visible).length || 1;
                 if (result.data.recent_checkins.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="${visibleCount}" style="text-align:center; color:#94a3b8; padding:32px; font-size:0.95rem;">Không tìm thấy dữ liệu phù hợp với bộ lọc hiện tại</td></tr>`;
@@ -415,7 +414,7 @@ async function updateRealtimeStats(forceRefresh = false) {
                             ? `<strong style="color: #0284c7; font-weight:700; font-size: 0.88rem;">${item.customer_code}</strong>`
                             : `<span style="color: #cbd5e1;">-</span>`;
 
-                        let badgeText = item.status_text;
+                        let badgeText = item.status_text || 'Chưa tới';
                         let badgeStyle = 'background:#f1f5f9; color:#475569; border:1px solid #e2e8f0;';
                         
                         if (isCheckedIn) {
@@ -436,33 +435,34 @@ async function updateRealtimeStats(forceRefresh = false) {
                         html += `<tr class="${rowClass}">`;
                         dashColsConfig.forEach(col => {
                             if (!col.visible) return;
+                            const labelAttr = `data-label="${col.label}"`;
                             switch(col.key) {
                                 case 'customer_code':
-                                    html += `<td class="col-customer_code">${customerCodeHtml}</td>`;
+                                    html += `<td class="col-customer_code" ${labelAttr}>${customerCodeHtml}</td>`;
                                     break;
                                 case 'full_name':
-                                    html += `<td class="col-full_name" style="font-weight:700; color:#0f172a;">${item.full_name}</td>`;
+                                    html += `<td class="col-full_name" ${labelAttr} style="font-weight:700; color:#0f172a;">${item.full_name}</td>`;
                                     break;
                                 case 'phone':
-                                    html += `<td class="col-phone" style="font-weight:600; color:#475569;">${item.phone}</td>`;
+                                    html += `<td class="col-phone" ${labelAttr} style="font-weight:600; color:#475569;">${item.phone}</td>`;
                                     break;
                                 case 'organization':
-                                    html += `<td class="col-organization">${item.organization || '-'}</td>`;
+                                    html += `<td class="col-organization" ${labelAttr}>${item.organization || '-'}</td>`;
                                     break;
                                 case 'table_name':
-                                    html += `<td class="col-table_name">${tableNameHtml}</td>`;
+                                    html += `<td class="col-table_name" ${labelAttr}>${tableNameHtml}</td>`;
                                     break;
                                 case 'lucky_draw_code':
                                     const luckyCodeHtml = item.lucky_draw_code 
                                         ? `<span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">${item.lucky_draw_code}</span>`
                                         : `<span style="color: #cbd5e1;">-</span>`;
-                                    html += `<td class="col-lucky_draw_code">${luckyCodeHtml}</td>`;
+                                    html += `<td class="col-lucky_draw_code" ${labelAttr}>${luckyCodeHtml}</td>`;
                                     break;
                                 case 'checkin_time':
-                                    html += `<td class="col-checkin_time" style="font-size:0.85rem; color:#64748b;">${item.time}</td>`;
+                                    html += `<td class="col-checkin_time" ${labelAttr} style="font-size:0.85rem; color:#64748b;">${item.time}</td>`;
                                     break;
                                 case 'status':
-                                    html += `<td class="col-status"><span style="display:inline-block; padding:4px 10px; border-radius:20px; font-size:0.78rem; font-weight:700; ${badgeStyle}">${badgeText}</span></td>`;
+                                    html += `<td class="col-status" ${labelAttr}><span style="display:inline-block; padding:4px 10px; border-radius:20px; font-size:0.78rem; font-weight:700; ${badgeStyle}">${badgeText}</span></td>`;
                                     break;
                             }
                         });
@@ -477,76 +477,8 @@ async function updateRealtimeStats(forceRefresh = false) {
     }
 }
 
-function renderTableCards(tables) {
-    const container = document.getElementById('tables-cards-container');
-    if (!container) return;
-    
-    let html = '';
-    
-    // Thẻ Tất cả bàn
-    const isAllActive = selectedTableId === 'all' ? 'active-table' : '';
-    html += `
-        <div class="table-card-v2 ${isAllActive}" id="table-card-all" onclick="setTableFilter('all')">
-            <div class="table-card-top">
-                <span class="table-name-badge">Tất cả các Bàn</span>
-            </div>
-            <div style="font-size:0.78rem; color:#64748b;">Bấm để xem tổng hợp tất cả vị trí</div>
-        </div>
-    `;
-    
-    if (!tables || tables.length === 0) {
-        html += `
-            <div style="grid-column: 1 / -1; padding: 14px; background: #fffbeb; color: #b45309; border-radius: 10px; font-size: 0.88rem; border: 1px dashed #fde68a; font-weight: 600;">
-                Hiện chưa có bàn nào được phân công phụ trách.
-            </div>
-        `;
-    } else {
-        tables.forEach(t => {
-            const isActive = String(selectedTableId) === String(t.id) ? 'active-table' : '';
-            const pct = t.total_guests > 0 ? Math.round((t.arrived_guests / t.total_guests) * 100) : 0;
-            
-            html += `
-                <div class="table-card-v2 ${isActive}" id="table-card-${t.id}" onclick="setTableFilter('${t.id}')">
-                    <div class="table-card-top">
-                        <span class="table-name-badge">${t.table_name}</span>
-                        <span class="table-ratio-badge">${t.arrived_guests}/${t.total_guests}</span>
-                    </div>
-                    <div class="table-staff-info">
-                        Phụ trách: ${t.assigned_user_name}
-                    </div>
-                    <div class="table-stats-row">
-                        <span style="color:#10b981;">${t.arrived_guests} Đã tới</span>
-                        <span style="color:#6366f1;">${t.not_arrived_guests} Chưa tới</span>
-                    </div>
-                    <div class="table-progress-bg">
-                        <div class="table-progress-fill" style="width:${pct}%;"></div>
-                    </div>
-                </div>
-            `;
-        });
-    }
-    
-    container.innerHTML = html;
-}
-
-function populateTableSelectOptions(tables) {
-    const select = document.getElementById('table-select-filter');
-    if (!select || select.dataset.loaded === 'true') return;
-    
-    let options = `<option value="all">Tất cả các Bàn</option>`;
-    if (tables && tables.length > 0) {
-        tables.forEach(t => {
-            options += `<option value="${t.id}">${t.table_name} (${t.arrived_guests}/${t.total_guests} đã tới)</option>`;
-        });
-    }
-    
-    select.innerHTML = options;
-    select.value = selectedTableId;
-    select.dataset.loaded = 'true';
-}
-
 // Chạy ngay khi tải trang và lắng nghe sự kiện SSE Push (0s) khi CSDL có phát sinh
-updateRealtimeStats();
+setFilter(currentFilter);
 setInterval(updateRealtimeStats, 3000); // Polling dự phòng
 
 window.addEventListener('dbRealtimeChange', (e) => {

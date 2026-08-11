@@ -1,0 +1,1216 @@
+/* PMT admin UI polish layer.
+   Loaded after admin-responsive.css to calm the interface without touching PHP logic. */
+
+:root {
+    --pmt-red: #c62828;
+    --pmt-red-dark: #a91f1f;
+    --pmt-red-soft: #fff1f1;
+    --pmt-bg: #f6f7f9;
+    --pmt-surface: #ffffff;
+    --pmt-surface-muted: #f9fafb;
+    --pmt-border: #e5e7eb;
+    --pmt-border-strong: #d1d5db;
+    --pmt-text: #111827;
+    --pmt-text-muted: #6b7280;
+    --pmt-green: #059669;
+    --pmt-blue: #2563eb;
+    --pmt-amber: #d97706;
+    --pmt-danger: #dc2626;
+    --pmt-radius: 8px;
+    --pmt-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    --pmt-shadow-lg: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+.kbd-badge {
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 5px !important;
+    padding: 2px 7px !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    color: #64748b !important;
+    font-family: inherit !important;
+    user-select: none !important;
+    line-height: 1.4 !important;
+}
+
+/* ===== 10-COLUMN TABLE STATUS FLOORPLAN GRID ===== */
+@media (min-width: 1200px) {
+    html body .tables-grid-cards,
+    html body #tables-cards-container {
+        display: grid !important;
+        grid-template-columns: repeat(10, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+    }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+    html body .tables-grid-cards,
+    html body #tables-cards-container {
+        display: grid !important;
+        grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+    }
+}
+
+html body .tables-grid-cards .table-card-v2 {
+    padding: 8px 9px !important;
+    border-radius: 10px !important;
+}
+
+html body .tables-grid-cards .table-card-top {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 4px !important;
+    margin-bottom: 4px !important;
+}
+
+html body .tables-grid-cards .table-name-badge {
+    font-size: 0.82rem !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    min-width: 0 !important;
+}
+
+html body .tables-grid-cards .table-ratio-badge {
+    font-size: 0.72rem !important;
+    font-weight: 800 !important;
+    padding: 1px 5px !important;
+    border-radius: 4px !important;
+    flex-shrink: 0 !important;
+}
+
+html body .tables-grid-cards .table-staff-info {
+    font-size: 0.7rem !important;
+    color: #64748b !important;
+    margin-bottom: 5px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+html body .tables-grid-cards .table-stats-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    font-size: 0.7rem !important;
+    font-weight: 700 !important;
+    gap: 2px !important;
+}
+
+html body .tables-grid-cards .table-stats-row span {
+    white-space: nowrap !important;
+    font-size: 0.7rem !important;
+}
+
+/* ===== MOBILE 5-COLUMN FLOORPLAN GRID STYLING ===== */
+@media (max-width: 768px) {
+    html body .tables-grid-cards,
+    html body #tables-cards-container {
+        display: grid !important;
+        grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+        gap: 6px !important;
+    }
+
+    html body .tables-grid-cards .table-card-v2 {
+        padding: 6px 4px !important;
+        border-radius: 8px !important;
+        text-align: center !important;
+    }
+
+    html body .tables-grid-cards .table-card-top {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 2px !important;
+        margin-bottom: 2px !important;
+    }
+
+    html body .tables-grid-cards .table-name-badge {
+        font-size: 0.72rem !important;
+        font-weight: 800 !important;
+        line-height: 1.1 !important;
+        text-align: center !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        width: 100% !important;
+        display: block !important;
+    }
+
+    html body .tables-grid-cards .table-ratio-badge {
+        font-size: 0.65rem !important;
+        font-weight: 800 !important;
+        padding: 1px 4px !important;
+        border-radius: 4px !important;
+        margin: 1px 0 !important;
+    }
+
+    html body .tables-grid-cards .table-staff-info {
+        font-size: 0.62rem !important;
+        color: #64748b !important;
+        margin-bottom: 3px !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        width: 100% !important;
+        display: block !important;
+        text-align: center !important;
+        min-height: 0.9em !important;
+    }
+
+    html body .tables-grid-cards .table-staff-info .staff-prefix {
+        display: none !important;
+    }
+
+    html body .tables-grid-cards .table-stats-row {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        font-size: 0.64rem !important;
+        line-height: 1.2 !important;
+        font-weight: 700 !important;
+        gap: 1px !important;
+    }
+
+    html body .tables-grid-cards .table-stats-row span {
+        display: block !important;
+        font-size: 0.63rem !important;
+        text-align: center !important;
+        white-space: nowrap !important;
+    }
+}
+
+body {
+    background:
+        linear-gradient(180deg, #ffffff 0, var(--pmt-bg) 220px),
+        var(--pmt-bg) !important;
+    color: var(--pmt-text) !important;
+}
+
+button,
+input,
+select,
+textarea {
+    letter-spacing: 0 !important;
+}
+
+.main-content {
+    background: transparent !important;
+}
+
+@media screen and (min-width: 769px) {
+    .sidebar {
+        border-right: 1px solid var(--pmt-border) !important;
+        box-shadow: none !important;
+        padding: 18px 14px !important;
+    }
+
+    .sidebar-logo-img {
+        max-height: 62px !important;
+    }
+
+    .sidebar-nav {
+        gap: 4px !important;
+    }
+
+    .sidebar-nav li a {
+        color: #374151 !important;
+        border-radius: var(--pmt-radius) !important;
+        padding: 11px 13px !important;
+        font-size: 0.92rem !important;
+        font-weight: 650 !important;
+        border: 1px solid transparent !important;
+        transform: none !important;
+    }
+
+    .sidebar-nav li a:hover {
+        background: #f9fafb !important;
+        color: var(--pmt-red) !important;
+        border-color: var(--pmt-border) !important;
+        transform: none !important;
+    }
+
+    .sidebar-nav li a.active {
+        background: var(--pmt-red-soft) !important;
+        color: var(--pmt-red) !important;
+        border-color: #ffd7d7 !important;
+        box-shadow: inset 3px 0 0 var(--pmt-red) !important;
+        transform: none !important;
+    }
+
+    .main-content {
+        padding: 22px 28px 42px !important;
+    }
+
+    .header {
+        top: 12px !important;
+        border: 1px solid var(--pmt-border) !important;
+        box-shadow: var(--pmt-shadow) !important;
+        border-radius: var(--pmt-radius) !important;
+        padding: 14px 18px !important;
+        margin-bottom: 18px !important;
+    }
+}
+
+.sidebar-user-box {
+    border-top-color: var(--pmt-border) !important;
+}
+
+.user-profile-info {
+    background: var(--pmt-surface-muted) !important;
+    border-color: var(--pmt-border) !important;
+    border-radius: var(--pmt-radius) !important;
+}
+
+.user-avatar-circle {
+    background: var(--pmt-red) !important;
+    box-shadow: none !important;
+}
+
+.sidebar-logout-btn {
+    background: #ffffff !important;
+    color: var(--pmt-red) !important;
+    border-color: #f3c7c7 !important;
+    border-radius: var(--pmt-radius) !important;
+    box-shadow: none !important;
+}
+
+.sidebar-logout-btn:hover {
+    background: var(--pmt-red) !important;
+    color: #ffffff !important;
+    box-shadow: var(--pmt-shadow) !important;
+}
+
+.dash-header-bar {
+    gap: 12px !important;
+}
+
+.dash-page-title {
+    color: var(--pmt-text) !important;
+    font-size: clamp(1.05rem, 1.2vw, 1.25rem) !important;
+    line-height: 1.35 !important;
+}
+
+.pastel-cards-grid-6 {
+    gap: 12px !important;
+    margin-bottom: 18px !important;
+}
+
+.stat-card-pastel {
+    background: var(--pmt-surface) !important;
+    color: var(--pmt-text) !important;
+    border: 1px solid var(--pmt-border) !important;
+    border-radius: var(--pmt-radius) !important;
+    box-shadow: var(--pmt-shadow) !important;
+    min-height: 106px !important;
+    padding: 15px 16px !important;
+    overflow: hidden !important;
+}
+
+.stat-card-pastel::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--pmt-blue);
+}
+
+.stat-card-pastel:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: var(--pmt-shadow-lg) !important;
+    border-color: var(--pmt-border-strong) !important;
+}
+
+.stat-card-pastel.active-card {
+    border-color: #f3b0b0 !important;
+    box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.12), var(--pmt-shadow) !important;
+}
+
+.card-pastel-green::before { background: var(--pmt-green); }
+.card-pastel-yellow::before { background: var(--pmt-amber); }
+.card-pastel-pink::before { background: #be185d; }
+.card-pastel-cyan::before { background: #0891b2; }
+.card-pastel-coral::before { background: var(--pmt-danger); }
+
+.pastel-card-title {
+    color: var(--pmt-text-muted) !important;
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+}
+
+.pastel-card-value,
+.card-pastel-purple .pastel-card-value,
+.card-pastel-green .pastel-card-value,
+.card-pastel-yellow .pastel-card-value,
+.card-pastel-pink .pastel-card-value,
+.card-pastel-cyan .pastel-card-value,
+.card-pastel-coral .pastel-card-value {
+    color: var(--pmt-text) !important;
+    font-size: 1.72rem !important;
+    letter-spacing: 0 !important;
+}
+
+.pastel-card-subtitle {
+    color: var(--pmt-text-muted) !important;
+    font-weight: 500 !important;
+    opacity: 1 !important;
+}
+
+.chart-card-modern,
+.dashboard-table-card,
+.content-box,
+.card,
+.section-card {
+    border: 1px solid var(--pmt-border) !important;
+    border-radius: var(--pmt-radius) !important;
+    box-shadow: var(--pmt-shadow) !important;
+    background: var(--pmt-surface) !important;
+}
+
+.chart-card-modern {
+    padding: 18px !important;
+}
+
+.chart-card-title {
+    color: var(--pmt-text) !important;
+    font-size: 0.98rem !important;
+    font-weight: 750 !important;
+}
+
+.dashboard-table-card {
+    padding: 18px !important;
+}
+
+.dashboard-search-box input,
+.form-control,
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
+select,
+textarea,
+.table-select-custom {
+    border: 1px solid var(--pmt-border-strong) !important;
+    border-radius: var(--pmt-radius) !important;
+    background: #ffffff !important;
+    color: var(--pmt-text) !important;
+    box-shadow: none !important;
+}
+
+.dashboard-search-box input:focus,
+.form-control:focus,
+input:focus,
+select:focus,
+textarea:focus,
+.table-select-custom:focus {
+    border-color: var(--pmt-red) !important;
+    box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.12) !important;
+    outline: none !important;
+}
+
+.realtime-pill-badge {
+    border-radius: 999px !important;
+    background: #ecfdf5 !important;
+    border-color: #bbf7d0 !important;
+    color: #047857 !important;
+    box-shadow: none !important;
+}
+
+.admin-filter-bar {
+    background: rgba(255, 255, 255, 0.96) !important;
+    border: 1px solid var(--pmt-border) !important;
+    border-radius: var(--pmt-radius) !important;
+    box-shadow: var(--pmt-shadow) !important;
+}
+
+.excel-table-container,
+.table-responsive {
+    border-radius: var(--pmt-radius) !important;
+}
+
+.excel-table-container {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    padding-right: 10px !important;
+    scrollbar-gutter: stable both-edges;
+}
+
+.excel-zoom-wrapper {
+    min-width: max-content !important;
+}
+
+html body table.excel-table {
+    min-width: 1180px !important;
+}
+
+html body table.excel-table th.col-actions,
+html body table.excel-table td.col-actions {
+    width: 190px !important;
+    min-width: 190px !important;
+    max-width: none !important;
+    padding-left: 10px !important;
+    padding-right: 14px !important;
+}
+
+html body table.excel-table td.col-actions .action-btns-wrapper {
+    width: max-content !important;
+    min-width: 168px !important;
+    max-width: none !important;
+    gap: 6px !important;
+}
+
+html body table.excel-table td.col-actions .badge,
+html body table.excel-table td.col-actions .btn {
+    flex: 0 0 auto !important;
+}
+
+html body table.excel-table td.col-actions .btn-action-checkin,
+html body table.excel-table td.col-actions .badge.checked_in {
+    min-width: 70px !important;
+}
+
+html body table.excel-table td.col-actions .btn-action-edit,
+html body table.excel-table td.col-actions .btn-action-delete {
+    min-width: 34px !important;
+}
+
+.modern-data-table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+}
+
+.modern-data-table th,
+.excel-table th {
+    background: #f9fafb !important;
+    color: #4b5563 !important;
+    border-bottom: 1px solid var(--pmt-border) !important;
+    font-size: 0.77rem !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+}
+
+.modern-data-table td,
+.excel-table td {
+    border-bottom: 1px solid #f1f5f9 !important;
+    color: #1f2937 !important;
+}
+
+.modern-data-table tbody tr:hover td,
+.excel-table tbody tr:hover td {
+    background: #fff7f7 !important;
+}
+
+.btn,
+button[type="submit"],
+button[type="button"],
+.btn-primary,
+.btn-success,
+.btn-info,
+.btn-danger {
+    border-radius: var(--pmt-radius) !important;
+    box-shadow: none !important;
+    letter-spacing: 0 !important;
+}
+
+.btn:hover {
+    transform: translateY(-1px) !important;
+}
+
+.btn-primary {
+    background: var(--pmt-red) !important;
+    border-color: var(--pmt-red) !important;
+}
+
+.btn-primary:hover {
+    background: var(--pmt-red-dark) !important;
+    border-color: var(--pmt-red-dark) !important;
+}
+
+.btn-success {
+    background: var(--pmt-green) !important;
+    border-color: var(--pmt-green) !important;
+}
+
+.btn-info {
+    background: var(--pmt-blue) !important;
+    border-color: var(--pmt-blue) !important;
+}
+
+.btn-danger {
+    background: var(--pmt-danger) !important;
+    border-color: var(--pmt-danger) !important;
+}
+
+.modal-content,
+.confirm-modal-box,
+.change-pass-content {
+    border-radius: 10px !important;
+    border: 1px solid var(--pmt-border) !important;
+    box-shadow: var(--pmt-shadow-lg) !important;
+}
+
+.notif-dropdown {
+    border-radius: 10px !important;
+    border-color: var(--pmt-border) !important;
+    box-shadow: var(--pmt-shadow-lg) !important;
+}
+
+.pmt-bottom-nav {
+    border-top: 1px solid var(--pmt-border) !important;
+    box-shadow: 0 -8px 22px rgba(15, 23, 42, 0.08) !important;
+}
+
+.pmt-bottom-nav .nav-item {
+    color: #6b7280 !important;
+}
+
+.pmt-bottom-nav .nav-item.active {
+    color: var(--pmt-red) !important;
+}
+
+.pmt-bottom-nav .nav-item-featured .nav-icon-bg {
+    background: var(--pmt-red) !important;
+    box-shadow: 0 6px 14px rgba(198, 40, 40, 0.24) !important;
+}
+
+@media screen and (max-width: 768px) {
+    body {
+        background: var(--pmt-bg) !important;
+    }
+
+    .main-content {
+        padding: 10px 10px calc(var(--nav-height) + max(18px, var(--sab)) + 18px) !important;
+    }
+
+    .header {
+        border: 1px solid var(--pmt-border) !important;
+        box-shadow: var(--pmt-shadow) !important;
+        padding: 11px 12px !important;
+        margin-bottom: 10px !important;
+    }
+
+    .dash-page-title {
+        font-size: 1rem !important;
+    }
+
+    .pastel-cards-grid-6 {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+    }
+
+    .stat-card-pastel {
+        min-height: 92px !important;
+        padding: 12px !important;
+    }
+
+    .pastel-card-title {
+        font-size: 0.7rem !important;
+    }
+
+    .pastel-card-value {
+        font-size: 1.42rem !important;
+    }
+
+    .pastel-card-subtitle {
+        white-space: normal !important;
+        font-size: 0.72rem !important;
+    }
+
+    .dashboard-charts-grid {
+        gap: 10px !important;
+        margin-bottom: 12px !important;
+    }
+
+    .chart-card-modern,
+    .dashboard-table-card {
+        padding: 12px !important;
+    }
+
+    .chart-canvas-wrapper {
+        height: 220px !important;
+    }
+
+    .table-filter-toolbar {
+        gap: 8px !important;
+    }
+
+    .admin-filter-bar {
+        position: sticky !important;
+        top: 62px !important;
+        z-index: 850 !important;
+        margin: 0 0 10px !important;
+        padding: 10px !important;
+        background: rgba(255, 255, 255, 0.98) !important;
+        border-color: #dbe3ec !important;
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08) !important;
+        backdrop-filter: blur(10px);
+    }
+
+    .table-toolbar-left,
+    .table-toolbar-right,
+    .dashboard-search-box {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+
+    .table-select-custom,
+    .realtime-pill-badge {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+
+    #search-form.admin-filter-bar {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+    }
+
+    #search-form.admin-filter-bar > div,
+    #search-form.admin-filter-bar .sort-select-wrapper,
+    #search-form.admin-filter-bar .btn {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .tables-config-filter-bar {
+        display: grid !important;
+        grid-template-columns: 1fr !important;
+    }
+
+    .tables-config-filter-bar > div {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    .guests-table-container {
+        overflow-x: auto !important;
+        padding-right: 10px !important;
+        border: 1px solid var(--pmt-border) !important;
+        background: #ffffff !important;
+        box-shadow: var(--pmt-shadow) !important;
+    }
+
+    .guests-table-container .excel-zoom-wrapper {
+        min-width: max-content !important;
+        width: max-content !important;
+    }
+
+    html body .guests-table-container table.excel-table {
+        min-width: 1080px !important;
+        width: max-content !important;
+    }
+
+    .sidebar.mobile-open .sidebar-nav li a {
+        border-radius: var(--pmt-radius) !important;
+        background: #ffffff !important;
+        border-color: var(--pmt-border) !important;
+    }
+
+    .sidebar.mobile-open .sidebar-nav li a.active {
+        background: var(--pmt-red) !important;
+        border-color: var(--pmt-red) !important;
+    }
+}
+
+@media screen and (max-width: 420px) {
+    .pastel-cards-grid-6 {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Disable spreadsheet-like hover/selection flashes on every admin table. */
+table,
+table *,
+.excel-table,
+.excel-table *,
+.table-responsive table,
+.table-responsive table *,
+.excel-table-container table,
+.excel-table-container table * {
+    -webkit-tap-highlight-color: transparent !important;
+}
+
+table th,
+table td,
+.excel-table th,
+.excel-table td,
+.modern-data-table th,
+.modern-data-table td {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -ms-user-select: none !important;
+}
+
+table th::selection,
+table td::selection,
+table th *::selection,
+table td *::selection {
+    color: inherit !important;
+    background: transparent !important;
+}
+
+.excel-table tbody tr:hover,
+.excel-table tbody tr:hover td,
+.modern-data-table tbody tr:hover,
+.modern-data-table tbody tr:hover td,
+.table-responsive table tbody tr:hover,
+.table-responsive table tbody tr:hover td {
+    background-color: inherit !important;
+}
+
+.excel-table th:hover,
+.excel-table td:hover,
+.modern-data-table th:hover,
+.modern-data-table td:hover,
+.table-responsive table th:hover,
+.table-responsive table td:hover {
+    background-color: inherit !important;
+}
+
+.excel-table th:focus,
+.excel-table td:focus,
+.modern-data-table th:focus,
+.modern-data-table td:focus,
+.table-responsive table th:focus,
+.table-responsive table td:focus {
+    outline: none !important;
+    background-color: inherit !important;
+}
+
+.excel-col-resizer {
+    display: none !important;
+    pointer-events: none !important;
+    background: transparent !important;
+}
+
+/* ===== DESKTOP TABLE ACTION BUTTONS ===== */
+.action-btns-wrapper {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 6px !important;
+    width: auto !important;
+}
+
+.action-btns-wrapper .badge-action-status {
+    display: none !important; /* Ẩn badge Đã checkin trùng lặp trên Desktop */
+}
+
+.action-btns-wrapper form {
+    display: inline-flex !important;
+    margin: 0 !important;
+}
+
+.action-btns-wrapper .btn {
+    padding: 5px 12px !important;
+    font-size: 0.82rem !important;
+    height: 30px !important;
+    line-height: 1 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 6px !important;
+    white-space: nowrap !important;
+}
+
+@media screen and (max-width: 768px) {
+    .mobile-card-container,
+    .excel-table-container,
+    .table-responsive {
+        overflow: visible !important;
+        padding: 0 !important;
+        border: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+
+    .excel-table-container table,
+    .excel-table-container table tbody,
+    .excel-table-container table tr,
+    .excel-table-container table td,
+    table.excel-table,
+    table.excel-table tbody,
+    table.excel-table tr,
+    table.excel-table td,
+    table.mobile-card-table,
+    table.mobile-card-table tbody,
+    table.mobile-card-table tr,
+    table.mobile-card-table td {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+
+    .excel-zoom-wrapper,
+    .mobile-card-container .excel-zoom-wrapper,
+    .excel-table-container .excel-zoom-wrapper {
+        width: 100% !important;
+        min-width: 0 !important;
+        transform: none !important;
+    }
+
+    html body table.excel-table,
+    html body table.mobile-card-table,
+    html body .excel-table-container table {
+        display: block !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        border: 0 !important;
+        background: transparent !important;
+        table-layout: auto !important;
+        border-collapse: separate !important;
+    }
+
+    table.excel-table thead,
+    table.mobile-card-table thead,
+    .excel-table-container table thead {
+        display: none !important;
+    }
+
+    table.excel-table tbody,
+    table.mobile-card-table tbody,
+    .excel-table-container table tbody {
+        display: grid !important;
+        gap: 10px !important;
+    }
+
+    html body table.excel-table tr,
+    html body table.mobile-card-table tr,
+    html body .excel-table-container table tr {
+        display: flex !important;
+        flex-direction: column !important;
+        height: auto !important;
+        padding: 12px !important;
+        background: #ffffff !important;
+        border: 1px solid #dbe3ec !important;
+        border-left: 3px solid #cbd5e1 !important;
+        border-radius: 10px !important;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06) !important;
+    }
+
+    html body table.excel-table tr[style*="display: none"],
+    html body table.mobile-card-table tr[style*="display: none"],
+    html body .excel-table-container table tr[style*="display: none"],
+    html body table.excel-table tr.hidden-search-row,
+    html body table.mobile-card-table tr.hidden-search-row,
+    html body .excel-table-container table tr.hidden-search-row {
+        display: none !important;
+    }
+
+    html body table.excel-table tr.row-checked-in,
+    html body table.mobile-card-table tr.row-checked-in,
+    html body .excel-table-container table tr.row-checked-in {
+        border-left-color: var(--pmt-green) !important;
+        background: #fbfffd !important;
+    }
+
+    html body table.excel-table td,
+    html body table.excel-table td[class*="col-"],
+    html body table.mobile-card-table td,
+    html body table.mobile-card-table td[class*="col-"],
+    html body .excel-table-container table td,
+    html body .excel-table-container table td[class*="col-"] {
+        display: grid !important;
+        grid-template-columns: 104px minmax(0, 1fr) !important;
+        align-items: center !important;
+        column-gap: 12px !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        height: auto !important;
+        min-height: 28px !important;
+        padding: 5px 0 !important;
+        color: var(--pmt-text) !important;
+        background: transparent !important;
+        border: 0 !important;
+        border-bottom: 1px solid #eef2f6 !important;
+        font-size: 0.82rem !important;
+        line-height: 1.35 !important;
+        text-align: right !important;
+        white-space: normal !important;
+        word-break: normal !important;
+        overflow-wrap: anywhere !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+    }
+
+    table.excel-table td:last-child,
+    table.mobile-card-table td:last-child,
+    .excel-table-container table td:last-child {
+        border-bottom: 0 !important;
+    }
+
+    table.excel-table td::before,
+    table.mobile-card-table td::before,
+    .excel-table-container table td::before {
+        content: attr(data-label);
+        color: #697586;
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0;
+        line-height: 1.25;
+        text-align: left;
+        text-transform: uppercase;
+    }
+
+    table.mobile-card-table td > * {
+        max-width: 100% !important;
+        justify-self: end !important;
+    }
+
+    table.mobile-card-table td strong,
+    table.mobile-card-table td span,
+    table.mobile-card-table td a,
+    table.mobile-card-table td button {
+        white-space: normal !important;
+    }
+
+    table.mobile-card-table td:not(.col-actions) > span,
+    table.mobile-card-table td:not(.col-actions) > strong,
+    table.mobile-card-table td:not(.col-actions) > a {
+        height: auto !important;
+        min-height: 0 !important;
+        line-height: 1.35 !important;
+    }
+
+    html body table.excel-table.mobile-card-table td.col-organization,
+    html body table.excel-table.mobile-card-table td.col-phone {
+        word-break: normal !important;
+        overflow-wrap: break-word !important;
+    }
+
+    html body table.excel-table.mobile-card-table td.col-full_name,
+    html body table.excel-table.mobile-card-table td.col-card-title {
+        order: -20 !important;
+        display: block !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        padding: 0 0 8px !important;
+        margin-bottom: 3px !important;
+        text-align: left !important;
+        border-bottom: 1px solid #e7edf3 !important;
+    }
+
+    table.mobile-card-table td.col-full_name::before,
+    table.mobile-card-table td.col-card-title::before {
+        display: block !important;
+        margin-bottom: 2px;
+        color: #8b96a5;
+        font-size: 0.66rem;
+    }
+
+    table.mobile-card-table td.col-full_name strong,
+    table.mobile-card-table td.col-card-title strong {
+        display: block !important;
+        height: auto !important;
+        padding: 0 !important;
+        color: var(--pmt-text) !important;
+        font-size: 1rem !important;
+        font-weight: 850 !important;
+        line-height: 1.3 !important;
+        text-align: left !important;
+    }
+
+    table.mobile-card-table td.col-customer_code {
+        order: -30 !important;
+    }
+
+    table.mobile-card-table td.col-customer_code strong {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: 26px !important;
+        padding: 0 9px !important;
+        color: #0369a1 !important;
+        background: #eff8ff !important;
+        border: 1px solid #bae6fd !important;
+        border-radius: 7px !important;
+        font-size: 0.78rem !important;
+        font-weight: 800 !important;
+    }
+
+    html body table.excel-table.mobile-card-table td.col-organization {
+        align-items: start !important;
+        text-align: right !important;
+    }
+
+    table.mobile-card-table td.col-organization::before {
+        padding-top: 2px;
+    }
+
+    html body table.excel-table.mobile-card-table td.col-actions,
+    html body .excel-table-container table.excel-table.mobile-card-table td.col-actions,
+    html body table.mobile-card-table td.col-actions,
+    html body table.mobile-card-table td:has(.action-btns-wrapper) {
+        display: block !important;
+        grid-column: 1 / -1 !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        padding-top: 10px !important;
+        padding-bottom: 2px !important;
+        margin-top: 6px !important;
+        border-top: 1px dashed #cbd5e1 !important;
+        border-bottom: 0 !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
+        clear: both !important;
+    }
+
+    table.mobile-card-table td.col-actions::before,
+    table.mobile-card-table td:has(.action-btns-wrapper)::before {
+        display: none !important;
+    }
+
+    html body table.excel-table.mobile-card-table td.col-actions .action-btns-wrapper,
+    html body .excel-table-container table.excel-table.mobile-card-table td.col-actions .action-btns-wrapper,
+    html body table.mobile-card-table td .action-btns-wrapper {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 8px !important;
+        inline-size: 100% !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    html body table.excel-table.mobile-card-table td.col-actions .action-btns-wrapper > div,
+    html body table.excel-table.mobile-card-table td.col-actions .action-btns-wrapper > span,
+    html body table.excel-table.mobile-card-table td.col-actions .action-btns-wrapper > button,
+    html body table.excel-table.mobile-card-table td.col-actions .action-btns-wrapper > a,
+    html body table.excel-table.mobile-card-table td.col-actions .action-btns-wrapper > form,
+    html body table.mobile-card-table td .action-btns-wrapper > div,
+    html body table.mobile-card-table td .action-btns-wrapper > span,
+    html body table.mobile-card-table td .action-btns-wrapper > button,
+    html body table.mobile-card-table td .action-btns-wrapper > a,
+    html body table.mobile-card-table td .action-btns-wrapper > form {
+        flex: 1 1 0 !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        display: flex !important;
+    }
+
+    html body table.excel-table.mobile-card-table td.col-actions form,
+    html body table.mobile-card-table td .action-btns-wrapper form {
+        display: flex !important;
+        flex: 1 1 0 !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    html body table.excel-table.mobile-card-table td.col-actions .btn,
+    html body table.excel-table.mobile-card-table td.col-actions .badge,
+    html body table.excel-table.mobile-card-table td.col-actions form .btn,
+    html body table.mobile-card-table td .action-btns-wrapper .btn,
+    html body table.mobile-card-table td .action-btns-wrapper .badge,
+    html body table.mobile-card-table td .action-btns-wrapper form .btn {
+        height: 36px !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        padding: 0 6px !important;
+        border-radius: 8px !important;
+        font-size: 0.8rem !important;
+        font-weight: 700 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
+        line-height: 1 !important;
+    }
+
+    html body table.excel-table.mobile-card-table td.col-actions .badge.checked_in,
+    html body table.mobile-card-table td .action-btns-wrapper .badge.checked_in,
+    html body table.excel-table td.col-actions .badge-action-status,
+    html body table.mobile-card-table td .action-btns-wrapper .badge-action-status {
+        display: inline-flex !important;
+        background-color: #e8f5e9 !important;
+        color: #2e7d32 !important;
+        border: 1px solid #a5d6a7 !important;
+        margin: 0 !important;
+    }
+
+    html body table.excel-table.mobile-card-table td.col-actions form {
+        display: flex !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+    }
+
+    html body table.excel-table.mobile-card-table td.col-actions form .btn {
+        width: 100% !important;
+    }
+
+    table.mobile-card-table td[colspan] {
+        display: block !important;
+        text-align: center !important;
+        padding: 18px !important;
+    }
+
+    table.mobile-card-table td[colspan]::before {
+        display: none !important;
+    }
+
+    /* Cho phép position: sticky hoạt động mượt mà không bị ngắt bởi overflow-x trên Mobile */
+    html, body, .wrapper, .main-content, .content-box {
+        overflow-x: visible !important;
+    }
+
+    /* ===== STICKY SEARCH & FILTER BAR ON MOBILE WEB APP ===== */
+    html body #checkin-search-form,
+    html body #search-form {
+        position: sticky !important;
+        top: 60px !important;
+        z-index: 99990 !important;
+        background: #ffffff !important;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12) !important;
+        border-radius: 12px !important;
+        padding: 10px 12px !important;
+        margin-bottom: 15px !important;
+        border: 1px solid #cbd5e1 !important;
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        gap: 6px !important;
+    }
+
+    html body #checkin-search-form > div,
+    html body #search-form > div {
+        min-width: 0 !important;
+        flex: 1 1 100% !important;
+    }
+
+    html body #checkin-search-form .form-control,
+    html body #search-form .form-control {
+        font-size: 0.88rem !important;
+        height: 38px !important;
+        padding: 6px 12px !important;
+        border-radius: 8px !important;
+        background: #ffffff !important;
+    }
+}

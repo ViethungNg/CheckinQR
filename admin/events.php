@@ -69,8 +69,8 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
     <link rel="icon" href="../img/logo pmt.png" type="image/png">
     <?php require_once __DIR__ . '/../includes/pwa_head.php'; ?>
     <link rel="stylesheet" href="../assets/css/admin-responsive.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../assets/css/admin-polish.css?v=<?php echo filemtime(__DIR__ . '/../assets/css/admin-polish.css'); ?>">
     <style>
-        :root { --primary-color: #d32f2f; --sidebar-width: 250px; --bg-color: #f4f6f8; --text-color: #333; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-color); }
         .content-box { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
@@ -118,11 +118,11 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
                 <button class="btn btn-primary" onclick="openAddModal()">+ Thêm sự kiện mới</button>
                 <div style="position: relative; flex: 1; max-width: 320px;">
                     <input type="text" id="event-search-input" placeholder="Tìm theo tên sự kiện, mã sự kiện..." class="form-control" style="padding-right: 65px;" oninput="filterEventsDOM(this.value)">
-                    <span class="kbd-badge" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none;">Ctrl K</span>
+                    <span class="kbd-badge hide-mobile" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none;">Ctrl K</span>
                 </div>
             </div>
-            <div class="table-responsive">
-                <table>
+            <div class="table-responsive mobile-card-container">
+                <table class="mobile-card-table">
                     <thead>
                         <tr>
                             <th>Tên sự kiện</th>
@@ -145,16 +145,16 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
                                     <?php echo $event['status'] === 'active' ? 'Đang diễn ra' : 'Đã kết thúc'; ?>
                                 </span>
                             </td>
-                            <td>
+                            <td class="col-actions" data-label="Thao tác">
                                 <div class="action-btns-wrapper">
                                     <a href="<?php echo url('?event=' . esc($event['slug'])); ?>" target="_blank" class="btn btn-action-assign" title="Mở Form check-in">Form</a>
                                     <a href="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=<?php echo urlencode(url('?event=' . esc($event['slug']))); ?>" target="_blank" class="btn btn-action-primary" title="Tải/Xem mã QR Code">QR Code</a>
                                     <button type="button" class="btn btn-action-edit" onclick='openEditModal(<?php echo json_encode($event); ?>)'>Sửa</button>
-                                    <form action="" method="POST" style="display:inline;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa sự kiện này? Toàn bộ khách và lịch sử check-in sẽ bị xóa theo!');">
+                                    <form action="" method="POST" style="display:flex; flex:1 1 0; min-width:0; width:100%; margin:0;" onsubmit="return confirmModal(event, 'Bạn có chắc chắn muốn xóa sự kiện này? Toàn bộ khách và lịch sử check-in sẽ bị xóa theo!');">
                                         <?php echo csrfField(); ?>
                                         <input type="hidden" name="action" value="delete">
                                         <input type="hidden" name="id" value="<?php echo $event['id']; ?>">
-                                        <button type="submit" class="btn btn-action-delete">Xóa</button>
+                                        <button type="submit" class="btn btn-action-delete" style="width:100%;">Xóa</button>
                                     </form>
                                 </div>
                             </td>

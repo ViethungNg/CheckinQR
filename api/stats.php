@@ -98,7 +98,7 @@ try {
         }
     }
 
-    if ($filter === 'not_arrived' || $filter === 'guests' || ($tableId !== 'all' && $tableId !== '')) {
+    if ($filter === 'guests' || $filter === 'not_arrived') {
         $whereConditions = [];
         $params = [];
 
@@ -163,7 +163,7 @@ try {
         } elseif ($filter === 'assigned') {
             $whereConditions[] = "(c.table_id IS NOT NULL AND c.table_id > 0)";
         } elseif ($filter === 'matched') {
-            $whereConditions[] = "c.match_status = 'matched'";
+            $whereConditions[] = "c.match_status IN ('matched', 'walk_in', 'checked_in')";
         } elseif ($filter === 'walk_in') {
             $whereConditions[] = "c.match_status = 'walk_in'";
         }

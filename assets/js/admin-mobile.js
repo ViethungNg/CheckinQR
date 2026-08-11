@@ -53,10 +53,91 @@ function initAdminMobileUX() {
     }
 }
 
+function getVisibleAdminSearchInput() {
+    const selectors = [
+        '#tab-content-config.active #table-search-input',
+        '#tab-content-floorplan.active #dashboard-search-input',
+        '#checkin-search-input',
+        '#search-input',
+        '#dashboard-search-input',
+        '#table-search-input',
+        '#event-search-input'
+    ];
+
+    for (const selector of selectors) {
+        const input = document.querySelector(selector);
+        if (!input) continue;
+        const rect = input.getBoundingClientRect();
+        const style = window.getComputedStyle(input);
+        if (rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none') {
+            return input;
+        }
+    }
+
+    return null;
+}
+
+function focusAdminSearchInput() {
+    const input = getVisibleAdminSearchInput();
+    if (!input) return false;
+
+    input.scrollIntoView({ behavior: 'smooth', block: window.innerWidth <= 768 ? 'start' : 'center' });
+    setTimeout(function() {
+        input.focus({ preventScroll: true });
+        if (typeof input.select === 'function') input.select();
+    }, 80);
+    return true;
+}
+
+function prepareMobileDataCards() {
+    const tables = document.querySelectorAll('.excel-table-container table.excel-table');
+
+    tables.forEach(function(table) {
+        table.classList.add('mobile-card-table');
+        const container = table.closest('.excel-table-container, .table-responsive');
+        if (container) {
+            container.classList.add('mobile-card-container');
+        }
+
+        const headers = Array.from(table.querySelectorAll('thead th')).map(function(th) {
+            return (th.innerText || th.textContent || '').replace(/[↕▲▼↑↓]/g, '').replace(/\s+/g, ' ').trim();
+        });
+
+        table.querySelectorAll('tbody tr').forEach(function(row) {
+            Array.from(row.children).forEach(function(cell, idx) {
+                let label = headers[idx] || '';
+                if (cell.dataset.label) {
+                    cell.dataset.label = cell.dataset.label.replace(/[↕▲▼↑↓]/g, '').trim();
+                } else if (label) {
+                    cell.dataset.label = label;
+                }
+
+                const normalized = label.toLowerCase();
+                if (normalized.includes('họ và tên') || normalized.includes('tên bàn')) {
+                    cell.classList.add('col-card-title');
+                }
+                if (normalized.includes('mã kh')) {
+                    cell.classList.add('col-customer_code');
+                }
+                if (normalized.includes('đơn vị') || normalized.includes('đại lý')) {
+                    cell.classList.add('col-organization');
+                }
+                if (normalized.includes('thao tác') || cell.querySelector('.action-btns-wrapper, .btn-action-primary, .btn-action-checkin, .btn-action-edit')) {
+                    cell.classList.add('col-actions');
+                }
+            });
+        });
+    });
+}
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initAdminMobileUX);
+    document.addEventListener('DOMContentLoaded', function() {
+        initAdminMobileUX();
+        prepareMobileDataCards();
+    });
 } else {
     initAdminMobileUX();
+    prepareMobileDataCards();
 }
 
 /**
@@ -158,11 +239,33 @@ window.addEventListener('beforeunload', function() {
 
 document.addEventListener('DOMContentLoaded', function() {
     window.restoreAdminTableScrollPosition();
+    prepareMobileDataCards();
 });
 
 window.addEventListener('load', function() {
     window.restoreAdminTableScrollPosition();
+    prepareMobileDataCards();
 });
+
+window.addEventListener('dbRealtimeChange', function() {
+    setTimeout(prepareMobileDataCards, 80);
+});
+
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key && e.key.toLowerCase() === 'k') {
+        if (focusAdminSearchInput()) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    } else if (e.key === 'Escape') {
+        const activeEl = document.activeElement;
+        if (activeEl && activeEl.matches('#dashboard-search-input, #search-input, #table-search-input')) {
+            activeEl.blur();
+        }
+    }
+}, true);
+
+window.focusAdminSearchInput = focusAdminSearchInput;
 
 /**
  * Cho phép lăn con trỏ chuột (Mouse Wheel) cuộn trang dọc mượt mà 100% khi rê chuột trên bảng dữ liệu trong giả lập Mobile (Chrome DevTools Mobile Emulator)
@@ -178,3 +281,15 @@ document.addEventListener('wheel', function (e) {
         }
     }
 }, { passive: true });
+
+const mobileCardObserver = new MutationObserver(function() {
+    if (window.innerWidth <= 768) {
+        prepareMobileDataCards();
+    }
+});
+
+if (document.body) {
+    mobileCardObserver.observe(document.body, { childList: true, subtree: true });
+}
+
+window.prepareMobileDataCards = prepareMobileDataCards;

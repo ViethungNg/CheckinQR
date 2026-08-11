@@ -35,16 +35,20 @@ if (isPost()) {
     <?php require_once __DIR__ . '/../includes/pwa_head.php'; ?>
     <style>
         :root {
-            --primary-color: #d32f2f;
-            --primary-hover: #b71c1c;
-            --bg-color: #f4f6f8;
-            --text-color: #333;
+            --primary-color: #c62828;
+            --primary-hover: #a91f1f;
+            --bg-color: #f6f7f9;
+            --text-color: #111827;
+            --muted-text: #6b7280;
+            --border-color: #e5e7eb;
             --border-radius: 8px;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
+            background:
+                linear-gradient(180deg, #ffffff 0, var(--bg-color) 260px),
+                var(--bg-color);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -55,7 +59,8 @@ if (isPost()) {
             background: #fff;
             padding: 2.5rem 2rem;
             border-radius: var(--border-radius);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
             width: 100%;
             max-width: 400px;
         }
@@ -90,7 +95,7 @@ if (isPost()) {
         .form-control {
             width: 100%;
             padding: 0.8rem 1rem;
-            border: 1px solid #ccc;
+            border: 1px solid #d1d5db;
             border-radius: var(--border-radius);
             font-size: 1rem;
             transition: border-color 0.2s;
@@ -107,7 +112,7 @@ if (isPost()) {
             border: none;
             border-radius: var(--border-radius);
             font-size: 1rem;
-            font-weight: 600;
+            font-weight: 800;
             cursor: pointer;
             transition: background-color 0.2s;
         }
@@ -129,9 +134,9 @@ if (isPost()) {
 
 <div class="login-container">
     <div class="login-header">
-        <img src="<?php echo url('img/logo pmt.png'); ?>" alt="Logo PMT" class="login-logo-img">
-        <h2 style="font-size: 1.5rem; color: #111; font-weight: 800;">PMT - Checkin</h2>
-        <p style="color: #666; font-size: 0.9rem;">Hệ thống Quản lý & Điểm danh Sự kiện</p>
+            <img src="<?php echo url('img/logo pmt.png'); ?>" alt="Logo PMT" class="login-logo-img">
+            <h2 style="font-size: 1.5rem; color: #111; font-weight: 800;">PMT - Checkin</h2>
+        <p style="color: var(--muted-text); font-size: 0.9rem;">Hệ thống quản lý & điểm danh sự kiện</p>
     </div>
     
     <?php if ($error): ?>

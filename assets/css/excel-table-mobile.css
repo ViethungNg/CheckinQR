@@ -587,19 +587,6 @@ table.excel-table tbody tr:hover {
    EXCEL INTERACTIVE COLUMN RESIZER HANDLE
    ========================================================================== */
 .excel-col-resizer {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 6px;
-    height: 100%;
-    cursor: col-resize;
-    user-select: none;
-    z-index: 20;
-    transition: background-color 0.15s ease;
+    display: none !important;
+    pointer-events: none !important;
 }
-
-.excel-col-resizer:hover, .excel-col-resizer.resizing {
-    background-color: #2563eb !important;
-    box-shadow: 0 0 6px rgba(37, 99, 235, 0.5);
-}
-
