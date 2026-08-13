@@ -47,15 +47,19 @@ if ($slug !== '') {
     <title><?php echo $event ? esc($event['event_name']) . ' - PMT Checkin' : ($showEventPicker ? 'PMT - Checkin - Chọn Sự Kiện' : 'PMT - Checkin'); ?></title>
     <link rel="icon" href="<?php echo url('img/logo pmt.png'); ?>" type="image/png">
     <?php require_once __DIR__ . '/includes/pwa_head.php'; ?>
-    <link rel="stylesheet" href="<?php echo url('assets/css/frontend.css'); ?>">
+    <link rel="stylesheet" href="<?php echo url('assets/css/frontend.css?v=' . time()); ?>">
 </head>
 <body>
 
 <div class="container">
     <?php if ($showEventPicker): ?>
         <div class="event-header">
+            <div class="brand-logo-wrap">
+                <img src="<?php echo url('img/logo pmt.png'); ?>" alt="PMT Logo" class="brand-logo">
+                <span class="vip-badge">CỔNG CHECK-IN VÀO CỔNG</span>
+            </div>
             <h1>Danh sách sự kiện đang diễn ra</h1>
-            <div class="event-meta">Vui lòng chọn sự kiện bạn muốn mở màn hình Check-in:</div>
+            <div class="event-meta-text">Vui lòng chọn sự kiện bạn muốn mở màn hình Check-in:</div>
         </div>
         <div class="form-body">
             <div class="event-picker-list">
@@ -64,29 +68,47 @@ if ($slug !== '') {
                         <div>
                             <div class="event-picker-title"><?php echo esc($actEv['event_name']); ?></div>
                             <div class="event-picker-meta">
-                                <?php echo date('d/m/Y', strtotime($actEv['event_date'])); ?> 
+                                📅 <?php echo date('d/m/Y', strtotime($actEv['event_date'])); ?> 
                                 <?php if (!empty($actEv['location'])): ?>
-                                    | <?php echo esc($actEv['location']); ?>
+                                    | 📍 <?php echo esc($actEv['location']); ?>
                                 <?php endif; ?>
                             </div>
                         </div>
-                        <div class="event-picker-arrow">Mở check-in</div>
+                        <div class="event-picker-arrow">Mở check-in &rarr;</div>
                     </a>
                 <?php endforeach; ?>
             </div>
         </div>
     <?php elseif ($errorMsg): ?>
+        <div class="event-header" style="text-align: center;">
+            <div class="brand-logo-wrap" style="justify-content: center;">
+                <img src="<?php echo url('img/logo pmt.png'); ?>" alt="PMT Logo" class="brand-logo">
+            </div>
+            <h1 style="color: #ef4444; font-size: 1.3rem;">Thông Báo Hệ Thống</h1>
+        </div>
         <div class="form-body">
-            <div class="alert error" style="display:block;">
+            <div class="alert error" style="display:block; text-align: center;">
                 <?php echo esc($errorMsg); ?>
             </div>
         </div>
     <?php else: ?>
         <div class="event-header">
+            <div class="brand-logo-wrap">
+                <img src="<?php echo url('img/logo pmt.png'); ?>" alt="PMT Logo" class="brand-logo">
+                <span class="vip-badge">
+                    <span class="pulse-dot"></span> ĐANG MỞ CHECK-IN
+                </span>
+            </div>
             <h1><?php echo esc($event['event_name']); ?></h1>
-            <div class="event-meta">
-                Ngày: <?php echo date('d/m/Y', strtotime($event['event_date'])); ?><br>
-                Địa điểm: <?php echo esc($event['location'] ?? 'Đang cập nhật'); ?>
+            <div class="event-meta-chips">
+                <span class="meta-chip">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    <?php echo date('d/m/Y', strtotime($event['event_date'])); ?>
+                </span>
+                <span class="meta-chip">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    <?php echo esc($event['location'] ?? 'Đang cập nhật'); ?>
+                </span>
             </div>
         </div>
         
@@ -100,15 +122,32 @@ if ($slug !== '') {
                 
                 <div id="form-fields">
                     <div class="form-group">
-                        <label for="customer_code">Mã Khách hàng được NPP cung cấp *</label>
-                        <input type="text" id="customer_code" name="customer_code" class="form-control" required placeholder="" maxlength="50" autocomplete="off">
+                        <label for="customer_code">Mã Khách Hàng hoặc SĐT được cấp *</label>
+                        <div class="input-with-icon">
+                            <span class="input-icon-left">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="2.2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M7 8h10M7 12h10M7 16h6"></path></svg>
+                            </span>
+                            <input type="text" id="customer_code" name="customer_code" class="form-control-vip" required placeholder="Nhập Mã KH (Ví dụ: NPPVP, XOTC01...)" maxlength="50" autocomplete="off">
+                        </div>
                     </div>
                 </div>
                 
-                <button type="submit" id="btn-submit" class="btn-submit">
+                <button type="submit" id="btn-submit" class="btn-submit-vip">
                     <span id="spinner" class="loading-spinner"></span>
-                    <span id="btn-text">Xác nhận Check-in</span>
+                    <span id="btn-text">XÁC NHẬN CHECK-IN</span>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                 </button>
+
+                <div class="form-footer-tips">
+                    <div class="tip-item">
+                        <span class="tip-icon">⚡</span>
+                        <span>Nhận diện bàn tiệc & thông tin chỗ ngồi tức thì</span>
+                    </div>
+                    <div class="tip-item">
+                        <span class="tip-icon">🎁</span>
+                        <span>Cấp mã dự thưởng quay số may mắn bốc thăm</span>
+                    </div>
+                </div>
             </form>
         </div>
     <?php endif; ?>

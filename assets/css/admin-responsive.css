@@ -2450,53 +2450,83 @@ body {
     border-color: #b91c1c;
 }
 
-/* Soft Action Pill Buttons for Data Tables */
+/* Solid Action Pill Buttons for Data Tables (Matching Danh sach khach hang) */
 .btn-action-assign,
 .btn-action-info {
-    background-color: #e0f2fe;
-    color: #0369a1;
-    border: 1px solid #bae6fd;
-    padding: 4px 10px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    border-radius: 6px;
+    background: #0284c7 !important;
+    color: #ffffff !important;
+    border: 1px solid #0369a1 !important;
+    padding: 5px 12px !important;
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 1px 3px rgba(2, 132, 199, 0.25) !important;
+    transition: all 0.2s ease !important;
 }
 .btn-action-assign:hover,
 .btn-action-info:hover {
-    background-color: #bae6fd;
-    color: #0c4a6e;
+    background: #0369a1 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 10px rgba(2, 132, 199, 0.35) !important;
+    transform: translateY(-1px) !important;
 }
 
 .btn-action-delete,
 .btn-action-danger {
-    background-color: #ffe4e6;
-    color: #be123c;
-    border: 1px solid #fecdd3;
-    padding: 4px 10px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    border-radius: 6px;
+    background: #dc2626 !important;
+    color: #ffffff !important;
+    border: 1px solid #b91c1c !important;
+    padding: 5px 12px !important;
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 1px 3px rgba(220, 38, 38, 0.25) !important;
+    transition: all 0.2s ease !important;
 }
 .btn-action-delete:hover,
 .btn-action-danger:hover {
-    background-color: #fecdd3;
-    color: #881337;
+    background: #b91c1c !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 10px rgba(220, 38, 38, 0.35) !important;
+    transform: translateY(-1px) !important;
 }
 
 .btn-action-edit,
 .btn-action-primary {
-    background-color: #e0e7ff;
-    color: #3730a3;
-    border: 1px solid #c7d2fe;
-    padding: 4px 10px;
-    font-size: 0.8rem;
-    font-weight: 700;
-    border-radius: 6px;
+    background: #4f46e5 !important;
+    color: #ffffff !important;
+    border: 1px solid #4338ca !important;
+    padding: 5px 12px !important;
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 1px 3px rgba(79, 70, 229, 0.25) !important;
+    transition: all 0.2s ease !important;
 }
 .btn-action-edit:hover,
 .btn-action-primary:hover {
-    background-color: #c7d2fe;
-    color: #1e1b4b;
+    background: #4338ca !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 10px rgba(79, 70, 229, 0.35) !important;
+    transform: translateY(-1px) !important;
+}
+
+.btn-action-checkin {
+    background: #10b981 !important;
+    color: #ffffff !important;
+    border: 1px solid #059669 !important;
+    padding: 5px 12px !important;
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 1px 3px rgba(16, 185, 129, 0.25) !important;
+    transition: all 0.2s ease !important;
+}
+.btn-action-checkin:hover {
+    background: #059669 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 10px rgba(16, 185, 129, 0.35) !important;
+    transform: translateY(-1px) !important;
 }
 
 /* ===== COMPACT MOBILE DASHBOARD LAYOUT ===== */
@@ -3325,21 +3355,23 @@ tr.row-new-highlight td {
 .donut-center-badge {
     position: absolute;
     top: 50%;
-    left: 36%;
+    left: 35%;
     transform: translate(-50%, -50%);
     text-align: center;
     pointer-events: none;
+    white-space: nowrap;
+    z-index: 2;
 }
 
 .donut-center-pct {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     font-weight: 800;
     color: #0f172a;
     line-height: 1;
 }
 
 .donut-center-label {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 700;
     color: #64748b;
     margin-top: 4px;
@@ -3433,4 +3465,172 @@ tr.row-new-highlight td {
         flex: 1 !important;
         overflow-y: auto !important;
     }
+}
+
+/* Lock main page background scroll strictly when table popup modal is open */
+html.table-modal-active,
+body.table-modal-active,
+body.table-modal-active .wrapper,
+body.table-modal-active .main-content {
+    overflow: hidden !important;
+    height: 100vh !important;
+    touch-action: none;
+}
+
+/* ==========================================================================
+   TABLE DETAIL POPUP MODAL (ADMIN TABLES) - FIXED & BOUNDED IN MAIN-CONTENT
+   ========================================================================== */
+.table-detail-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 70px;
+    left: 265px;
+    right: 20px;
+    bottom: 20px;
+    background: #ffffff;
+    z-index: 999999;
+    padding: 20px 24px;
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+    border: 1px solid #cbd5e1;
+    overflow: hidden;
+}
+
+.table-detail-modal-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+}
+
+.table-detail-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 14px;
+    margin-bottom: 14px;
+    border-bottom: 2px solid #f1f5f9;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.table-detail-modal-title-wrap {
+    flex: 1;
+    text-align: center;
+    padding: 0 20px;
+}
+
+.table-detail-modal-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.table-detail-modal-subtitle {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+.btn-close-modal-text {
+    padding: 8px 20px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #334155;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
+
+.btn-close-modal-text:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+    border-color: #94a3b8;
+}
+
+.table-detail-modal-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: auto;
+    touch-action: pan-y;
+}
+
+@media screen and (max-width: 768px) {
+    .table-detail-modal-overlay {
+        top: 60px;
+        left: 10px;
+        right: 10px;
+        bottom: 70px;
+        padding: 12px;
+        border-radius: 10px;
+    }
+
+    .table-detail-modal-title {
+        font-size: 1.15rem;
+    }
+
+    .table-detail-modal-subtitle {
+        font-size: 0.8rem;
+    }
+    
+    .btn-close-modal-text {
+        padding: 6px 14px;
+        font-size: 0.82rem;
+    }
+}
+
+/* Sticky Table Header for Popup Modal & Data Tables */
+.table-detail-modal-body table thead th,
+.excel-table-container table thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+    background: #f8fafc !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
+}
+
+/* Real-time SSE Row Highlight Fadeout */
+@keyframes highlightFadeOut {
+    0% { background-color: #fef08a; }
+    100% { background-color: transparent; }
+}
+
+.new-row-highlight {
+    animation: highlightFadeOut 2s ease-out forwards;
+}
+
+/* Flash Scanner Feedback */
+.scan-flash-success {
+    animation: flashGreen 0.5s ease-out;
+}
+
+.scan-flash-warning {
+    animation: flashYellow 0.5s ease-out;
+}
+
+.scan-flash-error {
+    animation: flashRed 0.5s ease-out;
+}
+
+@keyframes flashGreen {
+    0% { border-color: #22c55e; box-shadow: 0 0 20px rgba(34, 197, 94, 0.6); }
+    100% { border-color: inherit; box-shadow: none; }
+}
+
+@keyframes flashYellow {
+    0% { border-color: #eab308; box-shadow: 0 0 20px rgba(234, 179, 8, 0.6); }
+    100% { border-color: inherit; box-shadow: none; }
+}
+
+@keyframes flashRed {
+    0% { border-color: #ef4444; box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); }
+    100% { border-color: inherit; box-shadow: none; }
 }

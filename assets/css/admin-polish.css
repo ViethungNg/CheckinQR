@@ -1,7 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Google+Sans+Flex:wght@300;400;500;600;700;800;900&display=swap');
+
 /* PMT admin UI polish layer.
    Loaded after admin-responsive.css to calm the interface without touching PHP logic. */
 
+html, body, input, button, select, textarea, table, th, td, div, span, h1, h2, h3, h4, h5, h6 {
+    font-family: 'Google Sans', 'Google Sans Flex', 'Segoe UI', system-ui, -apple-system, sans-serif !important;
+}
+
 :root {
+    --pmt-font-family: 'Google Sans', 'Google Sans Flex', 'Segoe UI', system-ui, -apple-system, sans-serif;
     --pmt-red: #c62828;
     --pmt-red-dark: #a91f1f;
     --pmt-red-soft: #fff1f1;
@@ -448,23 +455,31 @@ textarea:focus,
 }
 
 html body table.excel-table {
-    min-width: 1180px !important;
+    min-width: 1240px !important;
 }
 
 html body table.excel-table th.col-actions,
-html body table.excel-table td.col-actions {
-    width: 190px !important;
-    min-width: 190px !important;
-    max-width: none !important;
-    padding-left: 10px !important;
-    padding-right: 14px !important;
+html body table.excel-table td.col-actions,
+html body table.excel-table th:last-child,
+html body table.excel-table td:last-child,
+html body .excel-table-container table th.col-actions,
+html body .excel-table-container table td.col-actions {
+    width: 260px !important;
+    min-width: 260px !important;
+    max-width: 280px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    text-align: center !important;
 }
 
-html body table.excel-table td.col-actions .action-btns-wrapper {
-    width: max-content !important;
-    min-width: 168px !important;
+html body table.excel-table td.col-actions .action-btns-wrapper,
+html body .excel-table-container table td.col-actions .action-btns-wrapper {
+    width: 100% !important;
+    min-width: 240px !important;
     max-width: none !important;
+    justify-content: center !important;
     gap: 6px !important;
+    margin: 0 auto !important;
 }
 
 html body table.excel-table td.col-actions .badge,
@@ -989,36 +1004,55 @@ table td *::selection {
     }
 
     html body table.excel-table.mobile-card-table td.col-full_name,
-    html body table.excel-table.mobile-card-table td.col-card-title {
+    html body table.excel-table.mobile-card-table td.col-card-title,
+    html body table.mobile-card-table td.col-full_name,
+    html body table.mobile-card-table td.col-card-title {
         order: -20 !important;
         display: block !important;
         width: 100% !important;
         min-width: 0 !important;
         max-width: 100% !important;
-        padding: 0 0 8px !important;
-        margin-bottom: 3px !important;
+        padding: 4px 0 8px !important;
+        margin-bottom: 6px !important;
         text-align: left !important;
         border-bottom: 1px solid #e7edf3 !important;
+        box-sizing: border-box !important;
     }
 
     table.mobile-card-table td.col-full_name::before,
     table.mobile-card-table td.col-card-title::before {
         display: block !important;
-        margin-bottom: 2px;
-        color: #8b96a5;
-        font-size: 0.66rem;
+        margin-bottom: 3px !important;
+        color: #8b96a5 !important;
+        font-size: 0.66rem !important;
+        text-align: left !important;
+    }
+
+    table.mobile-card-table td.col-full_name > *,
+    table.mobile-card-table td.col-card-title > * {
+        justify-self: start !important;
+        text-align: left !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
     }
 
     table.mobile-card-table td.col-full_name strong,
     table.mobile-card-table td.col-card-title strong {
         display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
         height: auto !important;
         padding: 0 !important;
-        color: var(--pmt-text) !important;
-        font-size: 1rem !important;
+        color: var(--pmt-text, #0f172a) !important;
+        font-size: 0.96rem !important;
         font-weight: 850 !important;
-        line-height: 1.3 !important;
+        line-height: 1.35 !important;
         text-align: left !important;
+        white-space: normal !important;
+        word-break: normal !important;
+        overflow-wrap: break-word !important;
+        box-sizing: border-box !important;
     }
 
     table.mobile-card-table td.col-customer_code {

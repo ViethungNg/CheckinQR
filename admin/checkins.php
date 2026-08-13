@@ -836,7 +836,14 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                 }
 
                 let html = '';
+                const isFirstLoad = !window.knownCheckinIds;
+                window.knownCheckinIds = window.knownCheckinIds || new Set();
+
                 result.data.recent_checkins.forEach(item => {
+                    const isNewItem = !isFirstLoad && !window.knownCheckinIds.has(item.id);
+                    window.knownCheckinIds.add(item.id);
+                    const highlightClass = isNewItem ? 'new-row-highlight' : '';
+
                     window.allCheckinsMap[item.id] = {
                         id: item.id,
                         event_id: item.event_id || 0,
@@ -904,7 +911,7 @@ $tablesList = $db->query("SELECT id, table_name, table_code, event_id FROM event
                         `;
                     }
 
-                    html += `<tr id="checkin-row-${item.id}" class="${rowClass}">`;
+                    html += `<tr id="checkin-row-${item.id}" class="${rowClass} ${highlightClass}">`;
                     checkinColsConfig.forEach(col => {
                         if (!col.visible) return;
                         const labelAttr = `data-label="${col.label}"`;

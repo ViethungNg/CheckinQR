@@ -136,49 +136,7 @@ if (count($activeEvents) === 1) {
             </div>
         </div>
 
-        <!-- Smart Filter Toolbar & Guest Checkin Table Section -->
-        <div class="dashboard-table-card">
-            <div class="table-filter-toolbar admin-filter-bar">
-                <div class="table-toolbar-left">
-                    <div class="dashboard-search-box" style="position: relative;">
-                        <input type="text" id="dashboard-search-input" placeholder="Tìm theo tên, SĐT hoặc tên bàn..." oninput="handleSearchInput(this.value)" style="padding-right: 65px;" autocomplete="off">
-                        <span class="kbd-badge hide-mobile" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); pointer-events: none;">Ctrl K</span>
-                    </div>
-                </div>
-                <div class="table-toolbar-right">
-                    <select id="table-select-filter" class="table-select-custom" onchange="setTableFilter(this.value)">
-                        <option value="all">Tất cả các bàn</option>
-                    </select>
-                    <div class="realtime-pill-badge">
-                        <div class="pulse-dot"></div> Real-time (2s)
-                    </div>
-                </div>
-            </div>
-
-            <?php 
-            $dashCols = getTableColumnsConfig('dashboard'); 
-            $tableTitle = 'Bảng thống kê realtime';
-            require __DIR__ . '/../includes/table_toolbar.php';
-            ?>
-            <div class="table-responsive excel-table-container">
-                <div class="excel-zoom-wrapper">
-                    <table class="excel-table modern-data-table">
-                    <thead>
-                        <tr>
-                            <?php foreach ($dashCols as $c): ?>
-                                <?php if (!empty($c['visible'])): ?>
-                                     <th class="col-<?php echo esc($c['key']); ?>"><?php echo str_replace(' / ', ' /<br>', esc($c['label'])); ?></th>
-                                <?php endif; ?>
-                            <?php endforeach; ?>
-                        </tr>
-                    </thead>
-                    <tbody id="recent-checkins-body">
-                        <!-- Loaded dynamically -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        </div>
+        <!-- Dashboard view only (Table & Search hidden as requested) -->
     </div>
 </div>
 
@@ -188,7 +146,7 @@ let selectedTableId = 'all';
 let currentSearch = '';
 let searchDebounceTimer = null;
 let lastIndexDataHash = '';
-const dashColsConfig = <?php echo json_encode($dashCols); ?>;
+const dashColsConfig = [];
 
 function setFilter(val) {
     currentFilter = val;
@@ -245,6 +203,21 @@ function filterDashboardTableDOM(query) {
 function scrollToFloorplan() {
     const sec = document.querySelector('.table-floorplan-section');
     if (sec) sec.scrollIntoView({ behavior: 'smooth' });
+}
+
+function positionDonutCenterBadge(chart) {
+    if (!chart || !chart.chartArea) return;
+    try {
+        const ca = chart.chartArea;
+        const x = (ca.left + ca.right) / 2;
+        const y = (ca.top + ca.bottom) / 2;
+        const badge = document.querySelector('.donut-center-badge');
+        if (badge && !isNaN(x) && !isNaN(y) && x > 0 && y > 0) {
+            badge.style.left = x + 'px';
+            badge.style.top = y + 'px';
+            badge.style.transform = 'translate(-50%, -50%)';
+        }
+    } catch (e) {}
 }
 
 let occupancyChartInstance = null;
@@ -314,10 +287,17 @@ function renderCharts(charts) {
         ];
         const values = [dist.full || 0, dist.partial || 0, dist.empty || 0, dist.unassigned || 0];
 
+        const isMobile = window.innerWidth <= 640;
+        const legendPos = isMobile ? 'bottom' : 'right';
+
         if (tableStatusDistChartInstance) {
             tableStatusDistChartInstance.data.labels = labels;
             tableStatusDistChartInstance.data.datasets[0].data = values;
+            if (tableStatusDistChartInstance.options.plugins.legend) {
+                tableStatusDistChartInstance.options.plugins.legend.position = legendPos;
+            }
             tableStatusDistChartInstance.update();
+            positionDonutCenterBadge(tableStatusDistChartInstance);
         } else {
             const ctx = distCanvas.getContext('2d');
             tableStatusDistChartInstance = new Chart(ctx, {
@@ -341,11 +321,30 @@ function renderCharts(charts) {
                         }
                     },
                     plugins: {
-                        legend: { position: 'right' }
+                        legend: { 
+                            position: legendPos,
+                            labels: {
+                                boxWidth: isMobile ? 12 : 16,
+                                font: { size: isMobile ? 11 : 12 }
+                            }
+                        }
                     },
                     cutout: '70%'
-                }
+                },
+                plugins: [{
+                    id: 'centerBadgePos',
+                    afterLayout(chart) {
+                        positionDonutCenterBadge(chart);
+                    },
+                    afterRender(chart) {
+                        positionDonutCenterBadge(chart);
+                    },
+                    afterDraw(chart) {
+                        positionDonutCenterBadge(chart);
+                    }
+                }]
             });
+            positionDonutCenterBadge(tableStatusDistChartInstance);
         }
     }
 }

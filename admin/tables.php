@@ -187,12 +187,48 @@ if (isset($_GET['ajax'])) {
 <body>
 <div class="wrapper">
     <?php require_once __DIR__ . '/../includes/sidebar.php'; ?>
-    <div class="main-content">
+    <div class="main-content" style="position: relative;">
         <div class="header" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
             <h1>Quản lý Bàn Sự kiện <?php echo isKinhDoanh() ? '(Đang phụ trách)' : ''; ?></h1>
             <span id="realtime-status" style="font-size: 0.85rem; color: #2e7d32; font-weight: 500;">
                 🟢 Real-time (Mỗi 2s)
             </span>
+        </div>
+
+        <!-- POPUP CHI TIẾT BÀN TIỆC (BOUNDED IN MAIN CONTENT, NO ICONS) -->
+        <div id="table-detail-modal" class="table-detail-modal-overlay">
+            <div class="table-detail-modal-card">
+                <div class="table-detail-modal-header">
+                    <div class="table-detail-modal-title-wrap">
+                        <h2 id="modal-table-title" class="table-detail-modal-title">Chi Tiết Bàn Tiệc</h2>
+                        <div id="modal-table-subtitle" class="table-detail-modal-subtitle">Danh sách khách mời dự kiến & thực tế</div>
+                    </div>
+                    <button type="button" class="btn-close-modal-text" onclick="closeTableDetailModal()">Đóng</button>
+                </div>
+                <div class="table-detail-modal-body">
+                    <div class="table-responsive excel-table-container">
+                        <div class="excel-zoom-wrapper">
+                            <table class="excel-table modern-data-table">
+                                <thead>
+                                    <tr>
+                                        <th class="col-customer_code">MÃ KH</th>
+                                        <th class="col-full_name">HỌ VÀ TÊN</th>
+                                        <th class="col-phone">SỐ ĐIỆN THOẠI</th>
+                                        <th class="col-organization">ĐƠN VỊ / ĐẠI LÝ</th>
+                                        <th class="col-table_name">BÀN NGỒI</th>
+                                        <th class="col-lucky_draw_code">MÃ TRÚNG THƯỞNG</th>
+                                        <th class="col-checkin_time">THỜI GIAN CHECKIN</th>
+                                        <th class="col-status">TRẠNG THÁI</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="modal-table-guests-body">
+                                    <!-- Loaded dynamically via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <?php if ($message): ?>
@@ -598,8 +634,19 @@ if (isset($_GET['ajax'])) {
                     ? `<span class="staff-prefix">Phụ trách: </span><span class="staff-name">${staffText}</span>` 
                     : '&nbsp;';
 
+                const totalG = parseInt(t.total_guests || 0);
+                const arrivedG = parseInt(t.arrived_guests || 0);
+                const ratio = totalG > 0 ? (arrivedG / totalG) : 0;
+                
+                let tintStyle = '';
+                if (ratio >= 1.0 && totalG > 0) {
+                    tintStyle = 'background: #dcfce7; border-color: #86efac;';
+                } else if (ratio > 0) {
+                    tintStyle = 'background: #f0fdf4; border-color: #bbf7d0;';
+                }
+
                 html += `
-                    <div class="table-card-v2 ${isActive}" id="table-card-${t.id}" onclick="setTableFilter('${t.id}')">
+                    <div class="table-card-v2 ${isActive}" id="table-card-${t.id}" style="${tintStyle}" onclick="handleTableCardClick('${t.id}', '${(t.table_name || '').replace(/'/g, "\\'")}')">
                         <div class="table-card-top">
                             <span class="table-name-badge">${t.table_name}</span>
                             <span class="table-ratio-badge">${t.arrived_guests}/${t.total_guests}</span>
@@ -608,8 +655,8 @@ if (isset($_GET['ajax'])) {
                             ${staffHtml}
                         </div>
                         <div class="table-stats-row">
-                            <span style="color:#10b981;">${t.arrived_guests} Đã tới</span>
-                            <span style="color:#6366f1;">${t.not_arrived_guests} Chưa tới</span>
+                            <span style="color:#10b981; font-weight:700;">${t.arrived_guests} Đã tới</span>
+                            <span style="color:#6366f1; font-weight:600;">${t.not_arrived_guests} Chưa tới</span>
                         </div>
                     </div>
                 `;
@@ -618,6 +665,121 @@ if (isset($_GET['ajax'])) {
         
         container.innerHTML = html;
     }
+
+    function handleTableCardClick(tableId, tableName) {
+        setTableFilter(tableId);
+        if (tableId !== 'all') {
+            openTableDetailModal(tableId, tableName);
+        }
+    }
+
+    async function openTableDetailModal(tableId, tableName) {
+        const modal = document.getElementById('table-detail-modal');
+        if (!modal) return;
+
+        const titleEl = document.getElementById('modal-table-title');
+        const subTitleEl = document.getElementById('modal-table-subtitle');
+        const tbody = document.getElementById('modal-table-guests-body');
+
+        if (titleEl) titleEl.textContent = tableName ? `Chi Tiết ${tableName}` : 'Chi Tiết Bàn Tiệc';
+        if (subTitleEl) subTitleEl.textContent = 'Đang tải dữ liệu khách mời...';
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:32px; color:#64748b; font-weight:600;">Đang tải dữ liệu danh sách khách mời...</td></tr>';
+        }
+
+        modal.style.display = 'block';
+        document.documentElement.classList.add('table-modal-active');
+        document.body.classList.add('table-modal-active');
+
+        try {
+            const url = `../api/stats.php?filter=guests&table_id=${encodeURIComponent(tableId)}&_t=${Date.now()}`;
+            const resp = await fetch(url, { cache: 'no-store' });
+            if (!resp.ok) throw new Error('Lỗi khi tải dữ liệu');
+
+            const res = await resp.json();
+            if (res.status === 'success' && Array.isArray(res.data.recent_checkins)) {
+                const list = res.data.recent_checkins;
+                const totalCount = list.length;
+                const arrivedCount = list.filter(item => item.status === 'checked_in' || item.status === 'matched').length;
+                const notArrivedCount = totalCount - arrivedCount;
+
+                if (subTitleEl) {
+                    subTitleEl.textContent = `Tổng số: ${totalCount} khách | Đã tới: ${arrivedCount} | Chưa tới: ${notArrivedCount}`;
+                }
+
+                if (list.length === 0) {
+                    if (tbody) {
+                        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:32px; color:#94a3b8; font-weight:600;">Bàn này hiện chưa có danh sách khách mời.</td></tr>';
+                    }
+                    return;
+                }
+
+                let html = '';
+                list.forEach(item => {
+                    const isCheckedIn = item.status === 'checked_in' || item.status === 'matched';
+                    const rowClass = isCheckedIn ? 'row-checked-in' : '';
+
+                    const customerCodeHtml = item.customer_code 
+                        ? `<strong style="color: #0284c7; font-weight:700; font-size: 0.88rem;">${item.customer_code}</strong>`
+                        : `<span style="color: #cbd5e1;">-</span>`;
+
+                    let badgeText = item.status_text || 'Chưa tới';
+                    let badgeStyle = 'background:#f1f5f9; color:#475569; border:1px solid #e2e8f0;';
+                    
+                    if (isCheckedIn) {
+                        badgeText = '🟢 Đã checkin';
+                        badgeStyle = 'background:#dcfce7; color:#15803d; border:1px solid #bbf7d0;';
+                    } else if (item.status === 'walk_in') {
+                        badgeText = '🟠 Khách phát sinh';
+                        badgeStyle = 'background:#fef3c7; color:#b45309; border:1px solid #fde68a;';
+                    } else if (item.status === 'invited') {
+                        badgeText = '🟡 Chưa tới';
+                        badgeStyle = 'background:#eef2ff; color:#4338ca; border:1px solid #c7d2fe;';
+                    }
+
+                    const luckyCodeHtml = item.lucky_draw_code 
+                        ? `<span style="font-weight: 800; color: #6a1b9a; background: #f3e5f5; border: 1.5px solid #ba68c8; padding: 3px 8px; border-radius: 6px; font-size: 0.85rem;">${item.lucky_draw_code}</span>`
+                        : `<span style="color: #cbd5e1;">-</span>`;
+
+                    const tableNameHtml = item.table_name && item.table_name !== 'Chưa xếp bàn'
+                        ? `<span style="font-weight:700; color:#047857; background:#ecfdf5; border:1px solid #a7f3d0; padding:4px 10px; border-radius:8px; font-size:0.82rem;">${item.table_name}</span>`
+                        : `<span style="color:#94a3b8; font-style:italic; font-size:0.85rem;">${tableName}</span>`;
+
+                    html += `
+                        <tr class="${rowClass}">
+                            <td class="col-customer_code">${customerCodeHtml}</td>
+                            <td class="col-full_name" style="font-weight:700; color:#0f172a;">${item.full_name || ''}</td>
+                            <td class="col-phone" style="font-weight:600; color:#475569;">${item.phone || ''}</td>
+                            <td class="col-organization">${item.organization || '-'}</td>
+                            <td class="col-table_name">${tableNameHtml}</td>
+                            <td class="col-lucky_draw_code">${luckyCodeHtml}</td>
+                            <td class="col-checkin_time" style="font-size:0.85rem; color:#64748b;">${item.time || '-'}</td>
+                            <td class="col-status"><span style="display:inline-block; padding:4px 12px; border-radius:20px; font-size:0.78rem; font-weight:700; ${badgeStyle}">${badgeText}</span></td>
+                        </tr>
+                    `;
+                });
+
+                if (tbody) tbody.innerHTML = html;
+            }
+        } catch (err) {
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:32px; color:#ef4444; font-weight:600;">Không thể tải dữ liệu bàn. Vui lòng thử lại sau.</td></tr>';
+            }
+        }
+    }
+
+    function closeTableDetailModal() {
+        const modal = document.getElementById('table-detail-modal');
+        if (modal) modal.style.display = 'none';
+        document.documentElement.classList.remove('table-modal-active');
+        document.body.classList.remove('table-modal-active');
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeTableDetailModal();
+        }
+    });
 
     function populateTableSelectOptions(tables) {
         const select = document.getElementById('table-select-filter');

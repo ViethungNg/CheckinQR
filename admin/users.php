@@ -217,7 +217,7 @@ foreach ($usersList as $u) {
             </div>
 
             <div class="table-responsive mobile-card-container">
-                <table class="mobile-card-table">
+                <table class="excel-table mobile-card-table">
                     <thead>
                         <tr>
                             <th>Tài khoản</th>
@@ -233,7 +233,7 @@ foreach ($usersList as $u) {
                             $firstChar = mb_strtoupper(mb_substr($u['full_name'], 0, 1, 'UTF-8'));
                         ?>
                         <tr data-role="<?php echo esc($u['role']); ?>">
-                            <td>
+                            <td class="col-customer_code" data-label="Tài khoản">
                                 <div class="user-cell">
                                     <div class="user-avatar"><?php echo esc($firstChar); ?></div>
                                     <div>
@@ -242,18 +242,18 @@ foreach ($usersList as $u) {
                                     </div>
                                 </div>
                             </td>
-                            <td><strong><?php echo esc($u['full_name']); ?></strong></td>
-                            <td>
+                            <td class="col-card-title" data-label="Họ và tên"><strong><?php echo esc($u['full_name']); ?></strong></td>
+                            <td class="col-role" data-label="Vai trò">
                                 <span class="badge-role role-<?php echo esc($u['role']); ?>">
                                     <?php echo getRoleLabel($u['role']); ?>
                                 </span>
                             </td>
-                            <td>
+                            <td class="col-status" data-label="Trạng thái">
                                 <span class="badge-status <?php echo $u['status'] === 'active' ? 'status-active' : 'status-inactive'; ?>">
                                     <?php echo $u['status'] === 'active' ? 'Hoạt động' : 'Đã khóa'; ?>
                                 </span>
                             </td>
-                            <td>
+                            <td class="col-last_login" data-label="Đăng nhập cuối">
                                 <span style="font-size: 0.88rem; color: #555;">
                                     <?php echo !empty($u['last_login_at']) ? date('d/m/Y H:i', strtotime($u['last_login_at'])) : 'Chưa đăng nhập'; ?>
                                 </span>

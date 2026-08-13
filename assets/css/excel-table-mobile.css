@@ -260,15 +260,16 @@ html body table.excel-table td.col-method {
   white-space: nowrap !important;
 }
 
-/* Quy tắc cột Thao tác siêu gọn phân biệt */
+/* Quy tắc cột Thao tác rộng rãi vừa đủ chứa 3 nút */
 html body table.excel-table th.col-actions,
 html body table.excel-table td.col-actions,
 html body table.excel-table th:last-child,
 html body table.excel-table td:last-child,
 html body .excel-table-container table th:last-child,
 html body .excel-table-container table td:last-child {
-  width: 130px !important;
-  max-width: 140px !important;
+  width: 260px !important;
+  min-width: 260px !important;
+  max-width: 280px !important;
   white-space: nowrap !important;
   text-align: center !important;
 }

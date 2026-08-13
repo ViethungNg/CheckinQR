@@ -14,6 +14,15 @@ if (is_dir($sessionSavePath) && is_writable($sessionSavePath)) {
 }
 
 if (session_status() === PHP_SESSION_NONE) {
+    // Cấu hình thời gian tồn tại Session: 7 ngày (604,800 giây)
+    $sessionLifetime = 7 * 86400;
+    ini_set('session.gc_maxlifetime', (string)$sessionLifetime);
+    session_set_cookie_params([
+        'lifetime' => $sessionLifetime,
+        'path'     => '/',
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
     @session_start();
 }
 

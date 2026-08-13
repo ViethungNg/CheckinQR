@@ -122,7 +122,7 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
                 </div>
             </div>
             <div class="table-responsive mobile-card-container">
-                <table class="mobile-card-table">
+                <table class="excel-table mobile-card-table">
                     <thead>
                         <tr>
                             <th>Tên sự kiện</th>
@@ -135,12 +135,12 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
                     </thead>
                     <tbody>
                         <?php foreach($events as $event): ?>
-                        <tr>
-                            <td><strong><?php echo esc($event['event_name']); ?></strong></td>
-                            <td><?php echo esc($event['event_code']); ?></td>
-                            <td><?php echo date('d/m/Y', strtotime($event['event_date'])); ?></td>
-                            <td><?php echo esc($event['location'] ?? '-'); ?></td>
-                            <td>
+                        <tr id="event-row-<?php echo $event['id']; ?>">
+                            <td class="col-card-title" data-label="Tên sự kiện"><strong><?php echo esc($event['event_name']); ?></strong></td>
+                            <td class="col-event_code" data-label="Mã sự kiện"><?php echo esc($event['event_code']); ?></td>
+                            <td class="col-event_date" data-label="Ngày tổ chức"><?php echo date('d/m/Y', strtotime($event['event_date'])); ?></td>
+                            <td class="col-location" data-label="Địa điểm"><?php echo esc($event['location'] ?? '-'); ?></td>
+                            <td class="col-status" data-label="Trạng thái">
                                 <span class="badge <?php echo esc($event['status']); ?>">
                                     <?php echo $event['status'] === 'active' ? 'Đang diễn ra' : 'Đã kết thúc'; ?>
                                 </span>

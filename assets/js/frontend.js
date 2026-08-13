@@ -52,6 +52,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    function triggerHapticAndFlash(type) {
+        try {
+            if (navigator.vibrate) {
+                if (type === 'success') navigator.vibrate([100, 50, 100]);
+                else if (type === 'warning') navigator.vibrate([150]);
+                else if (type === 'error') navigator.vibrate([250, 80, 250]);
+            }
+        } catch (e) {}
+
+        const container = document.querySelector('.container') || document.body;
+        if (container) {
+            container.classList.remove('scan-flash-success', 'scan-flash-warning', 'scan-flash-error');
+            void container.offsetWidth;
+            container.classList.add(`scan-flash-${type}`);
+        }
+    }
+
     // Xử lý gửi Form
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -93,6 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (submitBtn) submitBtn.style.display = 'none';
 
             if (data.status === 'not_found') {
+                triggerHapticAndFlash('error');
                 // 1. Không tìm thấy mã khách hàng trong CSDL
                 alertBox.style.display = 'block';
                 alertBox.className = 'alert error';
@@ -114,6 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
             } else if (data.status === 'require_guest_confirmation') {
+                triggerHapticAndFlash('warning');
                 // 2. Tìm thấy Mã hợp lệ -> Hiện Modal Xác nhận Sang Trọng (Chỉ gồm Mã KH và Đơn vị / Đại lý)
                 alertBox.style.display = 'block';
                 alertBox.className = 'alert warning';
@@ -169,6 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
             } else if (data.status === 'already_checked_in') {
+                triggerHapticAndFlash('warning');
                 // 3. Khách đã check-in trước đó
                 alertBox.style.display = 'block';
                 alertBox.className = 'alert info';
@@ -216,6 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
             } else if (data.status === 'success') {
+                triggerHapticAndFlash('success');
                 // 4. CHECK-IN THÀNH CÔNG!
                 try { localStorage.setItem('checkin_realtime_signal', Date.now().toString()); } catch(e) {}
                 if (window.playNotifChime) window.playNotifChime();
