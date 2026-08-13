@@ -4,42 +4,49 @@ declare(strict_types=1);
 /**
  * Đăng nhập người dùng admin
  */
-function loginAdmin(string $username, string $password): bool {
+function loginAdmin(string $username, string $password): bool
+{
     $db = Database::getConnection();
-    
+
     $stmt = $db->prepare("SELECT * FROM users WHERE username = ? AND status = 'active' LIMIT 1");
     $stmt->execute([$username]);
     $user = $stmt->fetch();
-    
-    if ($user && $password === $user['password_hash']) {
+
+    if ($user && ($password === $user['password_hash'] || password_verify($password, $user['password_hash']))) {
         // Tránh Session Fixation
         session_regenerate_id(true);
-        
+
         $_SESSION['admin_id'] = $user['id'];
         $_SESSION['admin_username'] = $user['username'];
         $_SESSION['admin_name'] = $user['full_name'];
         $_SESSION['admin_role'] = $user['role'];
-        
+
         // Cập nhật last login
         $updateStmt = $db->prepare("UPDATE users SET last_login_at = NOW() WHERE id = ?");
         $updateStmt->execute([$user['id']]);
-        
+
         return true;
     }
-    
+
     return false;
 }
 
 /**
  * Đăng xuất admin
  */
-function logoutAdmin(): void {
+function logoutAdmin(): void
+{
     $_SESSION = [];
     if (ini_get("session.use_cookies")) {
         $params = session_get_cookie_params();
-        setcookie(session_name(), '', time() - 42000,
-            $params["path"], $params["domain"],
-            $params["secure"], $params["httponly"]
+        setcookie(
+            session_name(),
+            '',
+            time() - 42000,
+            $params["path"],
+            $params["domain"],
+            $params["secure"],
+            $params["httponly"]
         );
     }
     if (session_status() === PHP_SESSION_ACTIVE) {
@@ -50,14 +57,16 @@ function logoutAdmin(): void {
 /**
  * Kiểm tra xem admin đã đăng nhập chưa
  */
-function isLoggedIn(): bool {
+function isLoggedIn(): bool
+{
     return isset($_SESSION['admin_id']);
 }
 
 /**
  * Bắt buộc đăng nhập, nếu chưa đăng nhập sẽ chuyển hướng về trang login
  */
-function requireLogin(): void {
+function requireLogin(): void
+{
     if (!isLoggedIn()) {
         redirect(url('/admin/login.php'));
     }
@@ -69,7 +78,8 @@ function requireLogin(): void {
 /**
  * Kiểm tra xem người dùng hiện tại có phải admin/super_admin không
  */
-function isAdmin(): bool {
+function isAdmin(): bool
+{
     $role = $_SESSION['admin_role'] ?? 'staff';
     return in_array($role, ['admin', 'super_admin']);
 }
@@ -77,7 +87,8 @@ function isAdmin(): bool {
 /**
  * Kiểm tra xem người dùng hiện tại có phải Kinh doanh không
  */
-function isKinhDoanh(): bool {
+function isKinhDoanh(): bool
+{
     $role = $_SESSION['admin_role'] ?? 'staff';
     return $role === 'kinhdoanh';
 }
@@ -85,7 +96,8 @@ function isKinhDoanh(): bool {
 /**
  * Kiểm tra xem người dùng hiện tại có phải Lễ tân không
  */
-function isLeTan(): bool {
+function isLeTan(): bool
+{
     $role = $_SESSION['admin_role'] ?? 'staff';
     return in_array($role, ['letan', 'staff']);
 }
@@ -93,7 +105,8 @@ function isLeTan(): bool {
 /**
  * Lấy tên vai trò hiển thị
  */
-function getRoleLabel(string $role): string {
+function getRoleLabel(string $role): string
+{
     switch ($role) {
         case 'admin':
         case 'super_admin':
@@ -111,7 +124,8 @@ function getRoleLabel(string $role): string {
 /**
  * Bắt buộc quyền admin mới được truy cập, nếu không sẽ báo lỗi
  */
-function requireAdmin(): void {
+function requireAdmin(): void
+{
     if (!isAdmin()) {
         die('Bạn không có quyền truy cập trang này. Vui lòng liên hệ Quản trị viên.');
     }
