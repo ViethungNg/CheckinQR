@@ -177,17 +177,66 @@
         activeEl.blur();
       }
     }
-  // 6. Disable double-tap auto-zoom on mobile while preserving native 2-finger pinch zoom
-  var lastTouchEnd = 0;
-  document.addEventListener('touchend', function (e) {
-    var now = Date.now();
-    if (now - lastTouchEnd <= 300) {
-      var target = e.target;
-      if (target && !target.closest('input, textarea, select')) {
-        e.preventDefault();
-      }
+  // 7. Hiệu ứng Spinner xoay tròn 1.5s khi chuyển các chức năng / nạp trang
+  (function () {
+    var startTime = Date.now();
+
+    function createPageLoader() {
+      if (document.getElementById('pmt-page-loader')) return;
+      var loaderEl = document.createElement('div');
+      loaderEl.id = 'pmt-page-loader';
+      loaderEl.innerHTML = `
+        <div class="pmt-spinner-wrapper">
+          <div class="pmt-spinner-ring"></div>
+          <img src="${window.location.origin}/img/logo pmt.png" alt="PMT" class="pmt-spinner-logo" onerror="this.style.display='none'">
+        </div>
+        <div class="pmt-loader-text">Đang tải dữ liệu...</div>
+      `;
+      document.body.appendChild(loaderEl);
     }
-    lastTouchEnd = now;
-  }, false);
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', createPageLoader);
+    } else {
+      createPageLoader();
+    }
+
+    function dismissLoader() {
+      var elapsedTime = Date.now() - startTime;
+      var remainingTime = Math.max(0, 1500 - elapsedTime);
+
+      setTimeout(function () {
+        var loader = document.getElementById('pmt-page-loader');
+        if (loader) {
+          loader.classList.add('loader-hidden');
+        }
+      }, remainingTime);
+    }
+
+    window.addEventListener('load', dismissLoader);
+    setTimeout(dismissLoader, 1600);
+
+    // Kích hoạt spinner khi bấm chuyển trang / chuyển chức năng
+    document.addEventListener('click', function (e) {
+      var anchor = e.target.closest('a');
+      if (!anchor) return;
+
+      var href = anchor.getAttribute('href');
+      var target = anchor.getAttribute('target');
+
+      if (!href || href.startsWith('#') || href.startsWith('javascript:') || href.startsWith('tel:') || href.startsWith('mailto:') || target === '_blank') {
+        return;
+      }
+
+      var loader = document.getElementById('pmt-page-loader');
+      if (loader) {
+        loader.classList.remove('loader-hidden');
+      }
+    }, true);
+
+    window.addEventListener('pageshow', function () {
+      dismissLoader();
+    });
+  })();
 
 })();
