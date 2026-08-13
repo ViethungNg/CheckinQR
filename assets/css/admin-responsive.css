@@ -640,10 +640,10 @@ button, input, select, textarea {
         top: 60px !important;
         left: 0 !important;
         width: 100vw !important;
-        height: calc(100vh - 130px) !important;
+        height: calc(100vh - 130px - 75px) !important;
         background: #ffffff !important;
         flex-direction: column !important;
-        padding: 20px 15px !important;
+        padding: 20px 15px 10px 15px !important;
         box-sizing: border-box !important;
         gap: 10px !important;
         overflow-y: auto !important;
@@ -656,14 +656,14 @@ button, input, select, textarea {
     .sidebar.mobile-open .sidebar-user-box {
         display: flex !important;
         position: fixed !important;
-        bottom: 0 !important;
+        bottom: calc(var(--nav-height, 56px) + max(0px, env(safe-area-inset-bottom, 0px))) !important;
         left: 0 !important;
         width: 100vw !important;
-        height: 70px !important;
+        height: 72px !important;
         background: #ffffff !important;
         padding: 10px 15px !important;
-        border-top: 1px solid #eee !important;
-        z-index: 99999 !important;
+        border-top: 1px solid #e2e8f0 !important;
+        z-index: 9999999 !important;
         box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.08) !important;
         align-items: center !important;
         justify-content: space-between !important;

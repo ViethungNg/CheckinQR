@@ -312,6 +312,25 @@ $configCheckins   = getTableColumnsConfig('checkins');
 
         <div class="settings-container">
 
+            <!-- 1. Quản lý Tài khoản Cá nhân (Dành cho tất cả User trên cả Desktop & Mobile) -->
+            <div class="settings-card" style="border-left: 4px solid #e11d48;">
+                <div class="settings-card-header">
+                    <h3 class="settings-card-title">👤 Tài Khoản Cá Nhân</h3>
+                    <p class="settings-card-subtitle">
+                        Xin chào, <strong><?php echo esc($_SESSION['admin_name'] ?? 'Admin'); ?></strong> 
+                        &bull; Vai trò: <span class="badge" style="background:#ffe4e6; color:#e11d48; font-weight:700;"><?php echo esc(getRoleLabel($_SESSION['admin_role'] ?? 'staff')); ?></span>
+                    </p>
+                </div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: flex-start;">
+                    <button type="button" class="btn btn-action-primary" onclick="openChangePasswordModal()" style="padding: 10px 18px; font-size: 0.92rem; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+                        🔑 Đổi Mật Khẩu
+                    </button>
+                    <a href="logout.php" class="btn btn-action-danger" onclick="return confirmModal(event, 'Bạn có chắc chắn muốn đăng xuất khỏi hệ thống?');" style="padding: 10px 18px; font-size: 0.92rem; display: inline-flex; align-items: center; gap: 6px; text-decoration: none;">
+                        🚪 Đăng Xuất
+                    </a>
+                </div>
+            </div>
+
             <!-- 2. Cấu hình Hiển thị Cột của Bảng (Chỉ dành riêng cho ADMIN) -->
             <?php if ($isUserAdmin): ?>
             <div class="settings-card">
