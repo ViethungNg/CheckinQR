@@ -94,7 +94,8 @@ if ($slug !== '') {
     <?php else: ?>
         <div class="event-header">
             <div class="brand-logo-wrap">
-                <img src="<?php echo url('img/logo pmt.png'); ?>" alt="PMT Logo" class="brand-logo">
+                <?php $eventLogoUrl = !empty($event['event_logo']) ? url($event['event_logo']) : url('img/logo pmt.png'); ?>
+                <img src="<?php echo esc($eventLogoUrl); ?>" alt="Brand Logo" class="brand-logo">
                 <span class="vip-badge">
                     <span class="pulse-dot"></span> ĐANG MỞ CHECK-IN
                 </span>
@@ -122,12 +123,12 @@ if ($slug !== '') {
                 
                 <div id="form-fields">
                     <div class="form-group">
-                        <label for="customer_code">Mã Khách Hàng hoặc SĐT được cấp *</label>
+                        <label for="customer_code">Nhập mã khách hàng được BTC cung cấp *</label>
                         <div class="input-with-icon">
                             <span class="input-icon-left">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e11d48" stroke-width="2.2"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="M7 8h10M7 12h10M7 16h6"></path></svg>
                             </span>
-                            <input type="text" id="customer_code" name="customer_code" class="form-control-vip" required placeholder="Nhập Mã KH (Ví dụ: NPPVP, XOTC01...)" maxlength="50" autocomplete="off">
+                            <input type="text" id="customer_code" name="customer_code" class="form-control-vip" required placeholder="Nhập mã KH" maxlength="50" autocomplete="off">
                         </div>
                     </div>
                 </div>

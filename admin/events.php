@@ -5,12 +5,35 @@ requireAdmin();
 
 $db = Database::getConnection();
 
+// Tự động kiểm tra và thêm cột event_logo nếu chưa có
+try {
+    $db->exec("ALTER TABLE events ADD COLUMN event_logo VARCHAR(255) NULL AFTER location");
+} catch(PDOException $e) {}
+
 // Xử lý Form POST
 $message = '';
 $error = '';
 if (isPost()) {
     requireCsrfToken();
     $action = $_POST['action'] ?? '';
+    
+    // Xử lý Upload Logo Thương Hiệu
+    $eventLogo = null;
+    if (isset($_FILES['event_logo']) && $_FILES['event_logo']['error'] === UPLOAD_ERR_OK) {
+        $tmpName = $_FILES['event_logo']['tmp_name'];
+        $ext = strtolower(pathinfo($_FILES['event_logo']['name'], PATHINFO_EXTENSION));
+        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+        if (in_array($ext, $allowed)) {
+            $uploadDir = __DIR__ . '/../uploads/logos/';
+            if (!is_dir($uploadDir)) {
+                @mkdir($uploadDir, 0777, true);
+            }
+            $newFileName = 'logo_' . time() . '_' . uniqid() . '.' . $ext;
+            if (move_uploaded_file($tmpName, $uploadDir . $newFileName)) {
+                $eventLogo = 'uploads/logos/' . $newFileName;
+            }
+        }
+    }
     
     if ($action === 'add') {
         $eventName = trim($_POST['event_name'] ?? '');
@@ -25,8 +48,8 @@ if (isPost()) {
             $error = 'Vui lòng nhập Tên và Slug sự kiện';
         } else {
             try {
-                $stmt = $db->prepare("INSERT INTO events (event_name, event_code, slug, event_date, location, status, checkin_enabled) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$eventName, $eventCode, $slug, $eventDate, $location, $status, $checkinEnabled]);
+                $stmt = $db->prepare("INSERT INTO events (event_name, event_code, slug, event_date, location, event_logo, status, checkin_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                $stmt->execute([$eventName, $eventCode, $slug, $eventDate, $location, $eventLogo, $status, $checkinEnabled]);
                 $message = 'Thêm sự kiện thành công!';
             } catch(PDOException $e) {
                 $error = 'Lỗi thêm sự kiện (Có thể trùng Slug hoặc Mã sự kiện).';
@@ -43,8 +66,13 @@ if (isPost()) {
         $checkinEnabled = isset($_POST['checkin_enabled']) ? 1 : 0;
         
         try {
-            $stmt = $db->prepare("UPDATE events SET event_name=?, event_code=?, slug=?, event_date=?, location=?, status=?, checkin_enabled=? WHERE id=?");
-            $stmt->execute([$eventName, $eventCode, $slug, $eventDate, $location, $status, $checkinEnabled, $id]);
+            if ($eventLogo !== null) {
+                $stmt = $db->prepare("UPDATE events SET event_name=?, event_code=?, slug=?, event_date=?, location=?, event_logo=?, status=?, checkin_enabled=? WHERE id=?");
+                $stmt->execute([$eventName, $eventCode, $slug, $eventDate, $location, $eventLogo, $status, $checkinEnabled, $id]);
+            } else {
+                $stmt = $db->prepare("UPDATE events SET event_name=?, event_code=?, slug=?, event_date=?, location=?, status=?, checkin_enabled=? WHERE id=?");
+                $stmt->execute([$eventName, $eventCode, $slug, $eventDate, $location, $status, $checkinEnabled, $id]);
+            }
             $message = 'Cập nhật sự kiện thành công!';
         } catch(PDOException $e) {
             $error = 'Lỗi cập nhật sự kiện.';
@@ -136,7 +164,14 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
                     <tbody>
                         <?php foreach($events as $event): ?>
                         <tr id="event-row-<?php echo $event['id']; ?>">
-                            <td class="col-card-title" data-label="Tên sự kiện"><strong><?php echo esc($event['event_name']); ?></strong></td>
+                            <td class="col-card-title" data-label="Tên sự kiện">
+                                <div style="display: inline-flex; align-items: center; gap: 10px;">
+                                    <?php if (!empty($event['event_logo'])): ?>
+                                        <img src="../<?php echo esc($event['event_logo']); ?>" alt="Logo" style="height: 32px; max-width: 70px; object-fit: contain; border-radius: 4px; border: 1px solid #e2e8f0; background: #ffffff; padding: 2px;">
+                                    <?php endif; ?>
+                                    <strong><?php echo esc($event['event_name']); ?></strong>
+                                </div>
+                            </td>
                             <td class="col-event_code" data-label="Mã sự kiện"><?php echo esc($event['event_code']); ?></td>
                             <td class="col-event_date" data-label="Ngày tổ chức"><?php echo date('d/m/Y', strtotime($event['event_date'])); ?></td>
                             <td class="col-location" data-label="Địa điểm"><?php echo esc($event['location'] ?? '-'); ?></td>
@@ -174,7 +209,7 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
             <h2 id="modalTitle">Thêm Sự Kiện</h2>
             <span class="close" onclick="closeModal()">&times;</span>
         </div>
-        <form method="POST" action="">
+        <form method="POST" action="" enctype="multipart/form-data">
             <?php echo csrfField(); ?>
             <input type="hidden" name="action" id="formAction" value="add">
             <input type="hidden" name="id" id="eventId" value="">
@@ -198,6 +233,14 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
             <div class="form-group">
                 <label>Địa điểm tổ chức</label>
                 <input type="text" name="location" id="eventLocation" class="form-control" placeholder="Ví dụ: Hội trường Công ty Hòa Vinh">
+            </div>
+            <div class="form-group">
+                <label>Logo thương hiệu (Hiển thị Form Check-in)</label>
+                <input type="file" name="event_logo" id="eventLogoInput" class="form-control" accept="image/*" onchange="previewLogoImage(this)">
+                <div id="logoPreviewWrap" style="margin-top: 10px; display: none;">
+                    <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 4px;">Logo hiện tại / Đang chọn:</div>
+                    <img id="logoPreview" src="" alt="Logo Preview" style="height: 42px; max-width: 140px; object-fit: contain; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px; background: #ffffff;">
+                </div>
             </div>
             <div class="form-group">
                 <label>Trạng thái</label>
@@ -232,6 +275,9 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
         document.getElementById('eventLocation').value = '';
         document.getElementById('eventStatus').value = 'active';
         document.getElementById('checkinEnabled').checked = true;
+        document.getElementById('eventLogoInput').value = '';
+        document.getElementById('logoPreviewWrap').style.display = 'none';
+        document.getElementById('logoPreview').src = '';
         modal.style.display = 'block';
     }
     
@@ -246,7 +292,28 @@ $events = $db->query("SELECT * FROM events ORDER BY created_at DESC")->fetchAll(
         document.getElementById('eventLocation').value = eventData.location || '';
         document.getElementById('eventStatus').value = eventData.status;
         document.getElementById('checkinEnabled').checked = eventData.checkin_enabled == 1;
+        document.getElementById('eventLogoInput').value = '';
+        
+        if (eventData.event_logo) {
+            document.getElementById('logoPreview').src = '../' + eventData.event_logo;
+            document.getElementById('logoPreviewWrap').style.display = 'block';
+        } else {
+            document.getElementById('logoPreviewWrap').style.display = 'none';
+            document.getElementById('logoPreview').src = '';
+        }
+        
         modal.style.display = 'block';
+    }
+    
+    function previewLogoImage(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('logoPreview').src = e.target.result;
+                document.getElementById('logoPreviewWrap').style.display = 'block';
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
     }
     
     function closeModal() {
