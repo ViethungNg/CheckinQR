@@ -87,8 +87,19 @@ html, body {
     z-index: 99999 !important;
     align-items: center;
     justify-content: space-around;
-    user-select: none;
     touch-action: manipulation !important;
+    transition: transform 0.25s ease, opacity 0.25s ease, visibility 0.25s ease !important;
+  }
+
+  /* Tự động ẩn thanh điều hướng đáy khi bàn phím ảo hiển thị (Typing / Focus Input) */
+  body:has(input:focus, textarea:focus, select:focus) .pmt-bottom-nav,
+  body.keyboard-open .pmt-bottom-nav,
+  .pmt-bottom-nav.hide-keyboard {
+    display: none !important;
+    transform: translateY(100%) !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
   }
 
   .pmt-bottom-nav .nav-item {

@@ -241,4 +241,52 @@
     });
   })();
 
+  // 8. Tự động ẩn Thanh điều hướng đáy khi bật Bàn phím ảo (Typing / Focus input)
+  (function () {
+    function isInputElement(el) {
+      if (!el || !el.tagName) return false;
+      var tag = el.tagName.toUpperCase();
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+    }
+
+    function hideBottomNav() {
+      document.body.classList.add('keyboard-open');
+      var bNav = document.querySelector('.pmt-bottom-nav');
+      if (bNav) bNav.classList.add('hide-keyboard');
+    }
+
+    function showBottomNav() {
+      var activeEl = document.activeElement;
+      if (!isInputElement(activeEl)) {
+        document.body.classList.remove('keyboard-open');
+        var bNav = document.querySelector('.pmt-bottom-nav');
+        if (bNav) bNav.classList.remove('hide-keyboard');
+      }
+    }
+
+    document.addEventListener('focusin', function (e) {
+      if (isInputElement(e.target)) {
+        hideBottomNav();
+      }
+    }, true);
+
+    document.addEventListener('focusout', function (e) {
+      if (isInputElement(e.target)) {
+        setTimeout(showBottomNav, 120);
+      }
+    }, true);
+
+    // Lắng nghe thay đổi kích thước Visual Viewport (iOS Safari & Android Chrome)
+    if (window.visualViewport) {
+      var initialViewportHeight = window.visualViewport.height;
+      window.visualViewport.addEventListener('resize', function () {
+        if (window.visualViewport.height < initialViewportHeight - 120) {
+          hideBottomNav();
+        } else {
+          showBottomNav();
+        }
+      });
+    }
+  })();
+
 })();
