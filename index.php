@@ -153,7 +153,6 @@ if ($slug !== '') {
     <?php endif; ?>
 </div>
 
-<?php require_once __DIR__ . '/includes/bottom_nav.php'; ?>
 <script src="<?php echo url('assets/js/frontend.js?v=' . time()); ?>"></script>
 </body>
 </html>

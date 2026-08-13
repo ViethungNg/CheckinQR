@@ -192,14 +192,16 @@
         </div>
         <div class="pmt-loader-text">Đang tải dữ liệu...</div>
       `;
-      document.body.appendChild(loaderEl);
+      var targetParent = document.body || document.documentElement;
+      if (targetParent) {
+        targetParent.appendChild(loaderEl);
+      }
     }
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', createPageLoader);
-    } else {
+    if (document.body || document.documentElement) {
       createPageLoader();
     }
+    document.addEventListener('DOMContentLoaded', createPageLoader);
 
     function dismissLoader() {
       var elapsedTime = Date.now() - startTime;
