@@ -69,7 +69,11 @@ function getDbSnapshot($db, $userId, $userRole) {
     }
     
     // 2. Danh sách checkin mới nhất
-    $stmtNotif = $db->query("SELECT id, full_name, phone, table_name, match_status, DATE_FORMAT(created_at, '%H:%i:%s') as checkin_time FROM checkins ORDER BY id DESC LIMIT 20");
+    $driverName = $db->getAttribute(PDO::ATTR_DRIVER_NAME);
+    $timeCol = ($driverName === 'pgsql') 
+        ? "TO_CHAR(created_at, 'HH24:MI:SS') as checkin_time" 
+        : "DATE_FORMAT(created_at, '%H:%i:%s') as checkin_time";
+    $stmtNotif = $db->query("SELECT id, full_name, phone, table_name, match_status, {$timeCol} FROM checkins ORDER BY id DESC LIMIT 20");
     $recentCheckins = $stmtNotif->fetchAll(PDO::FETCH_ASSOC);
 
     // 3. Danh sách bàn tiệc
@@ -100,7 +104,8 @@ echo "retry: 1000\n\n";
 @flush();
 
 $lastHash = '';
-$maxIterations = 60; // Chạy tối đa 30s cho 1 luồng HTTP rồi kết nối lại để đảm bảo tính ổn định trên Web Server Apache/XAMPP
+// Trên Vercel gói Free, Function giới hạn 10s -> chạy 16 lượt (8s) rồi hoàn tất để client tự kết nối lại
+$maxIterations = (getenv('VERCEL') ? 16 : 60); 
 $i = 0;
 
 while ($i < $maxIterations) {

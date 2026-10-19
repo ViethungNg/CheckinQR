@@ -887,6 +887,7 @@
         injectConfirmModalHTML();
         checkNewNotifications();
         initAlertAndAutoScrollInterceptor();
-        setInterval(checkNewNotifications, 1500);
+        setInterval(checkNewNotifications, 4000);
     });
+
 })();

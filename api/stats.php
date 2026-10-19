@@ -21,24 +21,36 @@ try {
     $userId = $_SESSION['admin_id'] ?? 0;
 
     if (isKinhDoanh()) {
-        $stats = [
-            'events'      => (int)$db->query("SELECT COUNT(*) FROM events")->fetchColumn(),
-            'guests'      => (int)$db->query("SELECT COUNT(*) FROM guests g JOIN event_tables t ON g.table_id = t.id WHERE t.assigned_user_id = {$userId}")->fetchColumn(),
-            'checked_in'  => (int)$db->query("SELECT COUNT(*) FROM checkins c JOIN event_tables t ON c.table_id = t.id WHERE c.match_status = 'matched' AND t.assigned_user_id = {$userId}")->fetchColumn(),
-            'walk_in'     => 0,
-            'unassigned'  => 0,
-            'not_arrived' => (int)$db->query("SELECT COUNT(*) FROM guests g JOIN event_tables t ON g.table_id = t.id WHERE g.status = 'invited' AND t.assigned_user_id = {$userId}")->fetchColumn(),
-        ];
+        $rowStats = $db->query("
+            SELECT 
+                (SELECT COUNT(*) FROM events) as events,
+                (SELECT COUNT(*) FROM guests g JOIN event_tables t ON g.table_id = t.id WHERE t.assigned_user_id = {$userId}) as guests,
+                (SELECT COUNT(*) FROM checkins c JOIN event_tables t ON c.table_id = t.id WHERE c.match_status = 'matched' AND t.assigned_user_id = {$userId}) as checked_in,
+                0 as walk_in,
+                0 as unassigned,
+                (SELECT COUNT(*) FROM guests g JOIN event_tables t ON g.table_id = t.id WHERE g.status = 'invited' AND t.assigned_user_id = {$userId}) as not_arrived
+        ")->fetch() ?: [];
     } else {
-        $stats = [
-            'events'      => (int)$db->query("SELECT COUNT(*) FROM events")->fetchColumn(),
-            'guests'      => (int)$db->query("SELECT COUNT(*) FROM guests")->fetchColumn(),
-            'checked_in'  => (int)$db->query("SELECT COUNT(*) FROM checkins WHERE match_status = 'matched'")->fetchColumn(),
-            'walk_in'     => (int)$db->query("SELECT COUNT(*) FROM checkins WHERE match_status = 'walk_in'")->fetchColumn(),
-            'unassigned'  => (int)$db->query("SELECT COUNT(*) FROM checkins WHERE table_id IS NULL OR table_id = 0")->fetchColumn(),
-            'not_arrived' => (int)$db->query("SELECT COUNT(*) FROM guests WHERE status = 'invited'")->fetchColumn(),
-        ];
+        $rowStats = $db->query("
+            SELECT 
+                (SELECT COUNT(*) FROM events) as events,
+                (SELECT COUNT(*) FROM guests) as guests,
+                (SELECT COUNT(*) FROM checkins WHERE match_status = 'matched') as checked_in,
+                (SELECT COUNT(*) FROM checkins WHERE match_status = 'walk_in') as walk_in,
+                (SELECT COUNT(*) FROM checkins WHERE table_id IS NULL OR table_id = 0) as unassigned,
+                (SELECT COUNT(*) FROM guests WHERE status = 'invited') as not_arrived
+        ")->fetch() ?: [];
     }
+
+    $stats = [
+        'events'      => (int)($rowStats['events'] ?? 0),
+        'guests'      => (int)($rowStats['guests'] ?? 0),
+        'checked_in'  => (int)($rowStats['checked_in'] ?? 0),
+        'walk_in'     => (int)($rowStats['walk_in'] ?? 0),
+        'unassigned'  => (int)($rowStats['unassigned'] ?? 0),
+        'not_arrived' => (int)($rowStats['not_arrived'] ?? 0),
+    ];
+
 
     // Lấy danh sách các bàn + thống kê số khách đã tới / chưa tới theo từng bàn
     $tablesSummary = [];
@@ -53,31 +65,30 @@ try {
         ORDER BY t.sort_order ASC, t.id ASC
     ");
 
-    $stmtGuestsByTable = $db->prepare("
-        SELECT id, customer_code, full_name, phone, status 
-        FROM guests 
-        WHERE table_id = ? 
-        ORDER BY status DESC, id DESC
-    ");
-
-    while ($t = $stmtTables->fetch()) {
-        $tableIdInt = (int)$t['id'];
-        $stmtGuestsByTable->execute([$tableIdInt]);
-        $tableGuests = [];
-        while ($g = $stmtGuestsByTable->fetch()) {
-            $tableGuests[] = [
+    // Tối ưu hóa: Lấy toàn bộ khách theo bàn chỉ trong 1 truy vấn duy nhất (thay vì lặp N query sang Singapore)
+    $allGuestsByTable = [];
+    try {
+        $stmtAllGuests = $db->query("SELECT id, customer_code, full_name, phone, status, table_id FROM guests WHERE table_id IS NOT NULL ORDER BY status DESC, id DESC");
+        while ($g = $stmtAllGuests->fetch()) {
+            $tId = (int)$g['table_id'];
+            $allGuestsByTable[$tId][] = [
                 'id'            => (int)$g['id'],
                 'customer_code' => esc($g['customer_code'] ?? ''),
                 'full_name'     => esc($g['full_name']),
-                'phone'         => esc($g['phone']),
-                'status'        => esc($g['status']),
+                'phone'         => esc($g['phone'] ?? ''),
+                'status'        => esc($g['status'] ?? 'invited'),
             ];
         }
+    } catch (\Throwable $e) {}
+
+    while ($t = $stmtTables->fetch()) {
+        $tableIdInt = (int)$t['id'];
+        $tableGuests = $allGuestsByTable[$tableIdInt] ?? [];
 
         $tablesSummary[] = [
             'id'                 => $tableIdInt,
             'table_name'         => esc($t['table_name']),
-            'table_code'         => esc($t['table_code']),
+            'table_code'         => esc($t['table_code'] ?? ''),
             'capacity'           => (int)$t['capacity'],
             'assigned_user_name' => esc($t['assigned_user_name'] ?? 'Chưa phân công'),
             'total_guests'       => (int)$t['total_guests'],
@@ -86,6 +97,7 @@ try {
             'guests'             => $tableGuests,
         ];
     }
+
 
     // Xử lý bộ lọc bàn
     $tableFilterCondition = "";
@@ -163,8 +175,9 @@ try {
         } elseif ($filter === 'assigned') {
             $whereConditions[] = "(c.table_id IS NOT NULL AND c.table_id > 0)";
         } elseif ($filter === 'matched') {
-            $whereConditions[] = "c.match_status IN ('matched', 'walk_in', 'checked_in')";
+            $whereConditions[] = "(c.match_status = 'matched' OR c.match_status = 'walk_in')";
         } elseif ($filter === 'walk_in') {
+
             $whereConditions[] = "c.match_status = 'walk_in'";
         }
 
@@ -181,7 +194,8 @@ try {
         $whereClause = !empty($whereConditions) ? "WHERE " . implode(" AND ", $whereConditions) : "";
 
         $sortParam = trim($_GET['sort'] ?? 'time_desc');
-        $orderSql = "ORDER BY c.checkin_time DESC";
+        $orderSql = "ORDER BY c.id DESC";
+
         if ($sortParam === 'table_asc') {
             $orderSql = "ORDER BY t.table_name ASC, c.id DESC";
         } elseif ($sortParam === 'table_desc') {
@@ -309,10 +323,13 @@ try {
         ]
     ], JSON_UNESCAPED_UNICODE);
 
-} catch (Exception $e) {
+} catch (\Throwable $e) {
+    error_log(">>> API STATS ERROR: " . $e->getMessage() . " at " . $e->getFile() . ":" . $e->getLine());
     http_response_code(500);
     echo json_encode([
         'status'  => 'error',
-        'message' => $e->getMessage()
+        'message' => $e->getMessage(),
+        'line'    => $e->getLine()
     ], JSON_UNESCAPED_UNICODE);
 }
+

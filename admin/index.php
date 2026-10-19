@@ -9,24 +9,36 @@ $userId = $_SESSION['admin_id'] ?? 0;
 $adminRole = $_SESSION['admin_role'] ?? 'staff';
 
 if (isKinhDoanh()) {
-    $stats = [
-        'events'      => (int)$db->query("SELECT COUNT(*) FROM events")->fetchColumn(),
-        'guests'      => (int)$db->query("SELECT COUNT(*) FROM guests g JOIN event_tables t ON g.table_id = t.id WHERE t.assigned_user_id = {$userId}")->fetchColumn(),
-        'checked_in'  => (int)$db->query("SELECT COUNT(*) FROM checkins c JOIN event_tables t ON c.table_id = t.id WHERE c.match_status = 'matched' AND t.assigned_user_id = {$userId}")->fetchColumn(),
-        'walk_in'     => 0,
-        'unassigned'  => 0,
-        'not_arrived' => (int)$db->query("SELECT COUNT(*) FROM guests g JOIN event_tables t ON g.table_id = t.id WHERE g.status = 'invited' AND t.assigned_user_id = {$userId}")->fetchColumn(),
-    ];
+    $rowStats = $db->query("
+        SELECT 
+            (SELECT COUNT(*) FROM events) as events,
+            (SELECT COUNT(*) FROM guests g JOIN event_tables t ON g.table_id = t.id WHERE t.assigned_user_id = {$userId}) as guests,
+            (SELECT COUNT(*) FROM checkins c JOIN event_tables t ON c.table_id = t.id WHERE c.match_status = 'matched' AND t.assigned_user_id = {$userId}) as checked_in,
+            0 as walk_in,
+            0 as unassigned,
+            (SELECT COUNT(*) FROM guests g JOIN event_tables t ON g.table_id = t.id WHERE g.status = 'invited' AND t.assigned_user_id = {$userId}) as not_arrived
+    ")->fetch() ?: [];
 } else {
-    $stats = [
-        'events'      => (int)$db->query("SELECT COUNT(*) FROM events")->fetchColumn(),
-        'guests'      => (int)$db->query("SELECT COUNT(*) FROM guests")->fetchColumn(),
-        'checked_in'  => (int)$db->query("SELECT COUNT(*) FROM checkins WHERE match_status = 'matched'")->fetchColumn(),
-        'walk_in'     => (int)$db->query("SELECT COUNT(*) FROM checkins WHERE match_status = 'walk_in'")->fetchColumn(),
-        'unassigned'  => (int)$db->query("SELECT COUNT(*) FROM checkins WHERE table_id IS NULL OR table_id = 0")->fetchColumn(),
-        'not_arrived' => (int)$db->query("SELECT COUNT(*) FROM guests WHERE status = 'invited'")->fetchColumn(),
-    ];
+    $rowStats = $db->query("
+        SELECT 
+            (SELECT COUNT(*) FROM events) as events,
+            (SELECT COUNT(*) FROM guests) as guests,
+            (SELECT COUNT(*) FROM checkins WHERE match_status = 'matched') as checked_in,
+            (SELECT COUNT(*) FROM checkins WHERE match_status = 'walk_in') as walk_in,
+            (SELECT COUNT(*) FROM checkins WHERE table_id IS NULL OR table_id = 0) as unassigned,
+            (SELECT COUNT(*) FROM guests WHERE status = 'invited') as not_arrived
+    ")->fetch() ?: [];
 }
+
+$stats = [
+    'events'      => (int)($rowStats['events'] ?? 0),
+    'guests'      => (int)($rowStats['guests'] ?? 0),
+    'checked_in'  => (int)($rowStats['checked_in'] ?? 0),
+    'walk_in'     => (int)($rowStats['walk_in'] ?? 0),
+    'unassigned'  => (int)($rowStats['unassigned'] ?? 0),
+    'not_arrived' => (int)($rowStats['not_arrived'] ?? 0),
+];
+
 
 // Tỉ lệ % checkin toàn bộ
 $checkinRate = $stats['guests'] > 0 ? round(($stats['checked_in'] / $stats['guests']) * 100) : 0;
@@ -478,7 +490,8 @@ async function updateRealtimeStats(forceRefresh = false) {
 
 // Chạy ngay khi tải trang và lắng nghe sự kiện SSE Push (0s) khi CSDL có phát sinh
 setFilter(currentFilter);
-setInterval(updateRealtimeStats, 3000); // Polling dự phòng
+setInterval(updateRealtimeStats, 8000); // Polling dự phòng (đã có SSE realtime lắng nghe sự kiện tức thì)
+
 
 window.addEventListener('dbRealtimeChange', (e) => {
     updateRealtimeStats();
